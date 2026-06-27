@@ -4061,7 +4061,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ThirdPersonController
   moveSpeed: 3
-  mouseSensitivity: 0.1
+  mouseSensitivity: 0.02
   pitchLimit: 85
   jumpHeight: 1.2
   airTime: 0.8

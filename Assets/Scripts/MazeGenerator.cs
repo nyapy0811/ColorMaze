@@ -19,11 +19,11 @@ public class MazeGenerator : MonoBehaviour
     [Tooltip("한 칸의 크기(월드 유닛). GridMovement.cellSize와 같게 맞출 것")]
     public float cellSize = 1f;
 
-    [Tooltip("층 간 수직 간격")]
-    public float wallHeight = 1f;
-
     [Tooltip("시작 시 'P' 칸으로 옮길 플레이어")]
     public Transform player;
+
+    [Tooltip("플레이 시작 시 자동 생성할지. 씬에 미리 구워뒀다면 끈다.")]
+    public bool buildAtRuntime = true;
 
     [Tooltip("아래층부터 위로 쌓이는 각 층의 문자맵")]
     public Floor[] floors =
@@ -52,6 +52,8 @@ public class MazeGenerator : MonoBehaviour
 
     public void Build()
     {
+        Clear(); // 중복 생성 방지
+
         var root = new GameObject("Maze").transform;
         root.SetParent(transform, false);
 
@@ -59,7 +61,8 @@ public class MazeGenerator : MonoBehaviour
 
         for (int f = 0; f < floors.Length; f++)
         {
-            float baseY = f * wallHeight;
+            // 층 증가마다 표면이 +1 (0층 바닥 중심 -0.5 기준).
+            float baseY = f;
             string[] map = floors[f].rows;
 
             for (int row = 0; row < map.Length; row++)
@@ -88,11 +91,32 @@ public class MazeGenerator : MonoBehaviour
                             var rend = player.GetComponentInChildren<Renderer>();
                             if (rend != null) bottomOffset = player.position.y - rend.bounds.min.y;
                         }
-                        player.position = cell + Vector3.up * bottomOffset;
+                        Vector3 target = cell + Vector3.up * bottomOffset;
+                        // CharacterController는 transform.position 직접 변경을 무시하므로
+                        // 옮기는 동안 잠깐 꺼서 순간이동시킨다.
+                        if (player.TryGetComponent<CharacterController>(out var ccPlayer))
+                        {
+                            ccPlayer.enabled = false;
+                            player.position = target;
+                            ccPlayer.enabled = true;
+                        }
+                        else
+                        {
+                            player.position = target;
+                        }
                     }
                 }
             }
         }
+    }
+
+    // 이미 생성된 미로를 제거한다(에디터/런타임 모두).
+    public void Clear()
+    {
+        var existing = transform.Find("Maze");
+        if (existing == null) return;
+        if (Application.isPlaying) Destroy(existing.gameObject);
+        else DestroyImmediate(existing.gameObject);
     }
 
     // 가상의 0층: 1층 발판 전체를 덮는 바닥. 윗면이 y=0(플레이어가 서는 높이)에 맞도록 깐다.

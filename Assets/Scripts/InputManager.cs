@@ -28,4 +28,18 @@ public class InputManager : MonoSingleton<InputManager>
         var mouse = Mouse.current;
         return mouse != null ? mouse.delta.ReadValue() : Vector2.zero;
     }
+
+    /// <summary>이번 프레임에 점프 키(Space)를 눌렀는지.</summary>
+    public bool ReadJump()
+    {
+        var kb = Keyboard.current;
+        return kb != null && kb.spaceKey.wasPressedThisFrame;
+    }
+
+    /// <summary>이번 프레임에 일시정지 키(ESC)를 눌렀는지.</summary>
+    public bool ReadPause()
+    {
+        var kb = Keyboard.current;
+        return kb != null && kb.escapeKey.wasPressedThisFrame;
+    }
 }

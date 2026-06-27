@@ -18,11 +18,11 @@ public class Bootstrap : MonoBehaviour
         _ = PoolManager.Instance;
         _ = InputManager.Instance;
         _ = LevelManager.Instance;
+        _ = UIManager.Instance; // UI 씬을 additive로 로드
     }
 
     void Start()
     {
-        LevelManager.Instance.BuildLevel();
         GameManager.Instance.StartGame();
     }
 }

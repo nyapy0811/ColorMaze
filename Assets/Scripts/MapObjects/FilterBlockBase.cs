@@ -1,10 +1,12 @@
 using System.Collections.Generic;
-using TMPro;
+using Framework.Core;
 using UnityEngine;
 
 /// <summary>
 /// 판정형(필터) 기물 공통 베이스(4.2 컬러 필터, 4.3 RGB 필터).
-/// 매 프레임 Matches()로 통과 가능 여부를 판정해 콜라이더를 트리거/솔리드로 토글하고,
+/// 플레이어의 스택이 바뀔 때(ColorStackChanged) 또는 스테이지가 시작될 때(SceneLoadCompleted)만
+/// Matches()로 통과 가능 여부를 다시 판정해 콜라이더를 트리거/솔리드로 토글하고
+/// 채움 메시 투명도를 갱신한다(매 프레임 폴링하지 않음).
 /// 플레이어가 완전히 통과하면 스택을 초기화한다.
 /// 같은 외형 색을 가진 필터들끼리 채움(fill)/테두리(border) 메시로 자동 병합한다.
 /// 별도의 매니저 컴포넌트 없이 필터 스크립트만 씬에 있으면 동작한다.
@@ -25,6 +27,8 @@ public abstract class FilterBlockBase : MapObjectBase
     [Range(0f, 1f)] public float borderAlpha = 1f;
 
     bool passing;
+    MeshRenderer fillRenderer; // 이 블록이 속한 그룹의 채움(fill) 메시 렌더러(테두리 제외, 그룹 전체가 공유)
+    float builtFillAlpha; // 통과 불가능할 때 되돌아갈 원래 채움 투명도
 
     /// <summary>현재 플레이어 상태로 통과 가능한지 판정한다. 하위 클래스가 구현한다.</summary>
     protected abstract bool Matches(ColorStacks player);
@@ -50,12 +54,50 @@ public abstract class FilterBlockBase : MapObjectBase
         if (TryGetComponent<Renderer>(out var r)) r.enabled = enabled;
     }
 
-    protected virtual void Start() => RebuildAll();
+    protected virtual void Start()
+    {
+        RebuildAll();
+        Refresh(); // fillRenderer가 이제 막 배정됐으니 초기 상태를 한 번 반영
+    }
 
-    protected virtual void Update()
+    void OnEnable()
+    {
+        EventBus.Subscribe<ColorStackChanged>(OnStackChanged);
+        EventBus.Subscribe<SceneLoadCompleted>(OnStageStart);
+    }
+
+    void OnDisable()
+    {
+        EventBus.Unsubscribe<ColorStackChanged>(OnStackChanged);
+        EventBus.Unsubscribe<SceneLoadCompleted>(OnStageStart);
+    }
+
+    void OnStackChanged(ColorStackChanged e) => Refresh();
+
+    // 스테이지(씬)가 로드 완료됐을 때도 한 번 판정한다 — Start() 시점엔 플레이어 스택이
+    // 아직 이번 스테이지용으로 정리되지 않았을 수 있어서다.
+    void OnStageStart(SceneLoadCompleted e) => Refresh();
+
+    // 통과 가능 여부를 다시 판정해 콜라이더와 채움 메시 투명도를 갱신한다.
+    void Refresh()
     {
         if (Player == null) return;
-        Col.isTrigger = Matches(Player);
+        bool matches = Matches(Player);
+        Col.isTrigger = matches;
+        ApplyFillTransparency(matches);
+    }
+
+    // 통과 가능하면 채움(fill) 메시를 투명하게, 아니면 원래 투명도로 되돌린다(테두리는 건드리지 않음).
+    void ApplyFillTransparency(bool passable)
+    {
+        if (fillRenderer == null) return;
+
+        var mpb = new MaterialPropertyBlock();
+        fillRenderer.GetPropertyBlock(mpb);
+        Color32 c = GetAppearanceColor();
+        c.a = (byte)Mathf.RoundToInt((passable ? 0f : builtFillAlpha) * 255f);
+        mpb.SetColor("_BaseColor", c);
+        fillRenderer.SetPropertyBlock(mpb);
     }
 
     void OnTriggerEnter(Collider other)
@@ -71,7 +113,18 @@ public abstract class FilterBlockBase : MapObjectBase
     }
 
     // 인스펙터에서 값을 바꾸면(에디터 미리보기) 씬 전체를 다시 병합한다.
-    void OnValidate() => RebuildAll();
+    // OnValidate 도중 바로 RebuildAll()을 실행하면 TMP가 라벨 생성 중 DestroyImmediate를
+    // 호출해 경고가 뜨므로, 한 프레임 뒤로 미뤄서 실행한다.
+#if UNITY_EDITOR
+    void OnValidate()
+    {
+        UnityEditor.EditorApplication.delayCall += () =>
+        {
+            if (this == null) return; // 미뤄지는 동안 오브젝트가 파괴됐을 수 있음
+            RebuildAll();
+        };
+    }
+#endif
 
     // ---------- 메시 병합 (구 GateMeshCombiner를 흡수) ----------
 
@@ -222,9 +275,16 @@ public abstract class FilterBlockBase : MapObjectBase
         }
 
         string baseName = $"GateMesh_{color.r}_{color.g}_{color.b}";
-        BuildMeshObject(parent, baseName + "_Fill", fillVerts, fillTris, settings.gateMaterial, color, settings.gateAlpha);
+        var fillGo = BuildMeshObject(parent, baseName + "_Fill", fillVerts, fillTris, settings.gateMaterial, color, settings.gateAlpha);
+        var fillRenderer = fillGo.GetComponent<MeshRenderer>();
+        foreach (var b in blocks)
+        {
+            b.fillRenderer = fillRenderer;
+            b.builtFillAlpha = settings.gateAlpha;
+        }
+
         if (b0 > 0f)
-            BuildMeshObject(parent, baseName + "_Border", borderVerts, borderTris, settings.gateMaterial, color, settings.borderAlpha);
+            BuildMeshObject(parent, baseName + "_Border", borderVerts, borderTris, BorderMaterial(settings.gateMaterial), color, settings.borderAlpha);
 
         // 그룹당 하나만: 라벨 텍스트가 있는 그룹(대표 블록 기준)에만 라벨을 만든다.
         string labelText = settings.GetLabelText();
@@ -232,26 +292,28 @@ public abstract class FilterBlockBase : MapObjectBase
             BuildGroupLabel(parent, baseName + "_Label", cells, labelText);
     }
 
-    // 그룹 중심을 향한 시선이 그룹 자신의 칸(셀)과 만나는(카메라에서 가장 가까운) 지점에 라벨을 띄운다.
-    // 그 시선을 다른 물체가 가로막으면 라벨을 숨긴다(FilterGroupLabel이 매 프레임 갱신).
+    // 그룹의 칸(셀) 위에 라벨 하나를 띄운다. 실제 위치·회전 계산은 범용 컴포넌트 CellGroupLabel이 담당한다.
     static void BuildGroupLabel(Transform parent, string name, HashSet<Vector3Int> cells, string text)
     {
         var cellArray = new Vector3Int[cells.Count];
         cells.CopyTo(cellArray);
-
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-
-        var tmp = go.AddComponent<TextMeshPro>();
-        tmp.text = text;
-        tmp.fontSize = 3f;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
-
-        go.AddComponent<FilterGroupLabel>().Init(cellArray, tmp);
+        CellGroupLabel.Create(parent, name, cellArray, text);
     }
 
-    static void BuildMeshObject(Transform parent, string name, List<Vector3> verts, List<int> tris, Material mat, Color32 color, float alpha)
+    static Material borderMat;
+
+    // 테두리 전용 머티리얼(깊이 테스트를 항상 통과해 가려진 모서리도 보이게 함). 셰이더가 없으면 채움과 같은 머티리얼로 대체.
+    static Material BorderMaterial(Material fallback)
+    {
+        if (borderMat == null)
+        {
+            var shader = Shader.Find("Custom/FilterBorderAlwaysVisible");
+            if (shader != null) borderMat = new Material(shader);
+        }
+        return borderMat != null ? borderMat : fallback;
+    }
+
+    static GameObject BuildMeshObject(Transform parent, string name, List<Vector3> verts, List<int> tris, Material mat, Color32 color, float alpha)
     {
         var mesh = new Mesh { name = name };
         mesh.SetVertices(verts);
@@ -270,6 +332,8 @@ public abstract class FilterBlockBase : MapObjectBase
         var mpb = new MaterialPropertyBlock();
         mpb.SetColor("_BaseColor", c);
         mr.SetPropertyBlock(mpb);
+
+        return go;
     }
 
     // 단위 큐브의 한 면 위, (u,v) 로컬 좌표 [uMin,uMax]×[vMin,vMax] 범위의 사각형을 추가한다.
@@ -302,53 +366,5 @@ public abstract class FilterBlockBase : MapObjectBase
     {
         public bool Equals(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b;
         public int GetHashCode(Color32 c) => (c.r << 16) | (c.g << 8) | c.b;
-    }
-
-    // 그룹 라벨 하나의 위치를 매 프레임 갱신한다.
-    // - 위치: 그룹의 칸(셀)들 중 카메라와 가장 가까운 칸을 찾아, 그 칸의 카메라 쪽 면 위에 배치한다.
-    class FilterGroupLabel : MonoBehaviour
-    {
-        Vector3Int[] cells;
-        TextMeshPro text;
-
-        public void Init(Vector3Int[] groupCells, TextMeshPro tmp)
-        {
-            cells = groupCells;
-            text = tmp;
-        }
-
-        void LateUpdate()
-        {
-            var cam = Camera.main;
-            if (cam == null) { text.enabled = false; return; }
-
-            Vector3 camPos = cam.transform.position;
-
-            // 카메라와 가장 가까운 셀을 찾는다.
-            float bestDist = float.MaxValue;
-            Vector3Int bestCell = default;
-            foreach (var cell in cells)
-            {
-                Vector3 cellCenter = new Vector3(cell.x, cell.y + 0.5f, cell.z);
-                float d = (cellCenter - camPos).sqrMagnitude;
-                if (d < bestDist) { bestDist = d; bestCell = cell; }
-            }
-
-            Vector3 bestCellCenter = new Vector3(bestCell.x, bestCell.y + 0.5f, bestCell.z);
-            Vector3 toCam = camPos - bestCellCenter;
-
-            // 카메라를 향한 면(가장 두드러진 축)의 바깥 법선을 구한다.
-            float ax = Mathf.Abs(toCam.x), ay = Mathf.Abs(toCam.y), az = Mathf.Abs(toCam.z);
-            Vector3 normal = (ax >= ay && ax >= az) ? new Vector3(Mathf.Sign(toCam.x), 0f, 0f)
-                : (ay >= az) ? new Vector3(0f, Mathf.Sign(toCam.y), 0f)
-                : new Vector3(0f, 0f, Mathf.Sign(toCam.z));
-
-            text.enabled = true;
-            transform.position = bestCellCenter + normal * 0.52f;
-            // 카메라를 따라 도는 대신, 메시 면과 같은 방향으로 고정한다.
-            // TextMeshPro는 카메라 반대 방향(뷰어에서 멀어지는 쪽)을 forward로 둬야 좌우가 뒤집히지 않는다.
-            Vector3 up = Mathf.Abs(Vector3.Dot(normal, Vector3.up)) > 0.99f ? Vector3.forward : Vector3.up;
-            transform.rotation = Quaternion.LookRotation(-normal, up);
-        }
     }
 }

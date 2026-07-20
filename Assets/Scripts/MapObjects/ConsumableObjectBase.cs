@@ -23,8 +23,11 @@ public abstract class ConsumableObjectBase : MapObjectBase
     {
         if (Consumed || !IsPlayer(other)) return;
         Apply();
-        Consume();
+        if (ShouldConsume()) Consume();
     }
+
+    /// <summary>Apply() 이후 실제로 사라져야 하는지. 기본은 항상 사라짐(true).</summary>
+    protected virtual bool ShouldConsume() => true;
 
     /// <summary>소모 처리(콜라이더 비활성화 + 파괴). 필요하면 오버라이드해 풀링 등으로 교체 가능.</summary>
     protected virtual void Consume()

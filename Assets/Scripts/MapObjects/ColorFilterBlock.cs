@@ -19,7 +19,7 @@ public class ColorFilterBlock : FilterBlockBase
 
     // 테두리(지정 스택을 색으로 표현)와 함께, 각 색의 정확한 스택 값을 해당 색으로 물들인 숫자로 보여준다.
     protected override string GetLabelText() =>
-        $"<color=#FF0000>{red}</color> <color=#00FF00>{green}</color> <color=#0000FF>{blue}</color>";
+        $"<color=#FF0000>{red}</color> <color=#000000>:</color> <color=#00FF00>{green}</color> <color=#000000>:</color> <color=#0000FF>{blue}</color>";
 
     static bool ColorEquals(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b;
 }

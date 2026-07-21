@@ -39,6 +39,7 @@
 - [x] **스택 체인저 자식 구 2개에 교환 대상 색 표시** — `StackChanger.Start()`/`OnValidate()`에서 0번째/1번째 자식 구 렌더러에 각각 `colorA`/`colorB` 색을 `MaterialPropertyBlock`으로 적용.
 - [x] **스택 체인저·컬러 체인저, 플레이어를 바라보며 회전** — 회전 로직을 `StackModifierConsumable`을 상속하는 새 중간 클래스 `MapObjects/SpinningStackModifier.cs`로 추출(기존에 `StackChanger`에만 있던 `LateUpdate`를 별도 스크립트로 분리). `StackChanger`·`ColorChanger`가 `StackModifierConsumable` 대신 `SpinningStackModifier`를 상속해 공유(지우개는 상속하지 않음, 대신 색 순환 사용).
 - [x] **컬러 체인저 자식 구 2개에 현재/변경 예정 색 미리보기** — 0번째 구 = `Player.CurrentRGB`(현재 플레이어 색), 1번째 구 = 변환식으로 미리 계산한 결과색. `ColorStackChanged`(스택 변경 시)·`SceneLoadCompleted`(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고 `Start()`에서 초기 1회도 반영(매 프레임 갱신 아님, `FilterBlockBase`와 동일한 이벤트 기반 패턴).
+- [x] **맵 진입 시 필터 통과 판정이 반영 안 되는 버그 수정** — 씬에 필터가 여러 개면 각 필터의 `Start()`가 전부 정적 `RebuildAll()`을 호출해 모든 그룹 메시를 통째로 새로 만드는데, 기존에는 자기 자신만 `Refresh()`해서 가장 나중에 `Start()`가 실행된 필터의 그룹만 정확한 투명도가 반영되고 나머지는 방금 새로 만들어진 기본(불투명) 상태로 남아 있었음. `RefreshAll()`(씬의 모든 필터를 한 번에 `Refresh()`)을 추가해 `Start()`와 `OnValidate()`(플레이 모드 중) 양쪽에서 `RebuildAll()` 직후 호출하도록 수정 — 특히 `OnValidate`는 Play 모드에서도(에디터가 컴포넌트를 재검증할 때) 발동해 메시를 불투명 기본값으로 되돌릴 수 있어, 여기서도 `RefreshAll()`을 호출해야 함.
 
 - [x] **각 기물 프리팹 제작** — 구상했던 모든 기물의 프리팹 완성(인스펙터 값 설정 포함).
 
@@ -51,10 +52,14 @@
 
 ## 4순위 — UI 화면
 
-- [ ] **메인 화면** (3.1) — 스테이지 선택(챕터·스테이지 목록), 설정, 종료.
+- [x] **메인 화면** (3.1) — `MainMenuController` 구현: 메인 패널·스테이지 선택 패널·설정 패널을 토글(스테이지 선택/설정은 서로 동시에 켜지지 않음), 챕터 버튼으로 해당 챕터의 스테이지 목록 패널만 표시(`chapterStagePanels`), 스테이지 버튼은 `OnStageButton(씬 이름)`으로 해당 씬 로드 + `GameManager.StartGame()`. `Bootstrap`이 더 이상 강제로 `Playing` 상태로 넘기지 않아 부팅 시 `MainMenu` 상태로 시작. **미구현**: 해금된 스테이지만 선택 가능하게 하는 것(3.7 SaveData 확장에 의존), 챕터/스테이지 데이터는 씬에 직접 배치(별도 데이터 자산 없음).
 - [ ] **클리어 화면** (3.6) — 메인화면/다음 스테이지/다시하기 선택, 챕터 마지막 스테이지에서 '다음 스테이지' 선택 시 다음 챕터 첫 스테이지로 이동.
 - [ ] **HUD 목표 스택 표시** (3.4) — `ColorStackHUD`에 현재 스테이지의 목표(캔버스) 스택 값 표시 추가.
 - [ ] **일시정지 메뉴 '처음부터' 버튼** (3.5) — `PauseMenuController`에 재시작(스테이지 초기화) 기능 추가.
+- [x] **일시정지 메뉴 종료 버튼, 메인 화면으로 복귀하도록 변경** — 기존에는 앱을 완전히 종료했으나, `Time.timeScale`을 되돌리고 `GameManager` 상태를 `MainMenu`로 바꾼 뒤 `MainMenu` 씬을 로드하도록 수정(앱 자체 종료는 메인 화면 자체의 종료 버튼만 담당).
+- [x] **HUD, MainMenu 상태에서 숨김 처리** — `UIScene`이 항상 additive로 로드되다 보니 메인 화면에서도 게임 HUD(조준점·스택 표시)가 같이 보이는 문제가 있었음. `HUDController`가 `GameManager.State`를 구독해 `MainMenu`일 때는 `hudRoot`를 끄고 그 외에는 켜도록 수정.
+- [x] **씬 전환 시 UI 씬이 사라지는 문제 수정** — `SceneLoader`가 Single 모드로 씬을 로드하면 이전에 additive로 얹혀 있던 `UIScene`까지 함께 언로드됨. `UIManager`가 `SceneLoadCompleted` 이벤트를 구독해 씬 전환마다 `UIScene`이 로드돼 있는지 확인하고 없으면 재로드하도록 수정.
+- [x] **중복 EventSystem 제거** — `MainMenu.unity`와 `UIScene.unity`에 각각 EventSystem이 있어 두 씬이 함께 로드되면 "2 event systems" 경고가 떴음. `MainMenu.unity` 쪽 EventSystem을 제거하고 `UIScene`의 것만 남김.
 
 ## 폴더 구조
 
@@ -65,7 +70,7 @@
 - `MapObjects/` — 베이스 클래스 7종(`MapObjectBase`, `FilterBlockBase`, `AcquireObjectBase`, `ClearObjectBase`, `ConsumableObjectBase`, `StackModifierConsumable`, `SpinningStackModifier`) + 기물 7종(ColorFilterBlock, RgbFilterBlock, ColorPalette, StackChanger, ColorChanger, Eraser, ColorCanvas) + 범용 라벨 컴포넌트 `CellGroupLabel`(상속해서 위치/회전 계산을 커스터마이즈 가능, 하위 클래스 `BillboardCenterLabel` 포함) + 범용 부유 애니메이션 `FloatingBob`. 옛 `GateMeshCombiner`는 `FilterBlockBase`로 기능이 흡수되어 내용을 비워두고 `!!!!GateMeshCombiner.cs`로 이름을 바꿔둠(삭제 권한 문제로 직접 못 지움, Unity에서 파일+`.meta` 삭제 필요 — 이름 앞 `!!!!`가 삭제 대상 표시).
 - `Shaders/` — `FilterBorderAlwaysVisible.shader`(필터 테두리 전용, 렌더 큐를 채움보다 뒤로 둬서 자기 채움 메시에 가려지지 않게 함).
 - `Level/` — LevelManager, MazeGenerator
-- `UI/` — UIManager, ColorStackHUD, HUDController, PauseMenuController, SettingsController
+- `UI/` — UIManager, ColorStackHUD, HUDController, PauseMenuController, SettingsController, MainMenuController
 - `Editor/` — MazeGeneratorEditor, `MapObjectOrganizer`(메뉴 `ColorMaze/특수 블록 하이어라키 정리` — 씬의 특수 블록을 타입별 폴더로 재배치, 위치는 그대로 유지). 옛 `GateMeshCombinerEditor`도 같은 이유로 `!!!!GateMeshCombinerEditor.cs`로 이름을 바꾸고 내용을 비워둠(삭제 필요).
 
 ## 참고

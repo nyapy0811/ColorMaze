@@ -57,7 +57,10 @@ public abstract class FilterBlockBase : MapObjectBase
     protected virtual void Start()
     {
         RebuildAll();
-        Refresh(); // fillRenderer가 이제 막 배정됐으니 초기 상태를 한 번 반영
+        // RebuildAll()은 씬의 모든 필터 그룹 메시를 통째로 다시 만들기 때문에(필터마다 Start()에서 매번 호출됨),
+        // 나 자신만 Refresh()하면 다른 필터의 Start()가 나중에 실행될 때 그 그룹의 갱신 결과가 덮어써진다.
+        // 그래서 여기서는 씬의 모든 필터를 한 번에 다시 반영한다.
+        RefreshAll();
     }
 
     void OnEnable()
@@ -85,6 +88,13 @@ public abstract class FilterBlockBase : MapObjectBase
         bool matches = Matches(Player);
         Col.isTrigger = matches;
         ApplyFillTransparency(matches);
+    }
+
+    // 씬의 모든 필터를 한 번에 Refresh()한다(RebuildAll() 직후처럼 모든 그룹을 다시 반영해야 할 때 사용).
+    static void RefreshAll()
+    {
+        foreach (var b in FindObjectsByType<FilterBlockBase>(FindObjectsSortMode.None))
+            b.Refresh();
     }
 
     // 통과 가능하면 채움(fill) 메시를 투명하게, 아니면 원래 투명도로 되돌린다(테두리는 건드리지 않음).
@@ -122,6 +132,9 @@ public abstract class FilterBlockBase : MapObjectBase
         {
             if (this == null) return; // 미뤄지는 동안 오브젝트가 파괴됐을 수 있음
             RebuildAll();
+            // 플레이 모드 중에는 RebuildAll()이 메시를 기본(불투명) 상태로 되돌리므로,
+            // 통과 가능 여부를 다시 반영해야 한다(Start()와 동일한 이유).
+            if (Application.isPlaying) RefreshAll();
         };
     }
 #endif

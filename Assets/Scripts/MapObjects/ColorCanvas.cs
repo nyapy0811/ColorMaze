@@ -12,6 +12,23 @@ public class ColorCanvas : ClearObjectBase
     [SerializeField] int targetGreen;
     [SerializeField] int targetBlue;
 
+    // 인스펙터에서 값을 바꾸면 에디터에서도 바로 반영되게 한다.
+    void OnValidate() => ApplyTargetColor();
+
+    void Start() => ApplyTargetColor();
+
+    // 첫 번째 자식의 렌더러 색을 목표 스택 값이 나타내는 색으로 표시한다.
+    void ApplyTargetColor()
+    {
+        if (transform.childCount == 0) return;
+        if (!transform.GetChild(0).TryGetComponent<Renderer>(out var r)) return;
+
+        var mpb = new MaterialPropertyBlock();
+        r.GetPropertyBlock(mpb);
+        mpb.SetColor("_BaseColor", ColorStacks.ToRGB(targetRed, targetGreen, targetBlue));
+        r.SetPropertyBlock(mpb);
+    }
+
     protected override bool CheckCondition(ColorStacks player) =>
         player.Get(LightColor.Red) == targetRed &&
         player.Get(LightColor.Green) == targetGreen &&

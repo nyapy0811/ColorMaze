@@ -40,8 +40,7 @@
 - [x] **스택 체인저·컬러 체인저, 플레이어를 바라보며 회전** — 회전 로직을 `StackModifierConsumable`을 상속하는 새 중간 클래스 `MapObjects/SpinningStackModifier.cs`로 추출(기존에 `StackChanger`에만 있던 `LateUpdate`를 별도 스크립트로 분리). `StackChanger`·`ColorChanger`가 `StackModifierConsumable` 대신 `SpinningStackModifier`를 상속해 공유(지우개는 상속하지 않음, 대신 색 순환 사용).
 - [x] **컬러 체인저 자식 구 2개에 현재/변경 예정 색 미리보기** — 0번째 구 = `Player.CurrentRGB`(현재 플레이어 색), 1번째 구 = 변환식으로 미리 계산한 결과색. `ColorStackChanged`(스택 변경 시)·`SceneLoadCompleted`(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고 `Start()`에서 초기 1회도 반영(매 프레임 갱신 아님, `FilterBlockBase`와 동일한 이벤트 기반 패턴).
 
-남은 확인 사항:
-- [ ] 각 기물 프리팹 제작 및 인스펙터 값(팔레트 증가량, 체인저 대상 색, 캔버스 목표값 등) 설정 — 스크립트는 완료됐으나 씬에 배치할 프리팹/블록은 아직 없음.
+- [x] **각 기물 프리팹 제작** — 구상했던 모든 기물의 프리팹 완성(인스펙터 값 설정 포함).
 
 ## 3순위 — 진행/레벨 시스템 (5장, 3.7)
 

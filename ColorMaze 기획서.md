@@ -50,7 +50,7 @@
 - 스테이지 선택은 챕터·스테이지 목록으로 이동해 해금된 스테이지를 고른다.
 - 설정은 음량·마우스 감도 등 옵션을 조절한다.
 
-*구현: (미구현) 메인 화면, 스테이지 선택 UI를 담당하는 스크립트가 아직 없다.*
+*구현: MainMenuController가 담당한다. 메인 패널·스테이지 선택(챕터 목록) 패널·설정 패널을 서로 배타적으로 토글하고, 챕터 버튼을 누르면 공용 스테이지 목록 패널(stageListPanel)을 그 챕터 기준으로 보여준다(챕터마다 패널을 따로 두지 않고 chapterScenes 데이터로 씬 이름만 갈아끼움). 챕터 목록은 ScrollRect로 스크롤된다. (미구현) 해금된 스테이지만 고를 수 있게 하는 처리는 3.7 SaveData 확장에 의존해 아직 없다 — 지금은 모든 스테이지가 항상 선택 가능하다.*
 
 ### 3.2 이동 / 카메라 (1인칭)
 
@@ -84,7 +84,7 @@
 - 일시정지하면 메뉴(이어하기/처음부터/설정/종료)가 열리고 게임이 멈춘다.
 - 설정에서 음량과 마우스 감도를 조절한다 — 설정은 일시정지 메뉴에서 연다.
 
-*구현: UIManager가 UI 전용 씬(UIScene)을 additive로 로드한다. PauseMenuController가 GameManager의 상태(Playing/Paused) 변화와 ESC 입력을 연동해 패널을 토글하고 커서 잠금을 해제하며, SettingsController가 BGM/SFX 볼륨과 마우스 감도 슬라이더를 AudioManager·FirstPersonController에 연결한다. (미구현) '처음부터' 재시작 버튼은 아직 없다.*
+*구현: UIManager가 UI 전용 씬(UIScene)을 additive로 로드한다. PauseMenuController가 GameManager의 상태(Playing/Paused) 변화와 ESC 입력을 연동해 패널을 토글하고 커서 잠금을 해제하며, SettingsController가 BGM/SFX 볼륨과 마우스 감도 슬라이더를 AudioManager·FirstPersonController에 연결한다. 설정 버튼을 누르면 일시정지 패널이 사라지고 설정 패널이 나오며, 설정의 뒤로가기 버튼(OnBackToPauseButton)으로 다시 일시정지 패널로 돌아간다. (미구현) '처음부터' 재시작 버튼은 아직 없다.*
 
 ### 3.6 클리어 화면
 

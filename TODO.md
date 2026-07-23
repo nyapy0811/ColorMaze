@@ -52,10 +52,14 @@
 
 ## 4순위 — UI 화면
 
-- [x] **메인 화면** (3.1) — `MainMenuController` 구현: 메인 패널·스테이지 선택 패널·설정 패널을 토글(스테이지 선택/설정은 서로 동시에 켜지지 않음), 챕터 버튼으로 해당 챕터의 스테이지 목록 패널만 표시(`chapterStagePanels`), 스테이지 버튼은 `OnStageButton(씬 이름)`으로 해당 씬 로드 + `GameManager.StartGame()`. `Bootstrap`이 더 이상 강제로 `Playing` 상태로 넘기지 않아 부팅 시 `MainMenu` 상태로 시작. **미구현**: 해금된 스테이지만 선택 가능하게 하는 것(3.7 SaveData 확장에 의존), 챕터/스테이지 데이터는 씬에 직접 배치(별도 데이터 자산 없음).
+- [x] **메인 화면** (3.1) — `MainMenuController` 구현: 메인 패널·스테이지 선택 패널·설정 패널을 토글(스테이지 선택/설정은 서로 동시에 켜지지 않음), 챕터 버튼으로 공용 스테이지 목록 패널(`stageListPanel`)을 그 챕터 기준으로 표시, 스테이지 버튼은 `OnStageButton(스테이지 인덱스)`로 `chapterScenes[챕터][인덱스]`의 씬을 로드 + `GameManager.StartGame()`. `Bootstrap`이 더 이상 강제로 `Playing` 상태로 넘기지 않아 부팅 시 `MainMenu` 상태로 시작. **미구현**: 해금된 스테이지만 선택 가능하게 하는 것(3.7 SaveData 확장에 의존), `chapterScenes`는 현재 전부 `InGame`(테스트용) 플레이스홀더.
+- [x] **챕터별 스테이지 목록 패널을 패널 7개 → 패널 1개 재사용으로 변경** — 챕터마다 동일한 형태의 패널을 중복 배치하던 `chapterStagePanels[]` 배열을 없애고, 챕터별 씬 이름만 담는 `ChapterStageScenes[] chapterScenes` 데이터로 대체. `OnChapterButton(챕터 인덱스)`는 현재 챕터만 기억하고 공용 패널을 보여주며, 스테이지 버튼 OnClick도 씬 이름 문자열 대신 스테이지 인덱스(0~9)를 넘기도록 재배선함.
+- [x] **챕터 선택 화면 ScrollRect** (3.1) — 유니티 기본 `ScrollRect` 적용. 스크롤 시작 위치가 가운데였던 것을 `Content`의 anchor/pivot을 좌측 기준으로 바꿔 왼쪽부터 시작하도록 수정. `Viewport`에 `RectMask2D`만 있고 레이캐스트 가능한 `Graphic`이 없어 버튼 위에서만 스크롤이 먹던 문제를, 투명(alpha=0)·레이캐스트 활성 `Image`를 `Viewport`에 추가해 해결. 챕터 버튼 오브젝트도 `Chapter1~7` → `ChapterButton1~7`로 정리.
 - [ ] **클리어 화면** (3.6) — 메인화면/다음 스테이지/다시하기 선택, 챕터 마지막 스테이지에서 '다음 스테이지' 선택 시 다음 챕터 첫 스테이지로 이동.
 - [ ] **HUD 목표 스택 표시** (3.4) — `ColorStackHUD`에 현재 스테이지의 목표(캔버스) 스택 값 표시 추가.
+- [ ] **HUD 색상 스와치 인스펙터 미할당** (3.4) — `UIScene`의 `ColorStackHUD.colorSwatch` 필드가 비어있어 스택 색상 스와치가 안 나옴(값 텍스트는 정상). 인스펙터에서 연결 필요.
 - [ ] **일시정지 메뉴 '처음부터' 버튼** (3.5) — `PauseMenuController`에 재시작(스테이지 초기화) 기능 추가.
+- [x] **일시정지 메뉴 설정 열기/닫기 패널 전환** (3.5) — `OnSettingsButton()`이 일시정지 패널을 숨기고 설정 패널을 보여주도록 수정(기존엔 설정 패널만 켜져서 두 패널이 겹쳐 보였음), 설정에서 다시 일시정지 패널로 돌아가는 `OnBackToPauseButton()` 추가.
 - [x] **일시정지 메뉴 종료 버튼, 메인 화면으로 복귀하도록 변경** — 기존에는 앱을 완전히 종료했으나, `Time.timeScale`을 되돌리고 `GameManager` 상태를 `MainMenu`로 바꾼 뒤 `MainMenu` 씬을 로드하도록 수정(앱 자체 종료는 메인 화면 자체의 종료 버튼만 담당).
 - [x] **HUD, MainMenu 상태에서 숨김 처리** — `UIScene`이 항상 additive로 로드되다 보니 메인 화면에서도 게임 HUD(조준점·스택 표시)가 같이 보이는 문제가 있었음. `HUDController`가 `GameManager.State`를 구독해 `MainMenu`일 때는 `hudRoot`를 끄고 그 외에는 켜도록 수정.
 - [x] **씬 전환 시 UI 씬이 사라지는 문제 수정** — `SceneLoader`가 Single 모드로 씬을 로드하면 이전에 additive로 얹혀 있던 `UIScene`까지 함께 언로드됨. `UIManager`가 `SceneLoadCompleted` 이벤트를 구독해 씬 전환마다 `UIScene`이 로드돼 있는지 확인하고 없으면 재로드하도록 수정.

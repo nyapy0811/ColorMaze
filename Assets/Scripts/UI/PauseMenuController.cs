@@ -49,7 +49,15 @@ public class PauseMenuController : MonoBehaviour
 
     public void OnSettingsButton()
     {
+        if (pausePanel) pausePanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(true);
+    }
+
+    /// <summary>설정 패널을 숨기고 일시정지 패널로 돌아간다.</summary>
+    public void OnBackToPauseButton()
+    {
+        if (settingsPanel) settingsPanel.SetActive(false);
+        if (pausePanel) pausePanel.SetActive(true);
     }
 
     public void OnCloseSettingsButton()

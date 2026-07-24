@@ -1,5 +1,6 @@
 using Framework.Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 일시정지 메뉴. ESC로 열고 닫으며 GameManager의 Pause/Resume과 연동한다.
@@ -39,13 +40,31 @@ public class PauseMenuController : MonoBehaviour
         if (pausePanel) pausePanel.SetActive(paused);
         if (!paused && settingsPanel) settingsPanel.SetActive(false);
 
-        // 일시정지 중에는 커서를 보이고 풀어준다.
-        Cursor.lockState = paused ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = paused;
+        // 커서는 이 컨트롤러가 다루는 Playing/Paused 전환에서만 조정한다.
+        // Cleared 같은 다른 상태는 각자의 컨트롤러(ClearScreenController 등)가 커서를 관리하므로 여기서 건드리지 않는다.
+        if (next == GameState.Paused)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else if (next == GameState.Playing)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
     }
 
     // --- 버튼 OnClick 연결용 ---
     public void OnResumeButton() => GameManager.Instance.Resume();
+
+    /// <summary>현재 스테이지 씬을 처음부터 다시 로드한다.</summary>
+    public void OnRestartButton()
+    {
+        Time.timeScale = 1f; // 일시정지 중 멈춰뒀던 시간을 되돌린다.
+        string sceneName = SceneManager.GetActiveScene().name;
+        GameManager.Instance.StartGame();
+        SceneLoader.Instance.Load(sceneName);
+    }
 
     public void OnSettingsButton()
     {

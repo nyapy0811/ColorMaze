@@ -38,6 +38,9 @@ public class LevelManager : MonoSingleton<LevelManager>
     {
         if (canvases == null || canvases.Length == 0) return;
         if (canvases.All(c => c.Completed))
+        {
             EventBus.Publish(new StageCleared());
+            GameManager.Instance.StageClear();
+        }
     }
 }

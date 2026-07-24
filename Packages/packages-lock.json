@@ -14,7 +14,7 @@
       "dependencies": {
         "com.cysharp.unitask": "2.5.10"
       },
-      "hash": "7e3c5769271a350a7065ce39ff9c2261a16ac041"
+      "hash": "c390922b53a8a10f00d1e57b738ee07915200566"
     },
     "com.unity.burst": {
       "version": "1.8.29",

@@ -12,6 +12,9 @@ public class SettingsController : MonoBehaviour
     [SerializeField] Slider sfxSlider;
     [SerializeField] Slider sensitivitySlider;
 
+    [Header("저장 초기화 확인창 (기본 비활성 상태로 둘 것)")]
+    [SerializeField] GameObject resetConfirmPanel;
+
     void OnEnable()
     {
         var audio = AudioManager.Instance;
@@ -48,5 +51,26 @@ public class SettingsController : MonoBehaviour
     {
         var fpc = FindAnyObjectByType<FirstPersonController>();
         if (fpc) fpc.mouseSensitivity = v;
+    }
+
+    // --- 버튼 OnClick 연결용 ---
+
+    /// <summary>저장 초기화 버튼: 바로 초기화하지 않고 확인창을 띄운다.</summary>
+    public void OnResetSaveButton()
+    {
+        if (resetConfirmPanel) resetConfirmPanel.SetActive(true);
+    }
+
+    /// <summary>확인창의 "확인" 버튼: 실제로 저장 파일을 초기화한다.</summary>
+    public void OnConfirmResetButton()
+    {
+        SaveManager.Instance.Delete();
+        if (resetConfirmPanel) resetConfirmPanel.SetActive(false);
+    }
+
+    /// <summary>확인창의 "취소" 버튼: 초기화하지 않고 닫는다.</summary>
+    public void OnCancelResetButton()
+    {
+        if (resetConfirmPanel) resetConfirmPanel.SetActive(false);
     }
 }

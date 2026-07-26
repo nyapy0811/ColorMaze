@@ -8,6 +8,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public abstract class MapObjectBase : MonoBehaviour
 {
+    [Header("상호작용 강조 표시 (없으면 무시)")]
+    [SerializeField] GameObject highlightRoot;
+
     protected Collider Col { get; private set; }
 
     ColorStacks player;
@@ -26,4 +29,10 @@ public abstract class MapObjectBase : MonoBehaviour
 
     /// <summary>이 콜라이더가 플레이어(의 자식 콜라이더)인지 확인한다.</summary>
     protected bool IsPlayer(Collider other) => Player != null && other.GetComponentInParent<ColorStacks>() == Player;
+
+    /// <summary>상호작용 가능 강조 표시를 켜고 끈다. highlightRoot가 비어있으면 아무 일도 안 한다.</summary>
+    public void SetHighlighted(bool on)
+    {
+        if (highlightRoot) highlightRoot.SetActive(on);
+    }
 }

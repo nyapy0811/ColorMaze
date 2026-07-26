@@ -2,11 +2,11 @@ using UnityEngine;
 
 /// <summary>
 /// 소모성·1회성 기물 공통 베이스.
-/// 플레이어가 닿으면 Apply()를 한 번 실행하고 스스로를 비활성화한다.
+/// 조준+좌클릭으로 상호작용하면 Apply()를 한 번 실행하고 스스로를 비활성화한다.
 /// 스택과 무관한 미래의 1회성 기물도 이 클래스만 상속하면 된다
 /// (스택을 다루는 기물은 한 단계 더 구체적인 StackModifierConsumable을 상속할 것).
 /// </summary>
-public abstract class ConsumableObjectBase : MapObjectBase
+public abstract class ConsumableObjectBase : MapObjectBase, IInteractable
 {
     public bool Consumed { get; private set; }
 
@@ -19,9 +19,10 @@ public abstract class ConsumableObjectBase : MapObjectBase
         Col.isTrigger = true; // 소모성 기물은 항상 트리거
     }
 
-    void OnTriggerEnter(Collider other)
+    /// <summary>조준+좌클릭 상호작용으로만 발동한다(걸어서 닿는 것으로는 발동하지 않음).</summary>
+    public void TryInteract()
     {
-        if (Consumed || !IsPlayer(other)) return;
+        if (Consumed) return;
         Apply();
         if (ShouldConsume()) Consume();
     }

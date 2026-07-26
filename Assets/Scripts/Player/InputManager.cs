@@ -42,4 +42,11 @@ public class InputManager : MonoSingleton<InputManager>
         var kb = Keyboard.current;
         return kb != null && kb.escapeKey.wasPressedThisFrame;
     }
+
+    /// <summary>이번 프레임에 상호작용 입력(마우스 좌클릭)을 눌렀는지.</summary>
+    public bool ReadInteract()
+    {
+        var mouse = Mouse.current;
+        return mouse != null && mouse.leftButton.wasPressedThisFrame;
+    }
 }

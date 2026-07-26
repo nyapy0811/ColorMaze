@@ -12,7 +12,7 @@ public struct CanvasCompleted : IEvent
 /// 조건을 만족하면 완료 상태로 잠기고(Completed = true), 이후 다시 판정하지 않는다
 /// (순차 완료 방식 — 캔버스가 여러 개여도 하나씩 맞춰 나가면 된다).
 /// </summary>
-public abstract class ClearObjectBase : MapObjectBase
+public abstract class ClearObjectBase : MapObjectBase, IInteractable
 {
     public bool Completed { get; private set; }
 
@@ -28,9 +28,10 @@ public abstract class ClearObjectBase : MapObjectBase
         Col.isTrigger = true; // 클리어형 기물은 항상 트리거
     }
 
-    void OnTriggerEnter(Collider other)
+    /// <summary>조준+좌클릭 상호작용으로만 발동한다(걸어서 닿는 것으로는 발동하지 않음).</summary>
+    public void TryInteract()
     {
-        if (Completed || !IsPlayer(other)) return;
+        if (Completed || Player == null) return;
         if (!CheckCondition(Player)) return;
 
         Completed = true;

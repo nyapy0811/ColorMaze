@@ -13,8 +13,6 @@ public class ColorCanvas : ClearObjectBase
     [SerializeField] int targetGreen;
     [SerializeField] int targetBlue;
 
-    TextMeshPro targetLabel;
-
     // 인스펙터에서 값을 바꾸면 에디터에서도 바로 반영되게 한다.
     void OnValidate()
     {
@@ -40,21 +38,15 @@ public class ColorCanvas : ClearObjectBase
         r.SetPropertyBlock(mpb);
     }
 
-    // 첫 번째 자식의 -Z면(고정, 카메라를 따라 돌지 않음)에 목표 R/G/B 값을 필터 라벨과 같은 형식으로 표시한다.
+    // 첫 번째 자식의 -Z면(고정, 카메라를 따라 돌지 않음)에 목표 R/G/B 값을 표시한다.
+    // 라벨 자동 생성은 필터만 하므로(FilterBlockBase), 캔버스는 자식으로 이미 있는 라벨을 찾아서 쓴다.
     void ApplyTargetLabel()
     {
         if (transform.childCount == 0) return;
         Transform child = transform.GetChild(0);
 
-        if (targetLabel == null)
-        {
-            var go = new GameObject("TargetLabel");
-            go.transform.SetParent(child, false);
-            targetLabel = go.AddComponent<TextMeshPro>();
-            targetLabel.fontSize = 3f;
-            targetLabel.alignment = TextAlignmentOptions.Center;
-            targetLabel.color = Color.white;
-        }
+        TextMeshPro targetLabel = child.GetComponentInChildren<TextMeshPro>();
+        if (targetLabel == null) return; // 라벨이 없으면 아무것도 안 함(자동 생성하지 않음)
 
         // 필터 라벨(CellGroupLabel)과 동일한 공식: normal 방향으로 살짝 띄우고, 뒤집히지 않게 -normal을 forward로.
         Vector3 normal = child.TransformDirection(Vector3.back);

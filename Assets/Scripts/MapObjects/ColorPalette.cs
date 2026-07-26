@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -19,15 +20,20 @@ public class ColorPalette : AcquireObjectBase
     }
 
     // 오브젝트 중심에 고정되어 항상 플레이어(카메라)를 바라보는 라벨로 R/G/B 스택량을 표시한다.
+    // 라벨 자동 생성은 필터만 하므로(FilterBlockBase), 팔레트는 자식으로 이미 있는 라벨을 찾아서 쓴다.
     void Start()
     {
+        var label = GetComponentInChildren<BillboardCenterLabel>();
+        if (label == null) return; // 자식에 라벨이 없으면 아무것도 안 함(자동 생성하지 않음)
+        if (!label.TryGetComponent<TextMeshPro>(out var tmp)) return;
+
         Vector3Int cell = new Vector3Int(
             Mathf.RoundToInt(transform.position.x),
             Mathf.RoundToInt(transform.position.y - 0.5f),
             Mathf.RoundToInt(transform.position.z));
 
-        string text = $"<color=#FF0000>{red}</color> <color=#00FF00>{green}</color> <color=#0000FF>{blue}</color>";
-        CellGroupLabel.Create<BillboardCenterLabel>(transform, "Label", new[] { cell }, text);
+        tmp.text = $"<color=#FF0000>{red}</color> <color=#00FF00>{green}</color> <color=#0000FF>{blue}</color>";
+        label.Init(new[] { cell }, tmp);
     }
 
     // 인스펙터에서 값을 바꾸면 에디터에서도 바로 색이 반영되게 한다.

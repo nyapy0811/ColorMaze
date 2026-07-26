@@ -1457,7 +1457,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &439634329
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4422,6 +4422,7 @@ MonoBehaviour:
   bgmSlider: {fileID: 161496224}
   sfxSlider: {fileID: 1897736865}
   sensitivitySlider: {fileID: 1139919737}
+  resetConfirmPanel: {fileID: 0}
 --- !u!114 &2000734459
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4631,7 +4632,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &2072015130
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5159,6 +5160,7 @@ GameObject:
   - component: {fileID: 2524320636316734149}
   - component: {fileID: 3599705679751435144}
   - component: {fileID: 2320898038473281136}
+  - component: {fileID: 3599705679751435145}
   m_Layer: 5
   m_Name: AimPoint
   m_TagString: Untagged
@@ -5269,6 +5271,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2316830358603519372}
   m_CullTransparentMesh: 1
+--- !u!114 &3599705679751435145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2316830358603519372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5473bf5d160bd243905aa9153305b18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrosshairController
+  crosshairImage: {fileID: 2320898038473281136}
+  normalColor: {r: 0, g: 0, b: 0, a: 1}
+  highlightColor: {r: 0.4528302, g: 0.4528302, b: 0.4528302, a: 1}
 --- !u!1 &3702002254197139257
 GameObject:
   m_ObjectHideFlags: 0
@@ -5284,7 +5301,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &4145736021742630097
 MonoBehaviour:
   m_ObjectHideFlags: 0

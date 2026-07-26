@@ -20,7 +20,7 @@
 
 - [x] RGB 필터(`RgbFilterBlock`) 외형·메시 병합 — `FilterBlockBase`가 컬러 필터·RGB 필터를 색상 기준으로 함께 그룹화.
 - [x] 필터 테두리 렌더링 — 노출된 외부 면마다 채움(fill)/테두리(border) 메시를 분리 생성. `borderWidth`/`borderAlpha`로 두께·불투명도 조절 가능.
-- [x] **GateMeshCombiner를 FilterBlockBase로 흡수** — 별도 매니저 컴포넌트 없이 필터 스크립트만으로 메시 병합·테두리 렌더링이 동작하도록 정적 `RebuildAll()`로 통합. `GateMeshCombiner.cs`/`Editor/GateMeshCombinerEditor.cs`는 삭제 권한 문제로 내용만 비워둔 상태(`!!!!` 접두사 붙여둠) — Unity에서 직접 삭제 필요(둘 다 파일+`.meta`).
+- [x] **GateMeshCombiner를 FilterBlockBase로 흡수** — 별도 매니저 컴포넌트 없이 필터 스크립트만으로 메시 병합·테두리 렌더링이 동작하도록 정적 `RebuildAll()`로 통합. `GateMeshCombiner.cs`/`Editor/GateMeshCombinerEditor.cs`는 Unity에서 파일+`.meta` 모두 삭제 완료.
 - [x] 필터 테두리, 통합 메시 바깥 모서리에만 그리도록 수정 — 같은 그룹 블록끼리 맞닿은 내부 경계는 테두리 없이 이어 붙임(`FilterBlockBase.BuildGroup`의 per-edge 경계 판정).
 - [x] **같은 색이라도 물리적으로 떨어진 덩어리는 별도 그룹으로 분리** — `SplitConnected`가 6방향 연결 기준 flood fill로 색상 그룹을 다시 나눔. 서로 멀리 떨어진 같은 색 필터가 하나의 메시/라벨로 뒤섞이는 문제를 해결.
 - [x] **필터 기준값 라벨** — `FilterBlockBase`가 그룹(덩어리)당 하나의 월드스페이스 TextMeshPro 라벨을 자동 생성(`GetLabelText()`가 null/빈 문자열이면 생성 안 함). `ColorFilterBlock`은 테두리(스택 색) + R/G/B 숫자만(각 숫자를 해당 색으로 물들인 리치 텍스트) 표시, `RgbFilterBlock`은 텍스트 없이 테두리(순수 원색)만으로 구분되도록 함.
@@ -42,12 +42,14 @@
 - [x] **맵 진입 시 필터 통과 판정이 반영 안 되는 버그 수정** — 씬에 필터가 여러 개면 각 필터의 `Start()`가 전부 정적 `RebuildAll()`을 호출해 모든 그룹 메시를 통째로 새로 만드는데, 기존에는 자기 자신만 `Refresh()`해서 가장 나중에 `Start()`가 실행된 필터의 그룹만 정확한 투명도가 반영되고 나머지는 방금 새로 만들어진 기본(불투명) 상태로 남아 있었음. `RefreshAll()`(씬의 모든 필터를 한 번에 `Refresh()`)을 추가해 `Start()`와 `OnValidate()`(플레이 모드 중) 양쪽에서 `RebuildAll()` 직후 호출하도록 수정 — 특히 `OnValidate`는 Play 모드에서도(에디터가 컴포넌트를 재검증할 때) 발동해 메시를 불투명 기본값으로 되돌릴 수 있어, 여기서도 `RefreshAll()`을 호출해야 함.
 
 - [x] **각 기물 프리팹 제작** — 구상했던 모든 기물의 프리팹 완성(인스펙터 값 설정 포함).
+- [x] **조준+좌클릭 상호작용 (기획서 미기재, 신규)** — 걸어서 닿는 것과 별개로, 카메라 정면 1.3칸 이내에서 기물을 조준하고 좌클릭하면 상호작용 발동. `IInteractable`(`TryInteract()`) 인터페이스를 `AcquireObjectBase`/`ClearObjectBase`/`ConsumableObjectBase`가 구현(필터는 제외 — 마커 시스템과 동일한 대상). 기존에 걸어서 닿으면 발동하던 `OnTriggerEnter`는 제거해, 이제 이 세 종류(팔레트/캔버스/스택 체인저·컬러 체인저·지우개)는 조준+좌클릭으로만 발동한다(필터는 여전히 걸어서 통과하는 방식 그대로). `Player/InteractionController.cs` 신규 — 매 프레임 카메라 정면으로 1.3칸 레이캐스트(`QueryTriggerInteraction.Collide`)를 쏴서 가장 가까운 대상 하나만 판정(벽·닫힌 필터가 앞에 있으면 자연히 막힘, 별도 가림 판정 불필요), `InputManager.ReadInteract()`(좌클릭)로 발동. 강조 표시는 `MapObjectBase.SetHighlighted(bool)`(`highlightRoot` 자식 오브젝트를 켜고 끄기만 함, 라벨과 동일한 "미리 배치해둔 자식 재사용" 패턴)로 처리하며, 시각 효과는 새 셰이더 `Shaders/InteractionHighlightOutline.shader`(인버티드 헐 아웃라인)를 쓰는 별도 메시(원본과 같은 메시 참조)로 구현한다. 조준 대상 유무는 `InteractableTargetChanged` 이벤트로 알리고, `UI/CrosshairController.cs`가 이를 구독해 조준점 색을 바꾼다. **필요 작업**: 아웃라인 셰이더로 머티리얼 하나 생성, 기물 5종(팔레트/스택 체인저/컬러 체인저/지우개/캔버스) 프리팹에 `HighlightOutline` 자식(원본과 같은 메시 참조 + 이 머티리얼, 기본 비활성) 추가 후 `highlightRoot` 연결(여러 메시로 된 기물은 빈 부모 밑에 파츠별 자식을 두면 됨), `InteractionController`를 Player에 부착, HUD 조준점에 `CrosshairController` 부착 + Image·색 연결.
 
 ## 3순위 — 진행/레벨 시스템 (5장, 3.7)
 
 - [x] **LevelManager 구현** (5.1) — `CanvasCompleted`를 구독해 씬 내 모든 `ColorCanvas` 완료 시 `StageCleared` 발행. 씬 전환 시(`SceneLoadCompleted`) 캔버스 목록 재탐색.
-- [ ] **SaveData 확장** (3.7) — `SaveData.cs`에 클리어한 스테이지·해금된 챕터 필드 추가(현재는 level/gold/playTime뿐). `StageCleared`를 구독해 저장하도록 연결.
-- [ ] **챕터 해금 로직** (5.1) — `StageCleared` 발행 이후 응용 스테이지까지 클리어 시 다음 챕터 해금하는 처리는 아직 없음(현재는 이벤트 발행까지만 구현).
+- [x] **SaveData 확장** (3.7) — FrameworkCore 패키지에 `unlockedChapterCount`(int, 기본 1)와 `clearedStages`(List\<string\>, 클리어한 씬 이름) 추가, `IsStageCleared(id)`/`MarkStageCleared(id)` 헬퍼 포함. 챕터 수에 맞춘 고정 크기 배열 대신 씬 이름 리스트로 관리해, `StageTable`의 챕터/스테이지 구성이 나중에 바뀌어도 기존 세이브 데이터가 깨지지 않는다.
+- [x] **챕터/스테이지 해금 로직** (5.1, 5.2) — `Level/ProgressManager.cs` 신규(MonoSingleton, `Bootstrap`이 깨움). `StageCleared`를 구독해 클리어한 씬을 `SaveData`에 기록하고 즉시 저장. 챕터 해금 조건: 클리어한 스테이지가 그 챕터의 배열 인덱스 7(=8번째, 응용 스테이지 마지막)이면 다음 챕터 해금(`unlockedChapterCount` 증가). 스테이지 해금 조건: 챕터의 0번째 스테이지는 챕터만 해금돼 있으면 항상 열려있고, 그 외엔 바로 앞 스테이지(인덱스-1)가 `clearedStages`에 있어야 열림 — 별도 저장 없이 `clearedStages`만으로 판정. `StageTable` 애셋은 `Assets/Resources/`로 옮겨서 `Resources.Load<StageTable>("StageTable")`로 불러온다(ProgressManager가 씬 배치 없이 자동 생성되는 싱글톤이라 인스펙터로 애셋을 연결할 방법이 없음).
+- [x] **MainMenuController 해금 연동** — `chapterButtons`/`stageButtons`(Button 배열) 필드 추가. 챕터 목록 열릴 때(`OnStageSelectButton`) 챕터 버튼들의 `interactable`을 `ProgressManager.IsChapterUnlocked`로, 특정 챕터의 스테이지 목록 열릴 때(`OnChapterButton`) 스테이지 버튼들의 `interactable`을 `ProgressManager.IsStageUnlocked`로 갱신(잠기면 비활성화/회색 처리, 별도 자물쇠 아이콘 없음). `OnStageButton`에도 방어적으로 잠금 여부를 한 번 더 확인. `chapterButtons`(7개)/`stageButtons`(10개) 배열 인스펙터 연결 완료.
 - [x] **챌린지 스테이지 다중 캔버스 조건** (5.2) — 캔버스 여러 개를 각각 순차 완료(잔금)하면 전체 클리어되는 로직 구현(`ColorCanvas`/`LevelManager`).
 
 ## 4순위 — UI 화면
@@ -62,27 +64,30 @@
   - UIScene에 클리어 패널 UI 구성 + `ClearScreenController`의 `clearPanel`/`nextStageButton`/`stageTable` 연결 + 버튼 OnClick 연결(`OnMainMenuButton`/`OnNextStageButton`/`OnRetryButton`) 완료. `StageTable` 애셋도 생성해 `MainMenuController`/`ClearScreenController` 양쪽에 할당 완료(스테이지 씬 이름은 계속 채워나가는 중).
 - [x] **HUD 목표 스택 표시** (3.4) — 중앙 HUD 숫자 하나 대신, 캔버스별로 다른 목표값을 가질 수 있어 캔버스 자신에게 라벨을 붙이는 방식으로 구현(아래 `ColorCanvas` 항목 참고).
 - [x] **캔버스 목표값 라벨** — `ColorCanvas.ApplyTargetLabel()`: 첫 번째 자식의 -Z면(고정, 카메라를 따라 돌지 않음 — 필터 라벨과 달리 빌보드 아님)에 목표 R/G/B 값을 표시. 위치/회전 계산은 `CellGroupLabel`의 "normal 방향으로 띄우고 -normal을 forward로" 공식을 그대로 재사용(뒤집힘 방지).
+- [x] **라벨 자동 생성은 필터만, 다른 기물은 자식의 기존 라벨을 재사용** — 캔버스(`ApplyTargetLabel`)와 팔레트(`ColorPalette.Start`)가 매번 새 라벨 오브젝트를 생성하던 것을 없애고, 대신 자식으로 이미 있는 라벨(`GetComponentInChildren<TextMeshPro>`/`<BillboardCenterLabel>`)을 찾아 텍스트·위치만 갱신하도록 변경. 라벨이 없으면 아무것도 안 함(자동 생성 안 함) — 자동 생성은 `FilterBlockBase`(필터류)만 계속 담당. 이 변경으로 도메인 리로드 때마다 캔버스 라벨이 OnValidate 도중 오브젝트를 새로 만들며 겹겹이 쌓이던 버그(및 관련 콘솔 경고)도 같이 해결됨 — 이제 프리팹에 라벨 자식을 직접 배치해둬야 한다.
 - [x] **라벨 텍스트 형식을 공용 클래스로 분리** — `MapObjects/StackLabelFormat.cs` 신규. 판정 방식에 따라 형식이 다름: 정숫값 자체로 판정하는 기물(캔버스) → `ByValue()`("R G B", 공백 구분), 비율(변환 색)로 판정하는 기물(필터) → `ByRatio()`("R:G:B", 콜론 구분). `ColorCanvas`/`ColorFilterBlock` 둘 다 각자 판정 방식에 맞는 메서드를 호출하도록 변경(기존엔 둘 다 필터 쪽 형식을 그대로 복붙해 캔버스가 잘못된 형식을 쓰고 있었음). 앞으로 라벨 붙는 기물이 추가되면 이 두 메서드 중 판정 방식에 맞는 걸 쓰면 됨.
-- [x] **기물 위치 마커 HUD (기획서 미기재, 신규)** — `UI/MapObjectMarkerHUD.cs` 신규. 필터를 제외한 맵 기물(컬러 팔레트/스택 체인저/컬러 체인저/지우개/캔버스)마다 화면에 위치 마커를 띄운다. 기물 종류별로 다른 마커 프리팹(5개 필드)을 쓰고, `Camera.main.WorldToScreenPoint`로 매 프레임 위치를 갱신하며 화면 밖(카메라 뒤쪽 포함)이면 가장자리로 클램프하고 방향을 가리키도록 회전(마커 프리팹에 `Arrow`라는 자식이 있으면 화면 밖일 때만 그걸 켜서 회전시키고 아이콘 본체는 끔 — 화면 안이면 반대로 아이콘만). 화면 안에 있을 때는 `Physics.Raycast`로 카메라-기물 사이가 막혀있는지(트리거 콜라이더는 무시) 확인해서, 가려져 있을 때만 원형 아이콘을 표시하고 직접 보이면 마커 자체를 끈다. `Start()`와 `SceneLoadCompleted` 양쪽에서 스캔해 메인메뉴를 거치지 않고 스테이지를 바로 Play해도 마커가 뜨도록 함(필터 초기 투명도 버그와 같은 종류의 실수라 처음부터 같이 넣음). 기물이 파괴(소모)되면 마커도 자동으로 사라짐(별도 on/off 없이 오브젝트 존재 여부로만 판단) — 캔버스는 완료돼도 오브젝트 자체가 파괴되지 않으므로 마커가 계속 남는다. **필요 작업**: UIScene에 `MapObjectMarkerHUD` 배치 + `markerContainer`(Screen Space - Overlay 캔버스 하위 RectTransform) 연결 + 기물 종류별 마커 프리팹 5개 제작·연결(방향 표시가 필요하면 `Arrow`라는 자식 오브젝트를 만들어서 위쪽을 향하는 화살표 아트로 구성, 반드시 `UI > Image`로 RectTransform 기반으로 만들어야 함 — Sprite Renderer 방식은 동작 안 함). 테스트용 흰색 원/화살표 스프라이트를 `Assets/Sprites/`에 만들어둠.
+- [x] **기물 위치 마커 HUD (기획서 미기재, 신규)** — `UI/MapObjectMarkerHUD.cs` 신규. 필터를 제외한 맵 기물(컬러 팔레트/스택 체인저/컬러 체인저/지우개/캔버스)마다 화면에 위치 마커를 띄운다. 기물 종류별로 다른 마커 프리팹(5개 필드)을 쓰고, `Camera.main.WorldToScreenPoint`로 매 프레임 위치를 갱신하며 화면 밖(카메라 뒤쪽 포함)이면 가장자리로 클램프하고 방향을 가리키도록 회전(마커 프리팹에 `Arrow`라는 자식이 있으면 화면 밖일 때만 그걸 켜서 회전시키고 아이콘 본체는 끔 — 화면 안이면 반대로 아이콘만). 화면 안에 있을 때는 `Physics.Raycast`로 카메라-기물 사이가 막혀있는지(트리거 콜라이더는 무시) 확인해서, 가려져 있을 때만 원형 아이콘을 표시하고 직접 보이면 마커 자체를 끈다. `Start()`와 `SceneLoadCompleted` 양쪽에서 스캔해 메인메뉴를 거치지 않고 스테이지를 바로 Play해도 마커가 뜨도록 함(필터 초기 투명도 버그와 같은 종류의 실수라 처음부터 같이 넣음). 기물이 파괴(소모)되면 마커도 자동으로 사라짐(별도 on/off 없이 오브젝트 존재 여부로만 판단) — 캔버스는 완료돼도 오브젝트 자체가 파괴되지 않으므로 마커가 계속 남는다. UIScene에 `MapObjectMarkerHUD` 배치 + `markerContainer`(Screen Space - Overlay 캔버스 하위 RectTransform) 연결 + 기물 종류별 마커 프리팹 5개 제작·연결 완료.
 - [ ] **HUD 색상 스와치 인스펙터 미할당** (3.4) — `UIScene`의 `ColorStackHUD.colorSwatch` 필드가 비어있어 스택 색상 스와치가 안 나옴(값 텍스트는 정상). 인스펙터에서 연결 필요.
 - [x] **일시정지 메뉴 '처음부터' 버튼** (3.5) — `PauseMenuController.OnRestartButton()` 추가: 시간 복구 후 `SceneManager.GetActiveScene().name`(일시정지 중에도 UIScene이 아니라 게임 씬이 active scene이라 안전)을 다시 로드.
 - [x] **일시정지 메뉴 설정 열기/닫기 패널 전환** (3.5) — `OnSettingsButton()`이 일시정지 패널을 숨기고 설정 패널을 보여주도록 수정(기존엔 설정 패널만 켜져서 두 패널이 겹쳐 보였음), 설정에서 다시 일시정지 패널로 돌아가는 `OnBackToPauseButton()` 추가.
+- [x] **설정 화면 저장 초기화 버튼** (3.7) — `SettingsController`에 `OnResetSaveButton()` 추가. 바로 초기화하지 않고 확인창(`resetConfirmPanel`, 기본 비활성)을 띄우며, 확인창의 "확인"(`OnConfirmResetButton`)에서만 `SaveManager.Instance.Delete()`(저장 파일 삭제 + `Current` 초기화)를 실행하고, "취소"(`OnCancelResetButton`)는 그냥 닫는다. 확인창 UI 구성 + `resetConfirmPanel`/버튼 OnClick 연결 완료.
 - [x] **일시정지 메뉴 종료 버튼, 메인 화면으로 복귀하도록 변경** — 기존에는 앱을 완전히 종료했으나, `Time.timeScale`을 되돌리고 `GameManager` 상태를 `MainMenu`로 바꾼 뒤 `MainMenu` 씬을 로드하도록 수정(앱 자체 종료는 메인 화면 자체의 종료 버튼만 담당).
 - [x] **HUD, MainMenu 상태에서 숨김 처리** — `UIScene`이 항상 additive로 로드되다 보니 메인 화면에서도 게임 HUD(조준점·스택 표시)가 같이 보이는 문제가 있었음. `HUDController`가 `GameManager.State`를 구독해 `MainMenu`일 때는 `hudRoot`를 끄고 그 외에는 켜도록 수정.
 - [x] **씬 전환 시 UI 씬이 사라지는 문제 수정** — `SceneLoader`가 Single 모드로 씬을 로드하면 이전에 additive로 얹혀 있던 `UIScene`까지 함께 언로드됨. `UIManager`가 `SceneLoadCompleted` 이벤트를 구독해 씬 전환마다 `UIScene`이 로드돼 있는지 확인하고 없으면 재로드하도록 수정.
 - [x] **중복 EventSystem 제거** — `MainMenu.unity`와 `UIScene.unity`에 각각 EventSystem이 있어 두 씬이 함께 로드되면 "2 event systems" 경고가 떴음. `MainMenu.unity` 쪽 EventSystem을 제거하고 `UIScene`의 것만 남김.
+- [x] **1인칭 뷰모델 붓 (기획서 미기재, 신규)** — `Player/BrushViewmodel.cs` 신규. 붓 끝(팁/모) 렌더러 색을 플레이어의 현재 RGB 스택 색으로 표시(다른 기물과 동일한 이벤트 기반 갱신), `HUDController`와 동일한 규칙으로 `MainMenu` 상태에서만 숨김. URP 카메라 스태킹으로 구현 — Main Camera(Base) 자식에 Overlay 카메라(`ViewModelCamera`, Culling Mask는 ViewModel 레이어만)를 두고 그 밑에 붓 모델을 배치. **알려진 함정**: Player(또는 카메라의 조상)에 비균일(non-uniform) Scale을 주면 안 됨 — 회전하는 카메라 자식과 결합해 각도에 따라 스케일이 일그러지는 전단(shear) 버그가 생김(실제로 겪음, Player Scale은 항상 (1,1,1) 유지하고 크기는 CharacterController 값이나 별도 자식으로 조절할 것).
 
 ## 폴더 구조
 
 `Assets/Scripts`를 역할별로 정리함(각 .cs와 .cs.meta를 함께 이동해 GUID·씬 참조 보존):
 
 - `Core/` — Bootstrap
-- `Player/` — FirstPersonController, InputManager, ColorStacks, ColorStackInput
-- `MapObjects/` — 베이스 클래스 7종(`MapObjectBase`, `FilterBlockBase`, `AcquireObjectBase`, `ClearObjectBase`, `ConsumableObjectBase`, `StackModifierConsumable`, `SpinningStackModifier`) + 기물 7종(ColorFilterBlock, RgbFilterBlock, ColorPalette, StackChanger, ColorChanger, Eraser, ColorCanvas) + 범용 라벨 컴포넌트 `CellGroupLabel`(상속해서 위치/회전 계산을 커스터마이즈 가능, 하위 클래스 `BillboardCenterLabel` 포함) + 범용 부유 애니메이션 `FloatingBob` + 라벨 텍스트 형식 공용 클래스 `StackLabelFormat`. 옛 `GateMeshCombiner`는 `FilterBlockBase`로 기능이 흡수되어 내용을 비워두고 `!!!!GateMeshCombiner.cs`로 이름을 바꿔둠(삭제 권한 문제로 직접 못 지움, Unity에서 파일+`.meta` 삭제 필요 — 이름 앞 `!!!!`가 삭제 대상 표시).
-- `Shaders/` — `FilterBorderAlwaysVisible.shader`(필터 테두리 전용, 렌더 큐를 채움보다 뒤로 둬서 자기 채움 메시에 가려지지 않게 함).
-- `Level/` — LevelManager, MazeGenerator, StageTable(챕터별 스테이지 씬 이름을 담는 공용 데이터 애셋)
-- `UI/` — UIManager, ColorStackHUD, HUDController, PauseMenuController, SettingsController, MainMenuController, ClearScreenController, MapObjectMarkerHUD
-- `Editor/` — MazeGeneratorEditor, `MapObjectOrganizer`(메뉴 `ColorMaze/특수 블록 하이어라키 정리` — 씬의 특수 블록을 타입별 폴더로 재배치, 위치는 그대로 유지). 옛 `GateMeshCombinerEditor`도 같은 이유로 `!!!!GateMeshCombinerEditor.cs`로 이름을 바꾸고 내용을 비워둠(삭제 필요).
+- `Player/` — FirstPersonController, InputManager, ColorStacks, ColorStackInput, BrushViewmodel(1인칭 뷰모델 붓), InteractionController(조준+좌클릭 상호작용)
+- `MapObjects/` — 베이스 클래스 7종(`MapObjectBase`, `FilterBlockBase`, `AcquireObjectBase`, `ClearObjectBase`, `ConsumableObjectBase`, `StackModifierConsumable`, `SpinningStackModifier`) + 기물 7종(ColorFilterBlock, RgbFilterBlock, ColorPalette, StackChanger, ColorChanger, Eraser, ColorCanvas) + 범용 라벨 컴포넌트 `CellGroupLabel`(상속해서 위치/회전 계산을 커스터마이즈 가능, 하위 클래스 `BillboardCenterLabel` 포함) + 범용 부유 애니메이션 `FloatingBob` + 라벨 텍스트 형식 공용 클래스 `StackLabelFormat` + `IInteractable` 인터페이스(조준+좌클릭 상호작용 대상 표시). 옛 `GateMeshCombiner`는 `FilterBlockBase`로 기능이 흡수되어 파일 자체가 삭제됨.
+- `Shaders/` — `FilterBorderAlwaysVisible.shader`(필터 테두리 전용, 렌더 큐를 채움보다 뒤로 둬서 자기 채움 메시에 가려지지 않게 함), `InteractionHighlightOutline.shader`(상호작용 가능 기물 강조용 아웃라인, 인버티드 헐 기법).
+- `Level/` — LevelManager, MazeGenerator, StageTable(챕터별 스테이지 씬 이름을 담는 공용 데이터 애셋 스크립트, 실제 애셋 파일은 `Assets/Resources/StageTable.asset`), ProgressManager(스테이지 클리어 저장·챕터/스테이지 해금 판정)
+- `UI/` — UIManager, ColorStackHUD, HUDController, PauseMenuController, SettingsController, MainMenuController, ClearScreenController, MapObjectMarkerHUD, CrosshairController
+- `Editor/` — MazeGeneratorEditor, `MapObjectOrganizer`(메뉴 `ColorMaze/특수 블록 하이어라키 정리` — 씬의 특수 블록을 타입별 폴더로 재배치, 위치는 그대로 유지). 옛 `GateMeshCombinerEditor`도 같은 이유로 파일 삭제됨.
 
 ## 참고
 

@@ -13,6 +13,8 @@ public class BillboardCenterLabel : CellGroupLabel
 
     protected override void LateUpdate()
     {
+        if (text == null) return; // Init()이 아직 안 됨(라벨을 등록한 쪽에서 못 찾았거나 호출 전)
+
         var cam = Camera.main;
         if (cam == null || transform.parent == null)
         {

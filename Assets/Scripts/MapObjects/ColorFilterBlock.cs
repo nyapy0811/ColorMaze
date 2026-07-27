@@ -18,8 +18,8 @@ public class ColorFilterBlock : FilterBlockBase
     protected override bool Matches(ColorStacks player) => ColorEquals(player.CurrentRGB, GetAppearanceColor());
 
     // 테두리(지정 스택을 색으로 표현)와 함께, 각 색의 정확한 스택 값을 해당 색으로 물들인 숫자로 보여준다.
-    // 필터는 변환 색(비율)로 판정하므로 ":" 구분 형식을 쓴다.
-    protected override string GetLabelText() => StackLabelFormat.ByRatio(red, green, blue);
+    // ToRGB가 채널별 절대값 변환이라 색 비교가 곧 정숫값 비교와 같으므로, 공백 구분 형식을 쓴다.
+    protected override string GetLabelText() => StackLabelFormat.ByValue(red, green, blue);
 
     static bool ColorEquals(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b;
 }

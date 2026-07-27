@@ -17,6 +17,9 @@ public abstract class FilterBlockBase : MapObjectBase
     [Tooltip("필터에 적용할 머티리얼(Transparent로 만들어 둔 것)")]
     public Material gateMaterial;
 
+    [Tooltip("테두리에 적용할 머티리얼(비워두면 기본 아웃라인 셰이더(Custom/FilterBorderAlwaysVisible)를 자동으로 씀)")]
+    public Material borderMaterial;
+
     [Tooltip("채움(안쪽) 색의 투명도(0 = 완전 투명, 1 = 불투명)")]
     [Range(0f, 1f)] public float gateAlpha = 0.5f;
 
@@ -297,7 +300,7 @@ public abstract class FilterBlockBase : MapObjectBase
         }
 
         if (b0 > 0f)
-            BuildMeshObject(parent, baseName + "_Border", borderVerts, borderTris, BorderMaterial(settings.gateMaterial), color, settings.borderAlpha);
+            BuildMeshObject(parent, baseName + "_Border", borderVerts, borderTris, BorderMaterial(settings.borderMaterial, settings.gateMaterial), color, settings.borderAlpha);
 
         // 그룹당 하나만: 라벨 텍스트가 있는 그룹(대표 블록 기준)에만 라벨을 만든다.
         string labelText = settings.GetLabelText();
@@ -313,17 +316,21 @@ public abstract class FilterBlockBase : MapObjectBase
         CellGroupLabel.Create(parent, name, cellArray, text);
     }
 
-    static Material borderMat;
+    static Material defaultBorderMat;
 
-    // 테두리 전용 머티리얼(깊이 테스트를 항상 통과해 가려진 모서리도 보이게 함). 셰이더가 없으면 채움과 같은 머티리얼로 대체.
-    static Material BorderMaterial(Material fallback)
+    // 테두리 머티리얼. 그룹(첫 블록 기준)에 borderMaterial이 지정돼 있으면 그걸 그대로 쓰고,
+    // 비어있으면 기본 아웃라인 셰이더(자기 자신의 채움 메시에 가려지지 않는 전용 셰이더)로 대체하며,
+    // 그 셰이더조차 없으면 채움과 같은 머티리얼로 대체한다.
+    static Material BorderMaterial(Material overrideMat, Material fallback)
     {
-        if (borderMat == null)
+        if (overrideMat != null) return overrideMat;
+
+        if (defaultBorderMat == null)
         {
             var shader = Shader.Find("Custom/FilterBorderAlwaysVisible");
-            if (shader != null) borderMat = new Material(shader);
+            if (shader != null) defaultBorderMat = new Material(shader);
         }
-        return borderMat != null ? borderMat : fallback;
+        return defaultBorderMat != null ? defaultBorderMat : fallback;
     }
 
     static GameObject BuildMeshObject(Transform parent, string name, List<Vector3> verts, List<int> tris, Material mat, Color32 color, float alpha)

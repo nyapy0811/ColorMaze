@@ -22,21 +22,23 @@ public struct ColorStackChangeRequest : IEvent
 }
 
 /// <summary>
-/// 캐릭터의 Red/Green/Blue 스택. 값은 [0, max] 범위(기본 0~31)를 순환한다.
+/// 캐릭터의 Red/Green/Blue 스택. 값은 [0, max] 범위(기본 0~15)를 순환한다.
 /// 상한을 넘으면 초과한 양만큼 0부터 다시 세고, 0 미만으로 내려가면 초과한 양만큼
-/// 상한부터 다시 센다(모듈러 연산). 하한은 항상 0으로 고정이며, max만 색상별로 다르게
-/// 설정해도 범위는 항상 [0, max]가 된다.
+/// 상한부터 다시 센다(모듈러 연산). 하한은 항상 0으로 고정이며, max는 세 색상이 항상
+/// 공유하는 하나의 값이다(StackMax 상수 한 곳만 바꾸면 전체에 반영됨).
 ///  - 입력: 다른 스크립트가 Add/Subtract/SetValue를 직접 호출 (예: ColorStackInput, 맵 기물)
 ///  - 외부: EventBus의 ColorStackChangeRequest를 구독해 반영
 /// 값이 바뀌면 ColorStackChanged를 발행한다.
 /// </summary>
 public class ColorStacks : MonoBehaviour
 {
+    /// <summary>모든 색상이 공유하는 스택 상한. 게임 전체에서 이 값 하나만 바꾸면 순환 범위·색 변환이 전부 따라간다.</summary>
+    public const int StackMax = 15;
+
     [Serializable]
     public class Config
     {
         public int start = 0;
-        public int max = 31;
     }
 
     [SerializeField] Config red = new();
@@ -47,9 +49,9 @@ public class ColorStacks : MonoBehaviour
 
     void Awake()
     {
-        values[(int)LightColor.Red] = Wrap(red.start, red.max);
-        values[(int)LightColor.Green] = Wrap(green.start, green.max);
-        values[(int)LightColor.Blue] = Wrap(blue.start, blue.max);
+        values[(int)LightColor.Red] = Wrap(red.start, StackMax);
+        values[(int)LightColor.Green] = Wrap(green.start, StackMax);
+        values[(int)LightColor.Blue] = Wrap(blue.start, StackMax);
     }
 
     /// <summary>value를 [0, max] 범위로 순환(모듈러)시킨다.</summary>
@@ -70,20 +72,20 @@ public class ColorStacks : MonoBehaviour
     }
 
     public int Get(LightColor c) => values[(int)c];
-    public int Max(LightColor c) => ConfigOf(c).max;
+    public int Max(LightColor c) => StackMax;
 
-    /// <summary>현재 스택을 변환한 RGB. 채널 = round(255 × 값 ÷ 세 값 중 최댓값).</summary>
+    /// <summary>현재 스택을 변환한 RGB. 채널 = round(255 × 값 ÷ StackMax).</summary>
     public Color32 CurrentRGB => ToRGB(values[0], values[1], values[2]);
 
-    /// <summary>R/G/B 정수 스택을 RGB로 변환한다(가장 큰 값이 255가 되도록 정규화, 반올림).</summary>
+    /// <summary>R/G/B 정수 스택을 RGB로 변환한다. 채널마다 독립적으로 [0, StackMax]를 [0, 255]로 매핑한다
+    /// (일반 RGB와 동일한 채널별 스케일링, StackMax/StackMax/StackMax가 흰색이 됨). 세 값의 상대적 비율이 아니라
+    /// 각 채널의 절대 스택 값이 그대로 밝기에 반영된다.</summary>
     public static Color32 ToRGB(int r, int g, int b)
     {
-        int max = Mathf.Max(r, Mathf.Max(g, b));
-        if (max <= 0) return new Color32(0, 0, 0, 255);
         return new Color32(
-            (byte)Mathf.RoundToInt(255f * r / max),
-            (byte)Mathf.RoundToInt(255f * g / max),
-            (byte)Mathf.RoundToInt(255f * b / max),
+            (byte)Mathf.Clamp(Mathf.RoundToInt(255f * r / StackMax), 0, 255),
+            (byte)Mathf.Clamp(Mathf.RoundToInt(255f * g / StackMax), 0, 255),
+            (byte)Mathf.Clamp(Mathf.RoundToInt(255f * b / StackMax), 0, 255),
             255);
     }
 
@@ -102,7 +104,7 @@ public class ColorStacks : MonoBehaviour
     /// <summary>절대값을 지정한다(순환 범위로 Wrap). 변하면 이벤트 발행.</summary>
     public void SetValue(LightColor c, int value)
     {
-        int wrapped = Wrap(value, ConfigOf(c).max);
+        int wrapped = Wrap(value, StackMax);
         if (wrapped == values[(int)c]) return;
         values[(int)c] = wrapped;
         Publish(c);
@@ -124,13 +126,6 @@ public class ColorStacks : MonoBehaviour
     {
         Color = c,
         Value = values[(int)c],
-        Max = ConfigOf(c).max,
+        Max = StackMax,
     });
-
-    Config ConfigOf(LightColor c) => c switch
-    {
-        LightColor.Red => red,
-        LightColor.Green => green,
-        _ => blue,
-    };
 }

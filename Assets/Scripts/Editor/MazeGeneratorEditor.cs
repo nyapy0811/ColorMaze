@@ -51,11 +51,11 @@ public class MazeGeneratorEditor : Editor
         int id = GUIUtility.GetControlID(FocusType.Passive);
         if (e.type == EventType.Layout) HandleUtility.AddDefaultControl(id);
 
-        // 마우스 위치의 대상 칸 계산 + 미리보기 (항상 위에 그려 가림 방지)
+        // 마우스 위치의 대상 칸 계산 + 미리보기 (다른 블록에 가려지는 모서리는 그리지 않음)
         if (TryGetTargetCell(maze, e.mousePosition, out Vector3 center))
         {
             var prev = Handles.zTest;
-            Handles.zTest = CompareFunction.Always;
+            Handles.zTest = CompareFunction.LessEqual;
             Handles.color = e.shift ? new Color(1f, 0.25f, 0.25f, 1f) : new Color(0.3f, 1f, 0.4f, 1f);
             Handles.DrawWireCube(center, Vector3.one * 1.001f);
             Handles.zTest = prev;

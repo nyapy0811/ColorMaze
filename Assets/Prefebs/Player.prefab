@@ -102,7 +102,6 @@ GameObject:
   - component: {fileID: 1690992858061300515}
   - component: {fileID: 621470641529038796}
   - component: {fileID: 5879575035357920572}
-  - component: {fileID: 7834950257608682544}
   m_Layer: 0
   m_Name: ViewModelCamera
   m_TagString: Untagged
@@ -229,20 +228,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &7834950257608682544
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2573198380703710627}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: accb339ee83684c4987440fc378db3e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BrushViewmodel
-  brushRoot: {fileID: 3428225198288928188}
-  brushTipRenderer: {fileID: 5768190559868179778}
 --- !u!1 &3428225198288928188
 GameObject:
   m_ObjectHideFlags: 0
@@ -438,6 +423,7 @@ GameObject:
   - component: {fileID: -9080921807358934011}
   - component: {fileID: 251657533344359429}
   - component: {fileID: 2533558527346987348}
+  - component: {fileID: 3990184152427060875}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -548,6 +534,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractionController
   interactRange: 1.3
+--- !u!114 &3990184152427060875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204771875393502260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: accb339ee83684c4987440fc378db3e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerColorVisuals
+  brushRoot: {fileID: 3428225198288928188}
+  brushTipRenderer: {fileID: 5768190559868179778}
+  mainCamera: {fileID: 8010572924479214050}
 --- !u!1 &6342740825035171136
 GameObject:
   m_ObjectHideFlags: 0
@@ -592,8 +593,8 @@ Camera:
   m_GameObject: {fileID: 6342740825035171136}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0

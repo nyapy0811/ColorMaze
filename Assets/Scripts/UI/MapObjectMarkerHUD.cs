@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 필터를 제외한 맵 기물(컬러 팔레트·스택 체인저·컬러 체인저·지우개·캔버스)마다 화면에 위치 마커를 띄운다.
+/// 필터를 제외한 맵 기물(컬러 팔레트·스택 체인저·컬러 체인저·버킷·캔버스)마다 화면에 위치 마커를 띄운다.
 /// 기물 종류별로 다른 마커 프리팹을 쓰며, 화면 밖(카메라 뒤쪽 포함)에 있으면 가장자리로 클램프한다.
 /// 기물이 파괴(소모)되면 그 마커도 같이 사라진다.
 /// </summary>
@@ -14,7 +14,7 @@ public class MapObjectMarkerHUD : MonoBehaviour
     [SerializeField] GameObject colorPaletteMarkerPrefab;
     [SerializeField] GameObject stackChangerMarkerPrefab;
     [SerializeField] GameObject colorChangerMarkerPrefab;
-    [SerializeField] GameObject eraserMarkerPrefab;
+    [SerializeField] GameObject bucketMarkerPrefab;
     [SerializeField] GameObject colorCanvasMarkerPrefab;
 
     [SerializeField] RectTransform markerContainer;
@@ -145,7 +145,7 @@ public class MapObjectMarkerHUD : MonoBehaviour
         ColorPalette => colorPaletteMarkerPrefab,
         StackChanger => stackChangerMarkerPrefab,
         ColorChanger => colorChangerMarkerPrefab,
-        Eraser => eraserMarkerPrefab,
+        Bucket => bucketMarkerPrefab,
         _ => null
     };
 }

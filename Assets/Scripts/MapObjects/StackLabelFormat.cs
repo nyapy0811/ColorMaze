@@ -8,8 +8,8 @@
 public static class StackLabelFormat
 {
     public static string ByValue(int red, int green, int blue) =>
-        $"<color=#FF0000>{red}</color> <color=#00FF00>{green}</color> <color=#0000FF>{blue}</color>";
+        $"<color=#FF0000>{red:D2}</color> <color=#00FF00>{green:D2}</color> <color=#0000FF>{blue:D2}</color>";
 
     public static string ByRatio(int red, int green, int blue) =>
-        $"<color=#FF0000>{red}</color><color=#000000>:</color><color=#00FF00>{green}</color><color=#000000>:</color><color=#0000FF>{blue}</color>";
+        $"<color=#FF0000>{red:D2}</color><color=#000000>:</color><color=#00FF00>{green:D2}</color><color=#000000>:</color><color=#0000FF>{blue:D2}</color>";
 }

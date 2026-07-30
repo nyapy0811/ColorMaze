@@ -13,6 +13,9 @@ public class ColorCanvas : ClearObjectBase
     [SerializeField] int targetGreen;
     [SerializeField] int targetBlue;
 
+    [Header("스택 색을 입힐 렌더러 목록")]
+    [SerializeField] Renderer[] stackColorRenderers;
+
     // 인스펙터에서 값을 바꾸면 에디터에서도 바로 반영되게 한다.
     void OnValidate()
     {
@@ -26,17 +29,8 @@ public class ColorCanvas : ClearObjectBase
         ApplyTargetLabel();
     }
 
-    // 첫 번째 자식의 렌더러 색을 목표 스택 값이 나타내는 색으로 표시한다.
-    void ApplyTargetColor()
-    {
-        if (transform.childCount == 0) return;
-        if (!transform.GetChild(0).TryGetComponent<Renderer>(out var r)) return;
-
-        var mpb = new MaterialPropertyBlock();
-        r.GetPropertyBlock(mpb);
-        mpb.SetColor("_BaseColor", ColorStacks.ToRGB(targetRed, targetGreen, targetBlue));
-        r.SetPropertyBlock(mpb);
-    }
+    // stackColorRenderers 전체를 목표 스택 값이 나타내는 색으로 표시한다.
+    void ApplyTargetColor() => ApplyColorTo(stackColorRenderers, ColorStacks.ToRGB(targetRed, targetGreen, targetBlue));
 
     // 첫 번째 자식의 -Z면(고정, 카메라를 따라 돌지 않음)에 목표 R/G/B 값을 표시한다.
     // 라벨 자동 생성은 필터만 하므로(FilterBlockBase), 캔버스는 자식으로 이미 있는 라벨을 찾아서 쓴다.

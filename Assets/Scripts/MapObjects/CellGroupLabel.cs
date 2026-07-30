@@ -12,23 +12,39 @@ public class CellGroupLabel : MonoBehaviour
     protected Vector3Int[] cells;
     protected TextMeshPro text;
 
-    /// <summary>parent 아래에 텍스트 라벨 오브젝트를 만들고 셀 그룹을 등록한다.</summary>
-    public static CellGroupLabel Create(Transform parent, string name, Vector3Int[] groupCells, string labelText)
-        => Create<CellGroupLabel>(parent, name, groupCells, labelText);
+    /// <summary>parent 아래에 텍스트 라벨 오브젝트를 만들고 셀 그룹을 등록한다.
+    /// prefab을 지정하면 그 프리팹을 인스턴스화해서 쓰고(TextMeshPro·컴포넌트가 없으면 자동으로 붙임),
+    /// 비워두면 기존처럼 기본 스타일로 코드에서 새로 만든다.</summary>
+    public static CellGroupLabel Create(Transform parent, string name, Vector3Int[] groupCells, string labelText, GameObject prefab = null)
+        => Create<CellGroupLabel>(parent, name, groupCells, labelText, prefab);
 
     /// <summary>위와 같지만, 위치/회전 계산을 다르게 오버라이드한 하위 클래스로 만들고 싶을 때 사용한다.</summary>
-    public static T Create<T>(Transform parent, string name, Vector3Int[] groupCells, string labelText) where T : CellGroupLabel
+    public static T Create<T>(Transform parent, string name, Vector3Int[] groupCells, string labelText, GameObject prefab = null) where T : CellGroupLabel
     {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
+        GameObject go;
+        TextMeshPro tmp;
 
-        var tmp = go.AddComponent<TextMeshPro>();
+        if (prefab != null)
+        {
+            go = Instantiate(prefab, parent);
+            go.name = name;
+            tmp = go.GetComponent<TextMeshPro>();
+            if (tmp == null) tmp = go.AddComponent<TextMeshPro>();
+        }
+        else
+        {
+            go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            tmp = go.AddComponent<TextMeshPro>();
+            tmp.fontSize = 3f;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white;
+        }
+
         tmp.text = labelText;
-        tmp.fontSize = 3f;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
 
-        var label = go.AddComponent<T>();
+        var label = go.GetComponent<T>();
+        if (label == null) label = go.AddComponent<T>();
         label.Init(groupCells, tmp);
         return label;
     }

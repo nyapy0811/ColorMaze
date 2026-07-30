@@ -131,6 +131,6 @@ MonoBehaviour:
   gateAlpha: 0.5
   borderWidth: 0.02
   borderAlpha: 1
-  red: 1
+  red: 0
   green: 0
   blue: 0

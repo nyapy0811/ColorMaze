@@ -1,45 +1,67 @@
+using Framework.Core;
 using UnityEngine;
 
 /// <summary>
 /// 스택 체인저(4.4).
 /// 지정된 두 색의 스택 값을 서로 교환하고, 발동 후 사라진다.
+/// currentColorRenderers(현재 플레이어 색)·resultColorRenderers(발동 시 변경될 색)로 미리보기를 보여준다.
+/// 미리보기는 매 프레임이 아니라 스테이지 시작 시와 플레이어 스택이 바뀔 때만 갱신한다.
 /// </summary>
-[RequireComponent(typeof(FloatingBob))]
-public class StackChanger : SpinningStackModifier
+public class StackChanger : StackModifierConsumable
 {
     [Header("교환할 두 색")]
     [SerializeField] LightColor colorA = LightColor.Red;
     [SerializeField] LightColor colorB = LightColor.Blue;
 
-    // 자식으로 붙은 작은 구 2개(0번째 = colorA, 1번째 = colorB)에 각 색을 표시한다.
-    void Start() => ApplyChildColors();
+    [Header("현재 색을 입힐 렌더러 목록")]
+    [SerializeField] Renderer[] currentColorRenderers;
 
-    // 인스펙터에서 값을 바꾸면 에디터에서도 바로 반영되게 한다.
-    void OnValidate() => ApplyChildColors();
+    [Header("발동 후 색을 입힐 렌더러 목록")]
+    [SerializeField] Renderer[] resultColorRenderers;
 
-    void ApplyChildColors()
+    void OnEnable()
     {
-        ApplyChildColor(0, colorA);
-        ApplyChildColor(1, colorB);
+        EventBus.Subscribe<ColorStackChanged>(OnStackChanged);
+        EventBus.Subscribe<SceneLoadCompleted>(OnStageStart);
     }
 
-    void ApplyChildColor(int childIndex, LightColor color)
+    void OnDisable()
     {
-        if (childIndex >= transform.childCount) return;
-        if (!transform.GetChild(childIndex).TryGetComponent<Renderer>(out var r)) return;
-
-        var mpb = new MaterialPropertyBlock();
-        r.GetPropertyBlock(mpb);
-        mpb.SetColor("_BaseColor", ToColor(color));
-        r.SetPropertyBlock(mpb);
+        EventBus.Unsubscribe<ColorStackChanged>(OnStackChanged);
+        EventBus.Unsubscribe<SceneLoadCompleted>(OnStageStart);
     }
 
-    static Color ToColor(LightColor c) => c switch
+    void Start() => RefreshPreview();
+
+    void OnStackChanged(ColorStackChanged e) => RefreshPreview();
+    void OnStageStart(SceneLoadCompleted e) => RefreshPreview();
+
+    void RefreshPreview()
     {
-        LightColor.Red => Color.red,
-        LightColor.Green => Color.green,
-        _ => Color.blue,
-    };
+        if (Player == null) return;
+
+        ApplyColorTo(currentColorRenderers, Player.CurrentRGB);
+
+        int r = Player.Get(LightColor.Red);
+        int g = Player.Get(LightColor.Green);
+        int b = Player.Get(LightColor.Blue);
+        int a = Player.Get(colorA);
+        int bVal = Player.Get(colorB);
+        Set(ref r, ref g, ref b, colorA, bVal);
+        Set(ref r, ref g, ref b, colorB, a);
+
+        ApplyColorTo(resultColorRenderers, ColorStacks.ToRGB(r, g, b));
+    }
+
+    static void Set(ref int r, ref int g, ref int b, LightColor c, int value)
+    {
+        switch (c)
+        {
+            case LightColor.Red: r = value; break;
+            case LightColor.Green: g = value; break;
+            default: b = value; break;
+        }
+    }
 
     protected override void ApplyToStacks(ColorStacks player)
     {

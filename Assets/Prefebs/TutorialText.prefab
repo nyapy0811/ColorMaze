@@ -225,6 +225,8 @@ GameObject:
   - component: {fileID: 6229101623769204364}
   - component: {fileID: 6301058724008286320}
   - component: {fileID: 3342030353352168256}
+  - component: {fileID: 3342030353352168257}
+  - component: {fileID: 3190646577299232202}
   m_Layer: 5
   m_Name: TutorialText
   m_TagString: Untagged
@@ -316,3 +318,27 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &3342030353352168257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6805783812785766096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0479cb3a93c44b5fba7272f13782ca19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &3190646577299232202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6805783812785766096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0479cb3a93c44b5fba7272f13782ca19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialTextMarker

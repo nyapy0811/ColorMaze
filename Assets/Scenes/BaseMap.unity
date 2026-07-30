@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: eac2ef371405749e0bd050b4c3272f16, type: 2}
+  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -264,6 +264,38 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 202474816}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &223761750
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 223761751}
+  m_Layer: 0
+  m_Name: MapObjects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &223761751
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 223761750}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1431177687}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -420,6 +452,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46b10ef8bc3333445820be5fe837a118, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeGenerator
+  colorFilterPrefab: {fileID: 9049275888968721270, guid: cd53bf95ea8ad104393633ad38c80a65, type: 3}
+  rgbFilterPrefab: {fileID: 1527563060800300771, guid: f649c92f9bb3cd148927a4ed58f1b370, type: 3}
 --- !u!4 &666767483
 Transform:
   m_ObjectHideFlags: 0
@@ -603,7 +637,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 223761751}
     m_Modifications:
     - target: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -623,15 +657,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -661,6 +695,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
+--- !u!4 &1431177687 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
+  m_PrefabInstance: {fileID: 1431177686}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1938869949971426614
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -726,4 +765,4 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 666767483}
   - {fileID: 1938869949971426614}
-  - {fileID: 1431177686}
+  - {fileID: 223761751}

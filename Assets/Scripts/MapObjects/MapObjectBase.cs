@@ -35,4 +35,19 @@ public abstract class MapObjectBase : MonoBehaviour
     {
         if (highlightRoot) highlightRoot.SetActive(on);
     }
+
+    /// <summary>렌더러 목록 전체에 같은 색을 MaterialPropertyBlock으로 입힌다(인스펙터에서 대상을 직접 지정).</summary>
+    protected static void ApplyColorTo(Renderer[] renderers, Color color)
+    {
+        if (renderers == null) return;
+
+        var mpb = new MaterialPropertyBlock();
+        foreach (var r in renderers)
+        {
+            if (r == null) continue;
+            r.GetPropertyBlock(mpb);
+            mpb.SetColor("_BaseColor", color);
+            r.SetPropertyBlock(mpb);
+        }
+    }
 }

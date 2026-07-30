@@ -15,6 +15,7 @@ MonoBehaviour:
   chapters:
   - sceneNames:
     - 1-1
+    - 1-2
     - BaseMap
     - BaseMap
     - BaseMap
@@ -22,8 +23,7 @@ MonoBehaviour:
     - BaseMap
     - BaseMap
     - BaseMap
-    - BaseMap
-    - BaseMap
+    - testmap
   - sceneNames:
     - BaseMap
     - BaseMap

@@ -5,7 +5,7 @@ using UnityEngine;
 /// 컬러 팔레트(4.1).
 /// 충돌하면 지정된 만큼 RGB 스택이 증가한다. 사라지지 않아 반복 획득할 수 있다.
 /// </summary>
-[RequireComponent(typeof(FloatingBob))]
+[RequireComponent(typeof(BoxCollider))]
 public class ColorPalette : AcquireObjectBase
 {
     [Header("증가시킬 스택량")]
@@ -13,9 +13,13 @@ public class ColorPalette : AcquireObjectBase
     [SerializeField] int green;
     [SerializeField] int blue;
 
+    [Header("스택 색을 입힐 렌더러 목록")]
+    [SerializeField] Renderer[] stackColorRenderers;
+
     protected override void Awake()
     {
         base.Awake();
+        FitCollider();
         ApplyColor();
     }
 
@@ -32,22 +36,58 @@ public class ColorPalette : AcquireObjectBase
             Mathf.RoundToInt(transform.position.y - 0.5f),
             Mathf.RoundToInt(transform.position.z));
 
-        tmp.text = $"<color=#FF0000>{red}</color> <color=#00FF00>{green}</color> <color=#0000FF>{blue}</color>";
+        tmp.text = StackLabelFormat.ByValue(red, green, blue);
         label.Init(new[] { cell }, tmp);
     }
 
     // 인스펙터에서 값을 바꾸면 에디터에서도 바로 색이 반영되게 한다.
-    void OnValidate() => ApplyColor();
-
-    // 지정된 R/G/B 스택량을 색으로 변환해 이 블록의 외형에 그대로 반영한다(필터와 같은 변환식 사용).
-    void ApplyColor()
+    void OnValidate()
     {
-        if (!TryGetComponent<Renderer>(out var r)) return;
-        var mpb = new MaterialPropertyBlock();
-        r.GetPropertyBlock(mpb);
-        mpb.SetColor("_BaseColor", ColorStacks.ToRGB(red, green, blue));
-        r.SetPropertyBlock(mpb);
+        FitCollider();
+        ApplyColor();
     }
+
+    // 콜라이더(BoxCollider)를 자식 렌더러들의 실제 형태에 맞춰 자동으로 재계산한다.
+    // 팔레트 모델이 여러 조각(실린더 등)으로 구성되어 있고, 외부 리모델링 툴을 쓸 때마다
+    // MeshCollider가 초기화되는 문제가 있어서, 메시를 참조하지 않는 BoxCollider로 대체하고
+    // 매번 자동으로 크기를 맞춘다.
+    void FitCollider()
+    {
+        if (!TryGetComponent<BoxCollider>(out var box)) return;
+
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        bool has = false;
+        Bounds b = default;
+        foreach (var r in renderers)
+        {
+            if (!r.enabled) continue; // 비활성 렌더러(아웃라인 등)는 제외
+            if (!has) { b = r.bounds; has = true; }
+            else b.Encapsulate(r.bounds);
+        }
+        if (!has) return;
+
+        Vector3 s = transform.lossyScale;
+        box.center = transform.InverseTransformPoint(b.center);
+        box.size = new Vector3(
+            b.size.x / Mathf.Max(Mathf.Abs(s.x), 0.0001f),
+            b.size.y / Mathf.Max(Mathf.Abs(s.y), 0.0001f),
+            b.size.z / Mathf.Max(Mathf.Abs(s.z), 0.0001f));
+    }
+
+    // +Y축을 정면으로 삼아 항상 플레이어(카메라)를 바라본다.
+    void LateUpdate()
+    {
+        var cam = Camera.main;
+        if (cam == null) return;
+
+        Vector3 dir = cam.transform.position - transform.position;
+        if (dir.sqrMagnitude < 0.0001f) return;
+
+        transform.rotation = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, 180f, 0f);
+    }
+
+    // 지정된 R/G/B 스택량을 색으로 변환해 stackColorRenderers에 그대로 반영한다(필터와 같은 변환식 사용).
+    void ApplyColor() => ApplyColorTo(stackColorRenderers, ColorStacks.ToRGB(red, green, blue));
 
     protected override void OnAcquire(ColorStacks player)
     {

@@ -16,6 +16,12 @@
       },
       "hash": "d3415c115bdc82dfdbed39c81d976a12b51df917"
     },
+    "com.tripolygon.umodeler-x": {
+      "version": "file:../UModelerXPackages/com.tripolygon.umodeler-x-1.2.2+f1.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {}
+    },
     "com.unity.burst": {
       "version": "1.8.29",
       "depth": 2,

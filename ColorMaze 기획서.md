@@ -104,7 +104,7 @@
 
 ### 3.8 조준+좌클릭 상호작용
 
-- 필터를 제외한 맵 기물(컬러 팔레트·스택 체인저·컬러 체인저·지우개·캔버스)은 걸어서 닿는 것이 아니라, 카메라 정면 1.3칸 이내에서 조준하고 좌클릭해야 상호작용된다.
+- 필터를 제외한 맵 기물(컬러 팔레트·스택 체인저·컬러 체인저·버킷·캔버스)은 걸어서 닿는 것이 아니라, 카메라 정면 1.3칸 이내에서 조준하고 좌클릭해야 상호작용된다.
 - 조준 중인 대상이 있으면 조준점 색이 바뀌고, 대상 자체에도 강조 표시(아웃라인)가 나타난다.
 - 카메라와 기물 사이에 벽 등 가리는 것이 있으면 조준·상호작용 모두 되지 않는다.
 
@@ -118,10 +118,10 @@
 - 컬러 팔레트는 플레이어의 스택을 변경한 후에도 사라지지 않는다.
 - 팔레트 자신의 외형 색이 지정된 R/G/B 스택량을 그대로 반영해, 어떤 색을 얼마나 주는지 눈으로 알 수 있다.
 - 정확한 R/G/B 숫자도 텍스트로 함께 표시된다(컬러 필터와 같은 리치 텍스트 형식).
-- 이 텍스트는 필터와 달리 면에 고정되지 않고, 항상 블록 중심에서 플레이어(카메라)를 바라본다.
-- 팔레트는 제자리에서 위아래로 둥둥 떠 있는 느낌을 준다.
+- 팔레트는 자신의 +Y축(정면)이 항상 플레이어(카메라)를 향하도록 계속 회전한다.
+- 텍스트 라벨은 팔레트 내부의 고정된 위치에 있으며, 팔레트가 회전할 때 같이 따라 움직인다.
 
-*구현: ColorPalette(AcquireObjectBase 기반)가 담당한다. 조준+좌클릭 상호작용(3.8 참고)으로 지정된 R/G/B만큼 ColorStacks.Add를 호출한다. 자기 자신은 사라지지 않아 여러 번 클릭하면 반복 발동한다. Awake와 인스펙터 값 변경(OnValidate) 시 ColorStacks.ToRGB(필터와 같은 변환식)로 지정 R/G/B를 색으로 바꿔 자신의 렌더러에 MaterialPropertyBlock으로 입힌다(메시 병합은 하지 않음, 블록별로 개별 표시). 라벨 오브젝트 자동 생성은 필터(FilterBlockBase)만 하므로, 팔레트는 Start()에서 자식으로 미리 배치해둔 BillboardCenterLabel(CellGroupLabel의 하위 클래스)을 찾아 텍스트·기준 셀만 갱신한다(없으면 아무것도 안 함) — 컬러 필터와 동일한 리치 텍스트(R/G/B 숫자를 각 색으로 물들임)를 블록 중심에서 항상 카메라를 향하도록 보여준다(필터의 CellGroupLabel은 면에 고정되는 반면, BillboardCenterLabel은 LateUpdate를 오버라이드해 위치를 오브젝트 중심으로, 회전을 카메라를 향한 빌보드로 바꿈). 라벨은 그리드 셀이 아니라 부모(팔레트)의 실제 월드 위치를 매 프레임 따라가므로, 아래 FloatingBob으로 팔레트가 움직여도 라벨이 같이 움직인다. [RequireComponent(typeof(FloatingBob))]로 새 팔레트 오브젝트에는 FloatingBob(범용 부유 애니메이션 컴포넌트, MapObjects/FloatingBob.cs)이 자동으로 붙어 로컬 Y축으로 sin 파형에 따라 위아래로 흔들린다.*
+*구현: ColorPalette(AcquireObjectBase 기반)가 담당한다. 조준+좌클릭 상호작용(3.8 참고)으로 지정된 R/G/B만큼 ColorStacks.Add를 호출한다. 자기 자신은 사라지지 않아 여러 번 클릭하면 반복 발동한다. Awake와 인스펙터 값 변경(OnValidate) 시 ColorStacks.ToRGB(필터와 같은 변환식)로 지정 R/G/B를 색으로 바꿔 인스펙터에서 지정한 stackColorRenderers 목록에 MaterialPropertyBlock으로 입힌다(메시 병합은 하지 않음, 블록별로 개별 표시). LateUpdate에서 `Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(90f, 0f, 0f)`로 로컬 +Y축이 카메라 방향을 향하도록 회전시킨다(기본 LookRotation은 +Z를 정면으로 삼으므로, 추가로 X축 기준 90도 돌려 +Y가 정면이 되게 만든다). 라벨 오브젝트 자동 생성은 필터(FilterBlockBase)만 하므로, 팔레트는 Start()에서 자식으로 미리 배치해둔 BillboardCenterLabel(CellGroupLabel의 하위 클래스)을 찾아 텍스트만 갱신한다(없으면 아무것도 안 함) — 컬러 필터와 동일한 리치 텍스트(R/G/B 숫자를 각 색으로 물들임)를 보여준다. BillboardCenterLabel은 더 이상 위치·회전을 매 프레임 재계산하지 않고 텍스트 표시 여부만 관리한다 — 팔레트 자신이 회전하므로 라벨은 에디터에서 배치한 고정 위치에 자식으로 붙어 자연스럽게 같이 회전한다.*
 
 ### 4.2 컬러 필터
 
@@ -132,7 +132,7 @@
 - 플레이어가 지금 통과 가능한 상태면 필터의 면(채움, 테두리 제외)이 투명해지고, 통과 불가능해지면 다시 원래대로 보인다.
 - 테두리는 필터 자기 자신의 채움(fill) 메시에 가려지지 않고 항상 그 위에 보인다(벽 등 다른 오브젝트에는 정상적으로 가려짐).
 
-*구현: ColorFilterBlock(FilterBlockBase 기반)이 담당한다. 매 프레임 폴링하는 대신 ColorStackChanged 이벤트(플레이어 스택이 바뀔 때만 발행)를 구독해, 값이 바뀔 때만 플레이어의 변환 RGB와 필터의 RGB를 비교한다 — 같으면 콜라이더를 트리거로 전환(통과 허용)하고 다르면 솔리드로 되돌린다. 플레이어가 완전히 통과하면(OnTriggerExit) ColorStacks.ResetAll()을 호출해 스택을 초기화한다. 메시 병합·테두리 로직은 FilterBlockBase에 내장되어 있어 별도 매니저 컴포넌트 없이 필터 스크립트만으로 동작한다 — 같은 색 필터들을 우선 색상으로 묶고, 그중에서도 6방향으로 실제 맞닿아 이어진 덩어리끼리만 다시 나눠(멀리 떨어진 같은 색 블록은 별개 그룹) 채움(fill)·테두리(border) 메시 한 쌍으로 합친다. 내부 면은 생기지 않고, 통합된 메시의 바깥 모서리에만 불투명한 테두리를 둘러 "테두리가 무지개색"을 시각적으로 표현한다 — 같은 그룹 블록끼리 맞닿아 이어지는 내부 경계에는 테두리가 생기지 않는다(콜라이더·통과 로직은 블록별로 유지). RGB 필터와 판정 로직만 다른 형제 클래스로 분리되어 있다(FilterBlockBase). 라벨은 그룹(덩어리)당 하나만 생성되며(범용 컴포넌트 CellGroupLabel), 매 프레임 그룹의 칸(셀) 중 카메라와 가장 가까운 칸을 찾아 그 칸의 카메라 쪽 면 위에 배치한다(라벨의 위치·회전만 카메라가 움직일 수 있으므로 매 프레임 갱신, 통과 판정과는 별개). 회전은 카메라를 따라 도는 빌보드가 아니라 그 면의 바깥 법선 방향으로 고정된다. 텍스트 내용은 R/G/B 숫자만(각 숫자를 해당 색으로 물들인 리치 텍스트) 표시해, RGB 필터(라벨 없이 테두리만 사용)와 시각적으로 구분된다. ColorStackChanged 이벤트가 올 때마다 그룹의 채움 메시 알파를 0(통과 가능)과 원래 gateAlpha(통과 불가) 사이로 전환한다(테두리 메시는 별도 렌더러라 영향받지 않음). 테두리 머티리얼은 `FilterBlockBase.borderMaterial` 필드로 그룹(첫 블록 기준)마다 지정할 수 있다 — 비워두면 기존처럼 전용 셰이더(Assets/Shaders/FilterBorderAlwaysVisible.shader, Custom/FilterBorderAlwaysVisible)로 자동 생성한 공용 머티리얼을 쓴다. 이 기본 셰이더는 렌더 큐를 채움보다 뒤(Transparent+10)로 둬서 항상 채움 위에 그려지게 한다 — 깊이 테스트 자체는 기본값(LEqual)이라 벽 등 다른 오브젝트에는 정상적으로 가려진다. 인스펙터에서 값이 바뀔 때(OnValidate)의 RebuildAll() 호출은 TMP가 라벨 생성 중 DestroyImmediate를 호출해 경고가 뜨는 것을 막기 위해 EditorApplication.delayCall로 한 프레임 미뤄 실행한다(에디터 전용).*
+*구현: ColorFilterBlock(FilterBlockBase 기반)이 담당한다. 매 프레임 폴링하는 대신 ColorStackChanged 이벤트(플레이어 스택이 바뀔 때만 발행)를 구독해, 값이 바뀔 때만 플레이어의 변환 RGB와 필터의 RGB를 비교한다 — 같으면 콜라이더를 트리거로 전환(통과 허용)하고 다르면 솔리드로 되돌린다. 플레이어가 완전히 통과하면(OnTriggerExit) ColorStacks.ResetAll()을 호출해 스택을 초기화한다. 메시 병합·테두리 로직은 FilterBlockBase에 내장되어 있어 별도 매니저 컴포넌트 없이 필터 스크립트만으로 동작한다 — 같은 색 필터들을 우선 색상으로 묶고, 그중에서도 6방향으로 실제 맞닿아 이어진 덩어리끼리만 다시 나눠(멀리 떨어진 같은 색 블록은 별개 그룹) 채움(fill)·테두리(border) 메시 한 쌍으로 합친다. 내부 면은 생기지 않고, 통합된 메시의 바깥 모서리에만 불투명한 테두리를 둘러 "테두리가 무지개색"을 시각적으로 표현한다 — 같은 그룹 블록끼리 맞닿아 이어지는 내부 경계에는 테두리가 생기지 않는다(콜라이더·통과 로직은 블록별로 유지). RGB 필터와 판정 로직만 다른 형제 클래스로 분리되어 있다(FilterBlockBase). 라벨은 그룹(덩어리)당 하나만 생성되며(범용 컴포넌트 CellGroupLabel), 매 프레임 그룹의 칸(셀) 중 카메라와 가장 가까운 칸을 찾아 그 칸의 카메라 쪽 면 위에 배치한다(라벨의 위치·회전만 카메라가 움직일 수 있으므로 매 프레임 갱신, 통과 판정과는 별개). 회전은 카메라를 따라 도는 빌보드가 아니라 그 면의 바깥 법선 방향으로 고정된다. 텍스트 내용은 R/G/B 숫자만(각 숫자를 해당 색으로 물들인 리치 텍스트) 표시해, RGB 필터(라벨 없이 테두리만 사용)와 시각적으로 구분된다. 라벨 오브젝트는 `FilterBlockBase.labelPrefab` 필드로 그룹(첫 블록 기준)마다 지정한 프리팹을 인스턴스화해서 쓸 수 있다 — 비워두면 기존처럼 코드에서 기본 스타일(폰트 크기 3, 가운데 정렬, 흰색)로 새로 만든다. 프리팹을 지정하면 TextMeshPro나 CellGroupLabel 컴포넌트가 없어도 자동으로 붙여준다. ColorStackChanged 이벤트가 올 때마다 그룹의 채움 메시 알파를 0(통과 가능)과 원래 gateAlpha(통과 불가) 사이로 전환한다(테두리 메시는 별도 렌더러라 영향받지 않음). 테두리 머티리얼은 `FilterBlockBase.borderMaterial` 필드로 그룹(첫 블록 기준)마다 지정할 수 있다 — 비워두면 기존처럼 전용 셰이더(Assets/Shaders/FilterBorderAlwaysVisible.shader, Custom/FilterBorderAlwaysVisible)로 자동 생성한 공용 머티리얼을 쓴다. 이 기본 셰이더는 렌더 큐를 채움보다 뒤(Transparent+10)로 둬서 항상 채움 위에 그려지게 한다 — 깊이 테스트 자체는 기본값(LEqual)이라 벽 등 다른 오브젝트에는 정상적으로 가려진다. 인스펙터에서 값이 바뀔 때(OnValidate)의 RebuildAll() 호출은 TMP가 라벨 생성 중 DestroyImmediate를 호출해 경고가 뜨는 것을 막기 위해 EditorApplication.delayCall로 한 프레임 미뤄 실행한다(에디터 전용).*
 
 ### 4.3 RGB 필터
 
@@ -147,30 +147,27 @@
 
 - 플레이어가 스택 체인저를 조준하고 좌클릭하면 체인저에 지정된 두 색과 동일한 색의 RGB스택 값이 서로 변경된다.
 - 스택 체인저는 실제로 스택 값이 바뀐 경우에만 사라진다(바뀐 게 없으면 그대로 남는다).
-- 자식으로 붙은 작은 구 2개에 각각 교환 대상인 두 색(colorA/colorB)을 그대로 표시한다.
-- 제자리에서 위아래로 둥둥 뜨며, 항상 플레이어(카메라)를 바라본 채로 그 방향(내부 Z축) 기준으로 계속 회전한다.
+- 자식으로 붙은 작은 구 2개 중 0번째는 플레이어의 현재 색을, 1번째는 발동 시 변경될 색(미리보기)을 보여준다.
 
-*구현: StackChanger(SpinningStackModifier 기반)가 담당한다. 지정된 두 색의 현재 값을 서로 SetValue로 맞바꾼다. 회전·바라보기는 공통 베이스 SpinningStackModifier(아래 참고)에서 상속받고, 부유는 [RequireComponent(typeof(FloatingBob))]로 자동으로 붙는다. Start()와 인스펙터 값 변경(OnValidate) 시 0번째/1번째 자식 구 렌더러에 각각 colorA/colorB 색을 MaterialPropertyBlock으로 입힌다.*
+*구현: StackChanger(StackModifierConsumable 기반)가 담당한다. 지정된 두 색의 현재 값을 서로 SetValue로 맞바꾼다. 미리보기 색은 매 프레임이 아니라 ColorStackChanged(플레이어 스택 변경 시)·SceneLoadCompleted(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고, Start()에서 초기 1회도 반영한다(currentColorRenderers = Player.CurrentRGB, resultColorRenderers = colorA·colorB 값만 서로 바꿔서 미리 계산한 결과색).*
 
 ### 4.5 컬러 체인저
 
 - 플레이어가 컬러 체인저를 조준하고 좌클릭하면 플레이어의 각 색상 스택을 (세 스택 중 최댓값 - 해당 색상의 현재 값)으로 변경한다.
 - 컬러 체인저는 실제로 스택 값이 바뀐 경우에만 사라진다(바뀐 게 없으면 그대로 남는다).
 - 자식으로 붙은 작은 구 2개 중 0번째는 플레이어의 현재 색을, 1번째는 발동 시 변경될 색(미리보기)을 보여준다.
-- 스택 체인저와 마찬가지로 항상 플레이어(카메라)를 바라본 채로 그 방향 기준 계속 회전한다.
 
-*구현: ColorChanger(SpinningStackModifier 기반)가 담당한다. 세 스택 중 최댓값을 구한 뒤 각 채널에 SetValue(max - 현재값)를 적용한다. 두 구의 미리보기 색은 매 프레임이 아니라 ColorStackChanged(플레이어 스택 변경 시)·SceneLoadCompleted(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고, Start()에서 초기 1회도 반영한다(0번째 구 = Player.CurrentRGB, 1번째 구 = 변환식으로 미리 계산한 결과색).*
+*구현: ColorChanger(StackModifierConsumable 기반)가 담당한다. 세 스택 중 최댓값을 구한 뒤 각 채널에 SetValue(max - 현재값)를 적용한다. 미리보기 색은 매 프레임이 아니라 ColorStackChanged(플레이어 스택 변경 시)·SceneLoadCompleted(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고, Start()에서 초기 1회도 반영한다(currentColorRenderers = Player.CurrentRGB, resultColorRenderers = 변환식으로 미리 계산한 결과색).*
 
-### 4.6 지우개
+### 4.6 버킷
 
-- 플레이어가 지우개를 조준하고 좌클릭하면 지우개에 지정된 색과 동일한 색의 RGB스택 값을 0으로 만든다.
-- 지우개는 실제로 스택 값이 바뀐 경우에만 사라진다(이미 0인 색을 지정했다면 그대로 남는다).
-- 지우개 자신의 색은 타겟 색과 검정색 사이를 2초 주기로 부드럽게(sin 곡선) 순환한다.
-- 제자리에서 위아래로 둥둥 뜬다.
+- 플레이어가 버킷을 조준하고 좌클릭하면 버킷에 지정된 색과 동일한 색의 RGB스택 값을 0으로 만든다.
+- 버킷은 실제로 스택 값이 바뀐 경우에만 사라진다(이미 0인 색을 지정했다면 그대로 남는다).
+- 버킷 자신의 색은 지정된 타겟 색을 그대로 보여준다.
 
-*구현: Eraser(StackModifierConsumable 기반)가 담당한다. 지정된 색에 SetValue(0)을 적용한다. Update()에서 sin 곡선(기본 2초 주기)으로 targetColor와 검정 사이를 Color.Lerp해 MaterialPropertyBlock으로 렌더러에 입힌다. OnValidate에서도 같은 색을 적용해 플레이 전에도 기본 색이 인스펙터에서 바로 보인다. 부유는 [RequireComponent(typeof(FloatingBob))]로 자동으로 붙는다.*
+*구현: Bucket(StackModifierConsumable 기반)이 담당한다. 지정된 색에 SetValue(0)을 적용한다. Start()와 인스펙터 값 변경(OnValidate) 시 targetColor의 순수 원색을 인스펙터에서 지정한 stackColorRenderers 목록에 MaterialPropertyBlock으로 입힌다.*
 
-*공통(4.4~4.6): ConsumableObjectBase에 ShouldConsume() 가상 메서드가 추가되었고, StackModifierConsumable이 이를 오버라이드해 Apply() 전후로 R/G/B 값을 비교한 뒤 실제로 하나라도 바뀐 경우에만 true를 반환한다 — 아무 변화가 없으면 소모되지 않고 남아있는다. 스택 체인저·컬러 체인저는 SpinningStackModifier(StackModifierConsumable을 상속하는 중간 클래스, MapObjects/SpinningStackModifier.cs)를 상속해 "플레이어를 바라보며 그 방향 기준 Z축으로 계속 회전"하는 동작을 공유한다(spinSpeed로 속도 조절, 기본 180도/초). 지우개는 이 회전 대신 자체 색 순환 애니메이션을 쓴다.*
+*공통(4.4~4.6): ConsumableObjectBase에 ShouldConsume() 가상 메서드가 추가되었고, StackModifierConsumable이 이를 오버라이드해 Apply() 전후로 R/G/B 값을 비교한 뒤 실제로 하나라도 바뀐 경우에만 true를 반환한다 — 아무 변화가 없으면 소모되지 않고 남아있는다. 스택 체인저·컬러 체인저·버킷 모두 배치된 그대로 고정되어 있고, 회전이나 카메라를 향한 빌보드 동작은 없다.*
 
 ### 4.7 캔버스
 
@@ -182,7 +179,7 @@
 
 - 맵 중간 특정 위치에 안내용 텍스트가 항상 고정된 위치·방향으로 떠 있다(플레이어를 따라 회전하지 않음).
 
-*구현: 별도 스크립트 없이 3D 공간에 배치한 TextMeshPro 오브젝트로 구현한다 — 위치와 회전 모두 고정값이라 스크립트 없이 Transform만 지정하면 된다. 한글 표시를 위해 Dynamic Atlas Population Mode의 TMP 폰트 애셋을 사용한다(전체 한글 음절 11,172자를 Static으로 미리 굽기엔 너무 많아 실패하므로, 런타임에 필요한 글리프만 채우는 Dynamic 모드를 쓴다).*
+*구현: 3D 공간에 배치한 TextMeshPro 오브젝트로 구현한다 — 위치와 회전 모두 고정값이라 게임 로직 스크립트는 필요 없다. 다만 하이어라키 정리 도구(MapObjectOrganizer, 5.2 참고)가 다른 맵 기물과 함께 이 오브젝트를 찾아 MapObjects 폴더로 모을 수 있도록, 아무 동작도 하지 않는 식별용 컴포넌트 TutorialTextMarker만 붙여둔다. 한글 표시를 위해 Dynamic Atlas Population Mode의 TMP 폰트 애셋을 사용한다(전체 한글 음절 11,172자를 Static으로 미리 굽기엔 너무 많아 실패하므로, 런타임에 필요한 글리프만 채우는 Dynamic 모드를 쓴다).*
 
 ## 5. 레벨 구성
 
@@ -199,4 +196,4 @@
 - 각 챕터에서 응용 스테이지까지 통과한 경우 다음 챕터가 해금이 된다.
 - 챌린지 스테이지에서는 캔버스가 2개가 되어서 전부 완성해야 한다.
 
-*구현: 미로 블록은 런타임 절차 생성이 아니라 MazeGeneratorEditor(에디터 전용 Scene 뷰 툴)로 배치되어 씬에 직접 저장된다(클릭 설치/Shift+클릭 제거, 정수 그리드 스냅). 캔버스 여러 개 조건은 ColorCanvas의 순차 완료 방식으로 지원된다(4.7 참고). 스테이지 클리어 후 챕터·스테이지 해금은 ProgressManager(Level/ProgressManager.cs)가 담당한다 — StageTable(각 챕터의 스테이지 씬 이름 배열, Resources 폴더에 있어 Resources.Load로 불러옴)에서 클리어한 씬이 챕터의 배열 인덱스 7(8번째, 응용 스테이지 마지막)이면 다음 챕터를 해금한다. 챕터 안의 개별 스테이지는 별도 저장 없이 clearedStages만으로 판정한다 — 0번째 스테이지는 챕터가 해금돼 있으면 항상 열려있고, 나머지는 바로 앞 스테이지가 클리어돼 있어야 열린다. MainMenuController가 챕터/스테이지 버튼의 interactable을 이 판정에 맞춰 갱신해 잠긴 항목은 회색으로 비활성화된다.*
+*구현: 미로 블록은 런타임 절차 생성이 아니라 MazeGeneratorEditor(에디터 전용 Scene 뷰 툴)로 배치되어 씬에 직접 저장된다(클릭 설치/Shift+클릭 제거, Ctrl+드래그로 직사각형 범위 설치/제거, 정수 그리드 스냅). 기본 블록(큐브) 대신 자유 프리팹 칸에 아무 기물 프리팹이나 끌어 넣어 설치할 수 있고, 그중 자주 쓰는 3종류(기본 블록/컬러 필터/RGB 필터)는 라디오 버튼으로 바로 고를 수 있다 — 컬러 필터·RGB 필터를 고르면 설치 시 적용할 R/G/B 값(또는 목표 색)도 미리 지정해둘 수 있다. 설치된 필터·기물은 Maze가 아니라 씬 바로 아래 MapObjects 폴더에 자동으로 모이며, 필터는 그중에서도 메시가 병합되는 것과 같은 기준(같은 색 + 6방향 인접, FilterClusterOrganizer 공용 로직)으로 ColorFilterN/RGBFilterN 하위 폴더에 묶인다 — 필터를 설치·제거할 때마다 폴더 구성과 병합 메시가 함께 갱신된다. 이미 씬에 있는 기물이나 튜토리얼 텍스트(4.8 참고)를 한 번에 다시 정리하고 싶을 때는 메뉴 ColorMaze › 특수 블록 하이어라키 정리(MapObjectOrganizer)를 수동으로 실행하면 된다. 캔버스 여러 개 조건은 ColorCanvas의 순차 완료 방식으로 지원된다(4.7 참고). 스테이지 클리어 후 챕터·스테이지 해금은 ProgressManager(Level/ProgressManager.cs)가 담당한다 — StageTable(각 챕터의 스테이지 씬 이름 배열, Resources 폴더에 있어 Resources.Load로 불러옴)에서 클리어한 씬이 챕터의 배열 인덱스 7(8번째, 응용 스테이지 마지막)이면 다음 챕터를 해금한다. 챕터 안의 개별 스테이지는 별도 저장 없이 clearedStages만으로 판정한다 — 0번째 스테이지는 챕터가 해금돼 있으면 항상 열려있고, 나머지는 바로 앞 스테이지가 클리어돼 있어야 열린다. MainMenuController가 챕터/스테이지 버튼의 interactable을 이 판정에 맞춰 갱신해 잠긴 항목은 회색으로 비활성화된다.*

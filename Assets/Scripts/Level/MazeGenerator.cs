@@ -7,4 +7,7 @@ using UnityEngine;
 /// </summary>
 public class MazeGenerator : MonoBehaviour
 {
+    [Header("빠른 설치용 필터 프리팹 (Scene 뷰 블록 편집 모드의 라디오 버튼에서 사용)")]
+    public GameObject colorFilterPrefab;
+    public GameObject rgbFilterPrefab;
 }

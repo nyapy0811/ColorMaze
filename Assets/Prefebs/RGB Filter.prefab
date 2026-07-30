@@ -131,4 +131,5 @@ MonoBehaviour:
   gateAlpha: 0.5
   borderWidth: 0.02
   borderAlpha: 1
+  labelPrefab: {fileID: 5283572886341003895, guid: ed1ebddd6c51ecf449401c25d13b2cda, type: 3}
   targetColor: 0

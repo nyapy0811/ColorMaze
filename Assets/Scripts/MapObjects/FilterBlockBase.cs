@@ -29,6 +29,9 @@ public abstract class FilterBlockBase : MapObjectBase
     [Tooltip("테두리 색의 불투명도(0 = 완전 투명, 1 = 불투명)")]
     [Range(0f, 1f)] public float borderAlpha = 1f;
 
+    [Tooltip("그룹 라벨을 만들 때 쓸 프리팹(TextMeshPro 포함). 비워두면 기본 스타일로 코드에서 자동 생성한다.")]
+    public GameObject labelPrefab;
+
     bool passing;
     MeshRenderer fillRenderer; // 이 블록이 속한 그룹의 채움(fill) 메시 렌더러(테두리 제외, 그룹 전체가 공유)
     float builtFillAlpha; // 통과 불가능할 때 되돌아갈 원래 채움 투명도
@@ -151,13 +154,15 @@ public abstract class FilterBlockBase : MapObjectBase
         new(0, 0, 1), new(0, 0, -1),
     };
 
-    static Transform meshRoot;
+    // 병합 메시/라벨 오브젝트 이름은 모두 이 접두사로 시작한다(재생성 전 정리에 사용).
+    const string GateMeshNamePrefix = "GateMesh_";
 
     /// <summary>씬의 모든 FilterBlockBase(컬러 필터·RGB 필터)를 같은 색끼리, 그중에서도 실제로 맞닿아
-    /// 이어진 덩어리끼리만 묶어 다시 병합한다(멀리 떨어진 같은 색 블록은 서로 다른 그룹으로 취급).</summary>
+    /// 이어진 덩어리끼리만 묶어 다시 병합한다(멀리 떨어진 같은 색 블록은 서로 다른 그룹으로 취급).
+    /// 병합된 메시/라벨은 별도의 공용 루트가 아니라, 그 그룹 대표 필터가 있는 곳(필터 클러스터 폴더 등)에 그대로 만들어진다.</summary>
     public static void RebuildAll()
     {
-        var root = PrepareRoot();
+        ClearOldMeshes();
 
         var gates = FindObjectsByType<FilterBlockBase>(FindObjectsSortMode.None);
         var byColor = new Dictionary<Color32, List<FilterBlockBase>>(new Color32RGBComparer());
@@ -172,7 +177,7 @@ public abstract class FilterBlockBase : MapObjectBase
 
         foreach (var kv in byColor)
             foreach (var cluster in SplitConnected(kv.Value))
-                BuildGroup(root, kv.Key, cluster);
+                BuildGroup(kv.Key, cluster);
     }
 
     // 같은 색이라도 물리적으로 붙어있지 않은 덩어리는 서로 다른 그룹으로 나눈다(6방향 연결 기준 flood fill).
@@ -210,28 +215,37 @@ public abstract class FilterBlockBase : MapObjectBase
         return clusters;
     }
 
-    static Transform PrepareRoot()
+    // 이전에 만들어둔 병합 메시/라벨 오브젝트를 씬 어디에 있든 이름으로 찾아 지운다.
+    // (그룹마다 서로 다른 폴더에 나뉘어 있을 수 있어서 공용 루트 하나만 비우는 방식은 쓸 수 없다.)
+    static void ClearOldMeshes()
     {
-        if (meshRoot == null)
+        var stale = new List<GameObject>();
+        foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            if (t.name.StartsWith(GateMeshNamePrefix))
+                stale.Add(t.gameObject);
+
+        foreach (var go in stale)
         {
-            var existing = GameObject.Find("GateMeshes");
-            meshRoot = existing != null ? existing.transform : new GameObject("GateMeshes").transform;
+            if (Application.isPlaying) Destroy(go);
+            else DestroyImmediate(go);
         }
 
-        for (int i = meshRoot.childCount - 1; i >= 0; i--)
+        // 예전 방식(공용 GateMeshes 폴더)의 흔적이 비어있는 채로 남아있으면 같이 치운다.
+        var oldRoot = GameObject.Find("GateMeshes");
+        if (oldRoot != null && oldRoot.transform.childCount == 0)
         {
-            var child = meshRoot.GetChild(i).gameObject;
-            if (Application.isPlaying) Destroy(child);
-            else DestroyImmediate(child);
+            if (Application.isPlaying) Destroy(oldRoot);
+            else DestroyImmediate(oldRoot);
         }
-        return meshRoot;
     }
 
     // 면을 채움(fill)과 테두리(border) 두 개의 메시로 나눠 만든다.
     // 서로 겹치지 않게 안쪽 사각형(채움)과 그 바깥 테(테두리)로 정확히 나눠 붙이므로 Z-fighting이 없다.
-    // 그룹의 외형 설정(머티리얼·알파·테두리 두께)은 그룹 내 첫 블록의 값을 사용한다.
-    static void BuildGroup(Transform parent, Color32 color, List<FilterBlockBase> blocks)
+    // 그룹의 외형 설정(머티리얼·알파·테두리 두께)은 그룹 내 첫 블록의 값을 사용하고,
+    // 병합된 메시/라벨은 그 첫 블록이 있는 곳(필터 클러스터 폴더 등)의 자식으로 만든다.
+    static void BuildGroup(Color32 color, List<FilterBlockBase> blocks)
     {
+        var parent = blocks[0].transform.parent != null ? blocks[0].transform.parent : blocks[0].transform;
         var settings = blocks[0];
 
         var cells = new HashSet<Vector3Int>();
@@ -290,7 +304,7 @@ public abstract class FilterBlockBase : MapObjectBase
             }
         }
 
-        string baseName = $"GateMesh_{color.r}_{color.g}_{color.b}";
+        string baseName = $"{GateMeshNamePrefix}{color.r}_{color.g}_{color.b}";
         var fillGo = BuildMeshObject(parent, baseName + "_Fill", fillVerts, fillTris, settings.gateMaterial, color, settings.gateAlpha);
         var fillRenderer = fillGo.GetComponent<MeshRenderer>();
         foreach (var b in blocks)
@@ -305,15 +319,15 @@ public abstract class FilterBlockBase : MapObjectBase
         // 그룹당 하나만: 라벨 텍스트가 있는 그룹(대표 블록 기준)에만 라벨을 만든다.
         string labelText = settings.GetLabelText();
         if (!string.IsNullOrEmpty(labelText))
-            BuildGroupLabel(parent, baseName + "_Label", cells, labelText);
+            BuildGroupLabel(parent, baseName + "_Label", cells, labelText, settings.labelPrefab);
     }
 
     // 그룹의 칸(셀) 위에 라벨 하나를 띄운다. 실제 위치·회전 계산은 범용 컴포넌트 CellGroupLabel이 담당한다.
-    static void BuildGroupLabel(Transform parent, string name, HashSet<Vector3Int> cells, string text)
+    static void BuildGroupLabel(Transform parent, string name, HashSet<Vector3Int> cells, string text, GameObject prefab)
     {
         var cellArray = new Vector3Int[cells.Count];
         cells.CopyTo(cellArray);
-        CellGroupLabel.Create(parent, name, cellArray, text);
+        CellGroupLabel.Create(parent, name, cellArray, text, prefab);
     }
 
     static Material defaultBorderMat;

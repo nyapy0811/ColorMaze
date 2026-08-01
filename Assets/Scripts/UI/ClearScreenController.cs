@@ -73,6 +73,13 @@ public class ClearScreenController : MonoBehaviour
     public void OnNextStageButton()
     {
         if (string.IsNullOrEmpty(nextSceneName)) return;
+
+        if (!SceneRegistry.IsRegistered(nextSceneName))
+        {
+            Debug.Log($"[ClearScreen] '{nextSceneName}' 스테이지는 아직 제작 중입니다.");
+            return;
+        }
+
         Time.timeScale = 1f;
         GameManager.Instance.StartGame();
         SceneLoader.Instance.Load(nextSceneName);

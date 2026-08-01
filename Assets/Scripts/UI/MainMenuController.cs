@@ -113,6 +113,12 @@ public class MainMenuController : MonoBehaviour
         string sceneName = scenes[stageIndex];
         if (string.IsNullOrEmpty(sceneName)) return;
 
+        if (!SceneRegistry.IsRegistered(sceneName))
+        {
+            Debug.Log($"[MainMenu] '{sceneName}' 스테이지는 아직 제작 중입니다.");
+            return;
+        }
+
         GameManager.Instance.StartGame();
         SceneLoader.Instance.Load(sceneName);
     }

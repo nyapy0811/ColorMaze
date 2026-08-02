@@ -46,6 +46,7 @@ public abstract class MapObjectBase : MonoBehaviour
         {
             if (r == null) continue;
             r.GetPropertyBlock(mpb);
+            // _BaseColor = URP Lit/Unlit 색 프로퍼티.
             mpb.SetColor("_BaseColor", color);
             r.SetPropertyBlock(mpb);
         }

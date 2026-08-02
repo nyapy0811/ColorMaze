@@ -318,7 +318,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
   materialsPath:
   - Assets/Material/Color.mat
-  currentMaterialIndex: 0
+  currentMaterialIndex: -1
   renderableMesh:
     name: UM_OperatedMesh_262f6e59-9d9a-4f72-97be-0b41d4f949b3
     skinnedMesh: 0
@@ -352,7 +352,7 @@ MonoBehaviour:
   saveData: {fileID: 0}
   saveDataAssetGuid: 3d55d14b25502dd4992306e77d9c81b3
   IsSaveDataLoaded: 0
-  <IsDirtySaveData>k__BackingField: 0
+  <IsDirtySaveData>k__BackingField: 1
 --- !u!33 &2591080237233694246
 MeshFilter:
   m_ObjectHideFlags: 0

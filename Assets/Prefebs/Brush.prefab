@@ -67,7 +67,7 @@ MonoBehaviour:
   isPaintingEnabled: 1
   currentEditor: 
   materials:
-  - {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
+  - {fileID: 2100000, guid: 91cfe922974c75a4aad7b06e7720ae67, type: 2}
   materialsPath:
   - Assets/Material/Color.mat
   currentMaterialIndex: -1
@@ -104,7 +104,7 @@ MonoBehaviour:
   saveData: {fileID: 0}
   saveDataAssetGuid: becefdf56591ccd46aba1902ef908d6d
   IsSaveDataLoaded: 0
-  <IsDirtySaveData>k__BackingField: 0
+  <IsDirtySaveData>k__BackingField: 1
 --- !u!33 &8436510999980503348
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -138,7 +138,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
+  - {fileID: 2100000, guid: 91cfe922974c75a4aad7b06e7720ae67, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

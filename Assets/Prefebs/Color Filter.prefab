@@ -127,10 +127,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ColorFilterBlock
   highlightRoot: {fileID: 0}
   gateMaterial: {fileID: 2100000, guid: fa898fa5a988adc4d8bd3f57a8952c3b, type: 2}
-  borderMaterial: {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
+  borderMaterial: {fileID: 2100000, guid: 91cfe922974c75a4aad7b06e7720ae67, type: 2}
   gateAlpha: 0.5
   borderWidth: 0.02
   borderAlpha: 1
+  labelPrefab: {fileID: 0}
   red: 0
   green: 0
   blue: 0

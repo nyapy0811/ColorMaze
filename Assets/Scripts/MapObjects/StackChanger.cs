@@ -1,13 +1,11 @@
-using Framework.Core;
 using UnityEngine;
 
 /// <summary>
 /// 스택 체인저(4.4).
 /// 지정된 두 색의 스택 값을 서로 교환하고, 발동 후 사라진다.
 /// currentColorRenderers(현재 플레이어 색)·resultColorRenderers(발동 시 변경될 색)로 미리보기를 보여준다.
-/// 미리보기는 매 프레임이 아니라 스테이지 시작 시와 플레이어 스택이 바뀔 때만 갱신한다.
 /// </summary>
-public class StackChanger : StackModifierConsumable
+public class StackChanger : PreviewingStackModifier
 {
     [Header("교환할 두 색")]
     [SerializeField] LightColor colorA = LightColor.Red;
@@ -19,24 +17,7 @@ public class StackChanger : StackModifierConsumable
     [Header("발동 후 색을 입힐 렌더러 목록")]
     [SerializeField] Renderer[] resultColorRenderers;
 
-    void OnEnable()
-    {
-        EventBus.Subscribe<ColorStackChanged>(OnStackChanged);
-        EventBus.Subscribe<SceneLoadCompleted>(OnStageStart);
-    }
-
-    void OnDisable()
-    {
-        EventBus.Unsubscribe<ColorStackChanged>(OnStackChanged);
-        EventBus.Unsubscribe<SceneLoadCompleted>(OnStageStart);
-    }
-
-    void Start() => RefreshPreview();
-
-    void OnStackChanged(ColorStackChanged e) => RefreshPreview();
-    void OnStageStart(SceneLoadCompleted e) => RefreshPreview();
-
-    void RefreshPreview()
+    protected override void RefreshPreview()
     {
         if (Player == null) return;
 

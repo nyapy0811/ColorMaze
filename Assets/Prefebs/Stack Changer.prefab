@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7613377748604392532}
   - component: {fileID: 8436510999980503348}
   - component: {fileID: 8770206476984904709}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -165,7 +165,7 @@ GameObject:
   - component: {fileID: 804287763184951338}
   - component: {fileID: 8105573197456552811}
   - component: {fileID: 9151869952878789249}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Color Changer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -319,7 +319,7 @@ GameObject:
   - component: {fileID: 8339459224017031669}
   - component: {fileID: 5526935551492116181}
   - component: {fileID: 5552977025472966401}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -474,7 +474,7 @@ GameObject:
   - component: {fileID: 525038559769216789}
   - component: {fileID: 6335317933479233129}
   - component: {fileID: 6030441778377775354}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Stack Changer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -652,6 +652,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StackChanger
   highlightRoot: {fileID: 3515735174237312030}
+  markerPrefab: {fileID: 0}
   colorA: 0
   colorB: 2
   currentColorRenderers: []

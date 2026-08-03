@@ -26,7 +26,7 @@ public struct ColorStackChangeRequest : IEvent
 /// 상한을 넘으면 초과한 양만큼 0부터 다시 세고, 0 미만으로 내려가면 초과한 양만큼
 /// 상한부터 다시 센다(모듈러 연산). 하한은 항상 0으로 고정이며, max는 세 색상이 항상
 /// 공유하는 하나의 값이다(StackMax 상수 한 곳만 바꾸면 전체에 반영됨).
-///  - 입력: 다른 스크립트가 Add/Subtract/SetValue를 직접 호출 (예: ColorStackInput, 맵 기물)
+///  - 입력: 다른 스크립트가 Add/Subtract/SetValue를 직접 호출 (예: 맵 기물)
 ///  - 외부: EventBus의 ColorStackChangeRequest를 구독해 반영
 /// 값이 바뀌면 ColorStackChanged를 발행한다.
 /// </summary>
@@ -34,6 +34,10 @@ public class ColorStacks : MonoBehaviour
 {
     /// <summary>모든 색상이 공유하는 스택 상한. 게임 전체에서 이 값 하나만 바꾸면 순환 범위·색 변환이 전부 따라간다.</summary>
     public const int StackMax = 15;
+
+    /// <summary>씬에 하나뿐인 플레이어의 ColorStacks. Awake에서 등록되고 OnDestroy에서 해제된다
+    /// (여러 곳에서 FindAnyObjectByType으로 각자 플레이어를 찾던 것을 한 곳으로 모음).</summary>
+    public static ColorStacks Instance { get; private set; }
 
     [Serializable]
     public class Config
@@ -49,9 +53,15 @@ public class ColorStacks : MonoBehaviour
 
     void Awake()
     {
+        Instance = this;
         values[(int)LightColor.Red] = Wrap(red.start, StackMax);
         values[(int)LightColor.Green] = Wrap(green.start, StackMax);
         values[(int)LightColor.Blue] = Wrap(blue.start, StackMax);
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     /// <summary>value를 [0, max] 범위로 순환(모듈러)시킨다.</summary>
@@ -72,7 +82,6 @@ public class ColorStacks : MonoBehaviour
     }
 
     public int Get(LightColor c) => values[(int)c];
-    public int Max(LightColor c) => StackMax;
 
     /// <summary>현재 스택을 변환한 RGB. 채널 = round(255 × 값 ÷ StackMax).</summary>
     public Color32 CurrentRGB => ToRGB(values[0], values[1], values[2]);

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7611270582923713805}
   - component: {fileID: 3229370689016080215}
   - component: {fileID: 8233385248178340658}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 8367093607058848748}
   - component: {fileID: 1729419371532961831}
   - component: {fileID: 8140908912434541614}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (9)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -192,7 +192,7 @@ GameObject:
   - component: {fileID: 3457792917971878183}
   - component: {fileID: 2131829861171424941}
   - component: {fileID: 8639271127674402547}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (7)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -280,7 +280,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 592269178156723887}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Outline
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -318,7 +318,7 @@ GameObject:
   - component: {fileID: 5048093394140502004}
   - component: {fileID: 4861171097396247673}
   - component: {fileID: 3600747901107064543}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -408,7 +408,7 @@ GameObject:
   - component: {fileID: 8409875630280245829}
   - component: {fileID: 4762026134733864045}
   - component: {fileID: 5806480251468345595}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -498,7 +498,7 @@ GameObject:
   - component: {fileID: 1238443427266348865}
   - component: {fileID: 8244408362079879588}
   - component: {fileID: 1361698474775932510}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: TargetLabel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -679,7 +679,7 @@ GameObject:
   - component: {fileID: 8365010284720474491}
   - component: {fileID: 2720632184998646035}
   - component: {fileID: 63902848167775547}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (5)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -769,7 +769,7 @@ GameObject:
   - component: {fileID: 7614754220641963473}
   - component: {fileID: 5522950484942417442}
   - component: {fileID: 5073416737850692477}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -859,7 +859,7 @@ GameObject:
   - component: {fileID: 3418987981584217643}
   - component: {fileID: 1469217617721805000}
   - component: {fileID: 2323538491436416688}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (6)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -949,7 +949,7 @@ GameObject:
   - component: {fileID: 1069404041332134856}
   - component: {fileID: 8287872840294712410}
   - component: {fileID: 6482497972248795946}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (8)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1039,7 +1039,7 @@ GameObject:
   - component: {fileID: 5189202601508781566}
   - component: {fileID: 4993141345118621918}
   - component: {fileID: 7767441416768567066}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1101,6 +1101,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ColorCanvas
   highlightRoot: {fileID: 4336280966244589198}
+  markerPrefab: {fileID: 0}
   targetRed: 0
   targetGreen: 0
   targetBlue: 0
@@ -1117,7 +1118,7 @@ GameObject:
   - component: {fileID: 1923805948666373535}
   - component: {fileID: 6720021929304101918}
   - component: {fileID: 2659034854718235906}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -1,28 +1,21 @@
 using Framework.Core;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 일시정지 메뉴. ESC로 열고 닫으며 GameManager의 Pause/Resume과 연동한다.
 /// 패널 표시 여부는 GameState 변화에 반응해 자동으로 갱신된다.
 /// 버튼(이어하기/설정/종료)은 인스펙터에서 OnClick에 아래 public 메서드를 연결한다.
 /// </summary>
-public class PauseMenuController : MonoBehaviour
+public class PauseMenuController : GameStateListener
 {
     [SerializeField] GameObject pausePanel;
     [SerializeField] GameObject settingsPanel;
 
-    void Start()
+    protected override void Start()
     {
         if (pausePanel) pausePanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
-        GameManager.Instance.OnStateChanged += OnStateChanged;
-    }
-
-    void OnDestroy()
-    {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnStateChanged -= OnStateChanged;
+        base.Start();
     }
 
     void Update()
@@ -34,7 +27,7 @@ public class PauseMenuController : MonoBehaviour
         else if (gm.State == GameState.Paused) gm.Resume();
     }
 
-    void OnStateChanged(GameState previous, GameState next)
+    protected override void OnGameStateChanged(GameState previous, GameState next)
     {
         bool paused = next == GameState.Paused;
         if (pausePanel) pausePanel.SetActive(paused);
@@ -58,13 +51,7 @@ public class PauseMenuController : MonoBehaviour
     public void OnResumeButton() => GameManager.Instance.Resume();
 
     /// <summary>현재 스테이지 씬을 처음부터 다시 로드한다.</summary>
-    public void OnRestartButton()
-    {
-        Time.timeScale = 1f; // 일시정지 중 멈춰뒀던 시간을 되돌린다.
-        string sceneName = SceneManager.GetActiveScene().name;
-        GameManager.Instance.StartGame();
-        SceneLoader.Instance.Load(sceneName);
-    }
+    public void OnRestartButton() => SceneRestarter.RestartCurrentScene();
 
     public void OnSettingsButton()
     {

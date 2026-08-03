@@ -11,19 +11,16 @@ public abstract class MapObjectBase : MonoBehaviour
     [Header("상호작용 강조 표시 (없으면 무시)")]
     [SerializeField] GameObject highlightRoot;
 
+    [Header("HUD 마커 프리팹 (없으면 MapObjectMarkerHUD의 기본 마커 사용)")]
+    [SerializeField] GameObject markerPrefab;
+
+    /// <summary>이 기물의 HUD 마커 프리팹. 비어 있으면 MapObjectMarkerHUD가 자기 기본 마커를 대신 쓴다.</summary>
+    public GameObject MarkerPrefab => markerPrefab;
+
     protected Collider Col { get; private set; }
 
-    ColorStacks player;
-
-    /// <summary>씬의 플레이어(ColorStacks 보유 오브젝트)를 지연 탐색해 캐싱한다.</summary>
-    protected ColorStacks Player
-    {
-        get
-        {
-            if (player == null) player = FindAnyObjectByType<ColorStacks>();
-            return player;
-        }
-    }
+    /// <summary>씬의 플레이어(ColorStacks). ColorStacks.Awake에서 등록된 것을 그대로 참조한다.</summary>
+    protected ColorStacks Player => ColorStacks.Instance;
 
     protected virtual void Awake() => Col = GetComponent<Collider>();
 

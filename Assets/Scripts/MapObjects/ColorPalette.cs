@@ -3,9 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// 컬러 팔레트(4.1).
-/// 충돌하면 지정된 만큼 RGB 스택이 증가한다. 사라지지 않아 반복 획득할 수 있다.
+/// 조준+좌클릭하면 지정된 만큼 RGB 스택이 증가한다. 실제로 스택이 바뀐 경우에만 소모되어 사라진다(1회용).
 /// </summary>
-public class ColorPalette : AcquireObjectBase
+public class ColorPalette : StackModifierConsumable
 {
     [Header("증가시킬 스택량")]
     [SerializeField] int red;
@@ -56,7 +56,7 @@ public class ColorPalette : AcquireObjectBase
     // 지정된 R/G/B 스택량을 색으로 변환해 stackColorRenderers에 그대로 반영한다(필터와 같은 변환식 사용).
     void ApplyColor() => ApplyColorTo(stackColorRenderers, ColorStacks.ToRGB(red, green, blue));
 
-    protected override void OnAcquire(ColorStacks player)
+    protected override void ApplyToStacks(ColorStacks player)
     {
         if (red != 0) player.Add(LightColor.Red, red);
         if (green != 0) player.Add(LightColor.Green, green);

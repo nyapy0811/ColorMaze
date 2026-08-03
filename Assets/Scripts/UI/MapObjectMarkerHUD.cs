@@ -5,22 +5,22 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 필터를 제외한 맵 기물(컬러 팔레트·스택 체인저·컬러 체인저·버킷·캔버스)마다 화면에 위치 마커를 띄운다.
-/// 기물 종류별로 다른 마커 프리팹을 쓰며, 화면 밖(카메라 뒤쪽 포함)에 있으면 가장자리로 클램프한다.
+/// 마커 프리팹은 기본값 하나(defaultMarkerPrefab)를 공유하고, 기물별로 다른 마커가 필요하면
+/// MapObjectBase.markerPrefab에 개별 지정하면 된다(지정 안 하면 기본값 사용). 화면 밖(카메라 뒤쪽 포함)에 있으면 가장자리로 클램프한다.
 /// 기물이 파괴(소모)되면 그 마커도 같이 사라진다.
 /// </summary>
 public class MapObjectMarkerHUD : MonoBehaviour
 {
-    [Header("기물 종류별 마커 프리팹 (RectTransform 필요)")]
-    [SerializeField] GameObject colorPaletteMarkerPrefab;
-    [SerializeField] GameObject stackChangerMarkerPrefab;
-    [SerializeField] GameObject colorChangerMarkerPrefab;
-    [SerializeField] GameObject bucketMarkerPrefab;
-    [SerializeField] GameObject colorCanvasMarkerPrefab;
+    [Header("기본 마커 프리팹 (RectTransform 필요, 기물이 자기 markerPrefab을 안 지정했을 때 사용)")]
+    [SerializeField] GameObject defaultMarkerPrefab;
 
     [SerializeField] RectTransform markerContainer;
 
     [Tooltip("화면 가장자리 클램프 여백(픽셀)")]
     [SerializeField] float edgeMargin = 40f;
+
+    [Tooltip("가림(occlusion) 판정 레이캐스트가 검사할 레이어. 필요 없는 레이어를 빼면 비용을 줄일 수 있다")]
+    [SerializeField] LayerMask occlusionMask = ~0;
 
     readonly Dictionary<MapObjectBase, RectTransform> markers = new();
 
@@ -129,23 +129,17 @@ public class MapObjectMarkerHUD : MonoBehaviour
     }
 
     /// <summary>카메라와 목표 사이에 트리거가 아닌 콜라이더(벽 등)가 있으면 가려진 것으로 본다.</summary>
-    static bool IsOccluded(Camera cam, Vector3 worldPos)
+    bool IsOccluded(Camera cam, Vector3 worldPos)
     {
         Vector3 origin = cam.transform.position;
         Vector3 offset = worldPos - origin;
         float dist = offset.magnitude;
         if (dist < 0.01f) return false;
 
-        return Physics.Raycast(origin, offset / dist, dist - 0.1f, ~0, QueryTriggerInteraction.Ignore);
+        return Physics.Raycast(origin, offset / dist, dist - 0.1f, occlusionMask, QueryTriggerInteraction.Ignore);
     }
 
-    GameObject PrefabFor(MapObjectBase obj) => obj switch
-    {
-        ColorCanvas => colorCanvasMarkerPrefab,
-        ColorPalette => colorPaletteMarkerPrefab,
-        StackChanger => stackChangerMarkerPrefab,
-        ColorChanger => colorChangerMarkerPrefab,
-        Bucket => bucketMarkerPrefab,
-        _ => null
-    };
+    /// <summary>기물이 자기 markerPrefab을 지정했으면 그것을, 아니면 기본 마커를 쓴다.
+    /// 새 기물 타입이 추가돼도 이 파일을 고칠 필요가 없다(MapObjectBase.markerPrefab 참고).</summary>
+    GameObject PrefabFor(MapObjectBase obj) => obj.MarkerPrefab != null ? obj.MarkerPrefab : defaultMarkerPrefab;
 }

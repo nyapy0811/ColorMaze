@@ -50,7 +50,7 @@
 - 스테이지 선택은 챕터·스테이지 목록으로 이동해 해금된 스테이지를 고른다.
 - 설정은 음량·마우스 감도 등 옵션을 조절한다.
 
-*구현: MainMenuController가 담당한다. 메인 패널·스테이지 선택(챕터 목록) 패널·설정 패널을 서로 배타적으로 토글하고, 챕터 버튼을 누르면 공용 스테이지 목록 패널(stageListPanel)을 그 챕터 기준으로 보여준다(챕터마다 패널을 따로 두지 않고, 공용 데이터 애셋 StageTable에서 씬 이름만 갈아끼움 — 이 애셋은 클리어 화면(3.6)의 ClearScreenController와도 함께 참조해 스테이지 목록이 한 곳에만 존재한다). 챕터 목록은 ScrollRect로 스크롤된다. 해금 여부는 ProgressManager(5.1 참고)가 판정하며, 챕터/스테이지 목록이 열릴 때마다 잠긴 버튼은 interactable을 꺼서 회색으로 비활성화한다.*
+*구현: MainMenuController가 담당한다. 메인 패널·스테이지 선택(챕터 목록) 패널·설정 패널을 서로 배타적으로 토글하고, 챕터 버튼을 누르면 공용 스테이지 목록 패널(stageListPanel)을 그 챕터 기준으로 보여준다(챕터마다 패널을 따로 두지 않고, 공용 데이터 애셋 StageTable에서 씬 이름만 갈아끼움 — 이 애셋은 클리어 화면(3.6)의 ClearScreenController와도 함께 참조해 스테이지 목록이 한 곳에만 존재한다). 챕터 목록은 ScrollRect로 스크롤된다. 해금 여부는 ProgressManager(5.1 참고)가 판정하며, 챕터/스테이지 목록이 열릴 때마다 잠긴 버튼은 interactable을 꺼서 회색으로 비활성화한다. GameManager.OnStateChanged 구독/해제와 "현재 상태로 1회 초기 갱신" 보일러플레이트는 공용 베이스 GameStateListener(Core 폴더)로 모아뒀다 — MainMenuController·HUDController·PauseMenuController·BrushViewmodel(Player 폴더) 모두 이 베이스를 상속해 OnGameStateChanged(previous, next)만 구현한다.*
 
 ### 3.2 이동 / 카메라 (1인칭)
 
@@ -59,7 +59,7 @@
 - 점프해서 올라가다 천장에 막히면 더 오르지 않고 즉시 아래로 떨어진다.
 - 일시정지 상태에서는 이동과 시점 조작이 멈춘다.
 
-*구현: FirstPersonController(CharacterController 기반)가 담당한다. 점프 높이·체공시간 값으로 중력과 초기 속도를 역산해 두며, 상승 중 이동량이 기대치보다 작으면(천장에 막힘) 수직 속도를 즉시 반전시켜 하강시킨다. Time.timeScale이 0이면(일시정지) 입력을 무시한다.*
+*구현: FirstPersonController(CharacterController 기반)가 담당한다. 점프 높이·체공시간 값으로 중력과 초기 속도를 역산해 두며, 상승 중 CharacterController.collisionFlags에 Above(위쪽 충돌)가 실제로 찍히면 수직 속도를 즉시 반전시켜 하강시킨다(이동량 추정치 비교가 아니라 실제 충돌 판정이라 프레임레이트에 영향받지 않음). Time.timeScale이 0이면(일시정지) 입력을 무시한다.*
 
 ### 3.3 RGB 스택과 플레이어 컬러
 
@@ -69,14 +69,14 @@
 - 각 스택 값이 채널별로 독립적인 밝기로 변환되어 '플레이어 컬러'로 적용된다(15가 채널당 최대 밝기, 15/15/15가 흰색).
 - 스택이 바뀌면 그 색과 값이 HUD 등 관련 표시에 곧바로 반영된다.
 
-*구현: ColorStacks가 담당한다. 상한은 색상별 개별 설정이 아니라 클래스 전체가 공유하는 `public const int StackMax = 15` 하나뿐이다(색상별로 다르게 설정할 수 있던 이전 구조를 없앰 — 일부 색상만 값을 다르게/깜빡하고 설정해서 생기는 버그를 원천 차단, 상한을 바꾸려면 이 상수 한 곳만 고치면 됨). 색상별로 남은 설정은 초기값(start)뿐이다. 값은 항상 [0, StackMax] 범위를 모듈러 연산으로 순환한다 — 하한은 0으로 고정이라 상한을 넘으면 초과분만큼 0부터, 0 아래로 내려가면 초과분만큼 상한부터 다시 센다. 값이 바뀌면 EventBus로 ColorStackChanged를 발행해 HUD 등에 알리고, 외부 기물은 ColorStackChangeRequest 이벤트로 값 변경을 요청한다. ToRGB 정적 함수가 세 스택을 정수 RGB로 변환한다 — 채널마다 독립적으로 [0, StackMax]를 [0, 255]로 매핑(반올림), 세 값의 상대 비율이 아니라 각 채널의 절대 스택 값이 그대로 밝기가 되어 StackMax/StackMax/StackMax가 흰색이 된다(이전에는 셋 중 최댓값 기준으로 정규화해, 예를 들어 10/10/10도 흰색으로 보였음 — 이번에 수정).*
+*구현: ColorStacks가 담당한다. 씬에 하나뿐인 플레이어 인스턴스는 정적 프로퍼티 ColorStacks.Instance로 참조한다(Awake에서 등록, OnDestroy에서 해제) — 맵 기물(MapObjectBase.Player)·HUD·붓 뷰모델 등 여러 곳에서 각자 FindAnyObjectByType으로 찾던 것을 이 한 곳으로 모았다. FirstPersonController도 같은 방식으로 FirstPersonController.Instance를 제공한다(설정 화면의 마우스 감도 슬라이더가 참조). 상한은 색상별 개별 설정이 아니라 클래스 전체가 공유하는 `public const int StackMax = 15` 하나뿐이다(색상별로 다르게 설정할 수 있던 이전 구조를 없앰 — 일부 색상만 값을 다르게/깜빡하고 설정해서 생기는 버그를 원천 차단, 상한을 바꾸려면 이 상수 한 곳만 고치면 됨). 색상별로 남은 설정은 초기값(start)뿐이다. 값은 항상 [0, StackMax] 범위를 모듈러 연산으로 순환한다 — 하한은 0으로 고정이라 상한을 넘으면 초과분만큼 0부터, 0 아래로 내려가면 초과분만큼 상한부터 다시 센다. 값이 바뀌면 EventBus로 ColorStackChanged를 발행해 HUD 등에 알리고, 외부 기물은 ColorStackChangeRequest 이벤트로 값 변경을 요청한다. ToRGB 정적 함수가 세 스택을 정수 RGB로 변환한다 — 채널마다 독립적으로 [0, StackMax]를 [0, 255]로 매핑(반올림), 세 값의 상대 비율이 아니라 각 채널의 절대 스택 값이 그대로 밝기가 되어 StackMax/StackMax/StackMax가 흰색이 된다(이전에는 셋 중 최댓값 기준으로 정규화해, 예를 들어 10/10/10도 흰색으로 보였음 — 이번에 수정).*
 
 ### 3.4 HUD
 
 - 현재 스택 값과, 플레이어 컬러, 목표 스택을 화면에 함께 보여준다.
 - 스택이 바뀌면 표시가 즉시 갱신된다.
 
-*구현: ColorStackHUD가 ColorStackChanged 이벤트를 구독해 스택 숫자를 갱신한다. 플레이어 컬러(변환 색)는 별도 HUD 스와치 대신 1인칭 뷰모델 붓(BrushViewmodel, Player 폴더 참고)의 붓 끝 색으로 대신 보여준다 — 붓이 항상 화면에 보이는 위치에 있어 별도 스와치 UI가 필요 없다. 목표 스택 표시는 중앙 HUD 숫자 하나 대신, 캔버스가 여러 개면 서로 다른 목표값을 가질 수 있어 각 캔버스 자신에게 라벨을 붙이는 방식으로 구현했다 — ColorCanvas.ApplyTargetLabel()이 첫 번째 자식의 -Z면(고정, 빌보드 아님)에 색으로 물들인 R/G/B 숫자로 목표값을 표시한다. 라벨 텍스트 형식은 공용 클래스 StackLabelFormat에 정리돼 있다 — 현재는 캔버스·컬러 필터 모두 정숫값 비교와 동치라(ToRGB가 채널별 절대값 변환이라 색 비교 = 정숫값 비교) "R G B"(공백 구분, ByValue) 형식만 쓴다. 비율(상대값)로 판정하는 기물이 새로 생기면 ByRatio()("R:G:B", 콜론 구분)를 대신 쓰면 된다. 라벨 오브젝트 자동 생성은 필터(FilterBlockBase)만 하고, 캔버스·팔레트는 자식으로 미리 배치해둔 라벨을 찾아 텍스트/위치만 갱신한다(없으면 아무것도 하지 않음). 추가로 필터를 제외한 모든 맵 기물의 화면상 위치를 알려주는 MapObjectMarkerHUD(기획서 미기재, 4장 참고)도 있어 캔버스를 포함한 기물을 찾아가는 데 도움을 준다.*
+*구현: ColorStackHUD가 ColorStackChanged 이벤트를 구독해 스택 숫자를 갱신한다. 플레이어 컬러(변환 색)는 별도 HUD 스와치 대신 1인칭 뷰모델 붓(BrushViewmodel, Player 폴더 참고)의 붓 끝 색으로 대신 보여준다 — 붓이 항상 화면에 보이는 위치에 있어 별도 스와치 UI가 필요 없다. 목표 스택 표시는 중앙 HUD 숫자 하나 대신, 캔버스가 여러 개면 서로 다른 목표값을 가질 수 있어 각 캔버스 자신에게 라벨을 붙이는 방식으로 구현했다 — ColorCanvas.ApplyTargetLabel()이 첫 번째 자식의 -Z면(고정, 빌보드 아님)에 색으로 물들인 R/G/B 숫자로 목표값을 표시한다. 라벨 텍스트 형식은 공용 클래스 StackLabelFormat에 정리돼 있다 — 현재는 캔버스·컬러 필터 모두 정숫값 비교와 동치라(ToRGB가 채널별 절대값 변환이라 색 비교 = 정숫값 비교) "R G B"(공백 구분, ByValue) 형식만 쓴다. 비율(상대값)로 판정하는 기물이 새로 생기면 ByRatio()("R:G:B", 콜론 구분)를 대신 쓰면 된다. 라벨 오브젝트 자동 생성은 필터(FilterBlockBase)만 하고, 캔버스·팔레트는 자식으로 미리 배치해둔 라벨을 찾아 텍스트/위치만 갱신한다(없으면 아무것도 하지 않음). 추가로 필터를 제외한 모든 맵 기물의 화면상 위치를 알려주는 MapObjectMarkerHUD(기획서 미기재, 4장 참고)도 있어 캔버스를 포함한 기물을 찾아가는 데 도움을 준다 — 마커 프리팹은 기본값 하나(defaultMarkerPrefab)를 공유하고, 기물이 자기 markerPrefab(MapObjectBase 공통 필드)을 따로 지정하면 그걸 우선 쓴다(기물 종류별 switch 없이 확장 가능). 가림 판정 레이캐스트가 검사할 레이어(occlusionMask)도 인스펙터에서 조절할 수 있다(기본값 Everything).*
 
 ### 3.5 UI (일시정지 · 설정)
 
@@ -84,7 +84,7 @@
 - 일시정지하면 메뉴(이어하기/처음부터/설정/종료)가 열리고 게임이 멈춘다.
 - 설정에서 음량과 마우스 감도를 조절한다 — 설정은 일시정지 메뉴에서 연다.
 
-*구현: UIManager가 UI 전용 씬(UIScene)을 additive로 로드한다. PauseMenuController가 GameManager의 상태(Playing/Paused) 변화와 ESC 입력을 연동해 패널을 토글하고 커서 잠금을 해제하며, SettingsController가 BGM/SFX 볼륨과 마우스 감도 슬라이더를 AudioManager·FirstPersonController에 연결한다. 설정 버튼을 누르면 일시정지 패널이 사라지고 설정 패널이 나오며, 설정의 뒤로가기 버튼(OnBackToPauseButton)으로 다시 일시정지 패널로 돌아간다. 설정 화면에는 저장 초기화 버튼도 있다 — 누르면 바로 지우지 않고 확인창을 띄우고, 확인창에서 다시 확인해야만 실제로 저장 파일이 삭제된다(3.7 참고). (미구현) '처음부터' 재시작 버튼은 아직 없다.*
+*구현: UIManager가 UI 전용 씬(UIScene)을 additive로 로드한다. PauseMenuController가 GameManager의 상태(Playing/Paused) 변화와 ESC 입력을 연동해 패널을 토글하고 커서 잠금을 해제하며, SettingsController가 BGM/SFX 볼륨과 마우스 감도 슬라이더를 AudioManager·FirstPersonController에 연결한다. 설정 버튼을 누르면 일시정지 패널이 사라지고 설정 패널이 나오며, 설정의 뒤로가기 버튼(OnBackToPauseButton)으로 다시 일시정지 패널로 돌아간다. 설정 화면에는 저장 초기화 버튼도 있다 — 누르면 바로 지우지 않고 확인창을 띄우고, 확인창에서 다시 확인해야만 실제로 저장 파일이 삭제된다(3.7 참고). '처음부터' 재시작 버튼(OnRestartButton)은 SceneRestarter.RestartCurrentScene()으로 현재 스테이지 씬을 다시 로드한다(DeadZone·클리어 화면의 다시하기 버튼과 동일한 공용 로직, Core 폴더 참고).*
 
 ### 3.6 클리어 화면
 
@@ -108,20 +108,20 @@
 - 조준 중인 대상이 있으면 조준점 색이 바뀌고, 대상 자체에도 강조 표시(아웃라인)가 나타난다.
 - 카메라와 기물 사이에 벽 등 가리는 것이 있으면 조준·상호작용 모두 되지 않는다.
 
-*구현: Player/InteractionController.cs가 매 프레임 카메라 정면으로 1.3칸 레이캐스트를 쏴서 가장 가까운 대상 하나만 판정한다(레이캐스트 특성상 벽이나 닫힌 필터가 앞에 있으면 자연히 막혀 별도 가림 판정이 필요 없음). 대상이 IInteractable(AcquireObjectBase/ClearObjectBase/ConsumableObjectBase가 구현, 필터는 미구현)이면 조준 중 강조 표시를 하고, 좌클릭(InputManager.ReadInteract()) 시 TryInteract()를 호출한다. 이 세 베이스 클래스는 원래 걸어서 닿으면(OnTriggerEnter) 발동했으나, 이제 그 트리거 로직을 제거하고 TryInteract()로만 발동한다(필터는 대상이 아니므로 기존처럼 걸어서 통과하는 방식 그대로 유지). 강조 표시는 MapObjectBase.SetHighlighted(bool)로 처리하며, 라벨과 동일하게 "미리 배치해둔 자식 오브젝트(highlightRoot)를 켜고 끄기만" 한다 — 실제 시각 효과는 Shaders/InteractionHighlightOutline.shader(인버티드 헐 기법 아웃라인)를 쓰는 별도 메시(본체와 같은 메시를 참조, 여러 파츠로 된 기물은 빈 부모 밑에 파츠별로 둠)로 구현한다. 조준 대상 유무는 InteractableTargetChanged 이벤트로 알리고, UI/CrosshairController.cs가 이를 구독해 조준점 색을 바꾼다.*
+*구현: Player/InteractionController.cs가 매 프레임 카메라 정면으로 1.3칸 레이캐스트를 쏴서 가장 가까운 대상 하나만 판정한다(레이캐스트 특성상 벽이나 닫힌 필터가 앞에 있으면 자연히 막혀 별도 가림 판정이 필요 없음). 레이캐스트가 검사할 레이어(interactMask)는 인스펙터에서 조절할 수 있다(기본값 Everything) — 좁히려면 벽·필터가 있는 레이어는 반드시 포함해야 "가로막히면 조준 안 됨" 동작이 유지된다. 대상이 IInteractable(ClearObjectBase/ConsumableObjectBase가 구현, 필터는 미구현)이면 조준 중 강조 표시를 하고, 좌클릭(InputManager.ReadInteract()) 시 TryInteract()를 호출한다. 이 두 베이스 클래스는 원래 걸어서 닿으면(OnTriggerEnter) 발동했으나, 이제 그 트리거 로직을 제거하고 TryInteract()로만 발동한다(필터는 대상이 아니므로 기존처럼 걸어서 통과하는 방식 그대로 유지). 강조 표시는 MapObjectBase.SetHighlighted(bool)로 처리하며, 라벨과 동일하게 "미리 배치해둔 자식 오브젝트(highlightRoot)를 켜고 끄기만" 한다 — 실제 시각 효과는 Shaders/InteractionHighlightOutline.shader(인버티드 헐 기법 아웃라인)를 쓰는 별도 메시(본체와 같은 메시를 참조, 여러 파츠로 된 기물은 빈 부모 밑에 파츠별로 둠)로 구현한다. 조준 대상 유무는 InteractableTargetChanged 이벤트로 알리고, UI/CrosshairController.cs가 이를 구독해 조준점 색을 바꾼다.*
 
 ## 4. 맵 기물
 
 ### 4.1 컬러 팔레트
 
 - 플레이어가 컬러 팔레트를 조준하고 좌클릭하면 컬러 팔레트에 지정된 RGB 스택만큼 캐릭터의 RGB 스택이 증가한다.
-- 컬러 팔레트는 플레이어의 스택을 변경한 후에도 사라지지 않는다.
+- 컬러 팔레트는 1회용이다 — 실제로 스택 값이 하나라도 바뀐 경우에만 소모되어 사라진다(바뀐 게 없으면 그대로 남는다).
 - 팔레트 자신의 외형 색이 지정된 R/G/B 스택량을 그대로 반영해, 어떤 색을 얼마나 주는지 눈으로 알 수 있다.
 - 정확한 R/G/B 숫자도 텍스트로 함께 표시된다(컬러 필터와 같은 리치 텍스트 형식).
 - 팔레트는 자신의 +Y축(정면)이 항상 플레이어(카메라)를 향하도록 계속 회전한다.
 - 텍스트 라벨은 팔레트 내부의 고정된 위치에 있으며, 팔레트가 회전할 때 같이 따라 움직인다.
 
-*구현: ColorPalette(AcquireObjectBase 기반)가 담당한다. 조준+좌클릭 상호작용(3.8 참고)으로 지정된 R/G/B만큼 ColorStacks.Add를 호출한다. 자기 자신은 사라지지 않아 여러 번 클릭하면 반복 발동한다. Awake와 인스펙터 값 변경(OnValidate) 시 ColorStacks.ToRGB(필터와 같은 변환식)로 지정 R/G/B를 색으로 바꿔 인스펙터에서 지정한 stackColorRenderers 목록에 MaterialPropertyBlock으로 입힌다(메시 병합은 하지 않음, 블록별로 개별 표시). LateUpdate에서 `Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(90f, 0f, 0f)`로 로컬 +Y축이 카메라 방향을 향하도록 회전시킨다(기본 LookRotation은 +Z를 정면으로 삼으므로, 추가로 X축 기준 90도 돌려 +Y가 정면이 되게 만든다). 라벨 오브젝트 자동 생성은 필터(FilterBlockBase)만 하므로, 팔레트는 Start()에서 자식으로 미리 배치해둔 BillboardCenterLabel(CellGroupLabel의 하위 클래스)을 찾아 텍스트만 갱신한다(없으면 아무것도 안 함) — 컬러 필터와 동일한 리치 텍스트(R/G/B 숫자를 각 색으로 물들임)를 보여준다. BillboardCenterLabel은 더 이상 위치·회전을 매 프레임 재계산하지 않고 텍스트 표시 여부만 관리한다 — 팔레트 자신이 회전하므로 라벨은 에디터에서 배치한 고정 위치에 자식으로 붙어 자연스럽게 같이 회전한다.*
+*구현: ColorPalette(StackModifierConsumable 기반)가 담당한다. 조준+좌클릭 상호작용(3.8 참고) 시 ApplyToStacks()에서 지정된 R/G/B만큼 ColorStacks.Add를 호출한다. 스택 체인저·컬러 체인저·버킷과 같은 규칙으로, 호출 전후 R/G/B 값을 비교해 실제로 하나라도 바뀐 경우에만 소모되어 사라진다(4.4~4.6 공통 로직 참고, 바뀐 게 없으면 그대로 남아 다시 클릭할 수 있다). Awake와 인스펙터 값 변경(OnValidate) 시 ColorStacks.ToRGB(필터와 같은 변환식)로 지정 R/G/B를 색으로 바꿔 인스펙터에서 지정한 stackColorRenderers 목록에 MaterialPropertyBlock으로 입힌다(메시 병합은 하지 않음, 블록별로 개별 표시). LateUpdate에서 `Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Euler(90f, 0f, 0f)`로 로컬 +Y축이 카메라 방향을 향하도록 회전시킨다(기본 LookRotation은 +Z를 정면으로 삼으므로, 추가로 X축 기준 90도 돌려 +Y가 정면이 되게 만든다). 라벨 오브젝트 자동 생성은 필터(FilterBlockBase)만 하므로, 팔레트는 Start()에서 자식으로 미리 배치해둔 BillboardCenterLabel(CellGroupLabel의 하위 클래스)을 찾아 텍스트만 갱신한다(없으면 아무것도 안 함) — 컬러 필터와 동일한 리치 텍스트(R/G/B 숫자를 각 색으로 물들임)를 보여준다. BillboardCenterLabel은 더 이상 위치·회전을 매 프레임 재계산하지 않고 텍스트 표시 여부만 관리한다 — 팔레트 자신이 회전하므로 라벨은 에디터에서 배치한 고정 위치에 자식으로 붙어 자연스럽게 같이 회전한다.*
 
 ### 4.2 컬러 필터
 
@@ -149,7 +149,7 @@
 - 스택 체인저는 실제로 스택 값이 바뀐 경우에만 사라진다(바뀐 게 없으면 그대로 남는다).
 - 자식으로 붙은 작은 구 2개 중 0번째는 플레이어의 현재 색을, 1번째는 발동 시 변경될 색(미리보기)을 보여준다.
 
-*구현: StackChanger(StackModifierConsumable 기반)가 담당한다. 지정된 두 색의 현재 값을 서로 SetValue로 맞바꾼다. 미리보기 색은 매 프레임이 아니라 ColorStackChanged(플레이어 스택 변경 시)·SceneLoadCompleted(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고, Start()에서 초기 1회도 반영한다(currentColorRenderers = Player.CurrentRGB, resultColorRenderers = colorA·colorB 값만 서로 바꿔서 미리 계산한 결과색).*
+*구현: StackChanger(PreviewingStackModifier 기반)가 담당한다. 지정된 두 색의 현재 값을 서로 SetValue로 맞바꾼다. 미리보기 갱신 시점(ColorStackChanged·SceneLoadCompleted 구독 + Start 초기 1회)은 PreviewingStackModifier가 공통으로 처리하고, StackChanger는 RefreshPreview()에서 결과색만 계산한다(currentColorRenderers = Player.CurrentRGB, resultColorRenderers = colorA·colorB 값만 서로 바꿔서 미리 계산한 결과색).*
 
 ### 4.5 컬러 체인저
 
@@ -157,7 +157,7 @@
 - 컬러 체인저는 실제로 스택 값이 바뀐 경우에만 사라진다(바뀐 게 없으면 그대로 남는다).
 - 자식으로 붙은 작은 구 2개 중 0번째는 플레이어의 현재 색을, 1번째는 발동 시 변경될 색(미리보기)을 보여준다.
 
-*구현: ColorChanger(StackModifierConsumable 기반)가 담당한다. 세 스택 중 최댓값을 구한 뒤 각 채널에 SetValue(max - 현재값)를 적용한다. 미리보기 색은 매 프레임이 아니라 ColorStackChanged(플레이어 스택 변경 시)·SceneLoadCompleted(스테이지 시작 시) 이벤트를 구독해 그때만 갱신하고, Start()에서 초기 1회도 반영한다(currentColorRenderers = Player.CurrentRGB, resultColorRenderers = 변환식으로 미리 계산한 결과색).*
+*구현: ColorChanger(PreviewingStackModifier 기반)가 담당한다. 세 스택 중 최댓값을 구한 뒤 각 채널에 SetValue(max - 현재값)를 적용한다. 미리보기 갱신 시점은 StackChanger와 마찬가지로 PreviewingStackModifier가 공통으로 처리하고, ColorChanger는 RefreshPreview()에서 결과색만 계산한다(currentColorRenderers = Player.CurrentRGB, resultColorRenderers = 변환식으로 미리 계산한 결과색).*
 
 ### 4.6 버킷
 
@@ -167,7 +167,7 @@
 
 *구현: Bucket(StackModifierConsumable 기반)이 담당한다. 지정된 색에 SetValue(0)을 적용한다. Start()와 인스펙터 값 변경(OnValidate) 시 targetColor의 순수 원색을 인스펙터에서 지정한 stackColorRenderers 목록에 MaterialPropertyBlock으로 입힌다.*
 
-*공통(4.4~4.6): ConsumableObjectBase에 ShouldConsume() 가상 메서드가 추가되었고, StackModifierConsumable이 이를 오버라이드해 Apply() 전후로 R/G/B 값을 비교한 뒤 실제로 하나라도 바뀐 경우에만 true를 반환한다 — 아무 변화가 없으면 소모되지 않고 남아있는다. 스택 체인저·컬러 체인저·버킷 모두 배치된 그대로 고정되어 있고, 회전이나 카메라를 향한 빌보드 동작은 없다.*
+*공통(4.1, 4.4~4.6): ConsumableObjectBase에 ShouldConsume() 가상 메서드가 추가되었고, StackModifierConsumable이 이를 오버라이드해 Apply() 전후로 R/G/B 값을 비교한 뒤 실제로 하나라도 바뀐 경우에만 true를 반환한다 — 아무 변화가 없으면 소모되지 않고 남아있는다. 컬러 팔레트·스택 체인저·컬러 체인저·버킷 모두 StackModifierConsumable을 상속해 이 1회용 규칙을 공유한다(팔레트만 예외적으로 카메라를 향해 회전하는 애니메이션이 있다, 4.1 참고 — 스택 체인저·컬러 체인저·버킷은 배치된 그대로 고정).*
 
 ### 4.7 캔버스
 

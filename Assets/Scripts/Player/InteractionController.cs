@@ -18,6 +18,9 @@ public class InteractionController : MonoBehaviour
     [Tooltip("상호작용 가능 거리(칸 단위, 맵 그리드 1칸 = 1유닛)")]
     [SerializeField] float interactRange = 1.3f;
 
+    [Tooltip("조준 레이캐스트가 검사할 레이어. 필요 없는 레이어를 빼면 오탐·비용을 줄일 수 있다")]
+    [SerializeField] LayerMask interactMask = ~0;
+
     Camera cam;
     MapObjectBase currentTarget;
     bool hasTarget;
@@ -41,7 +44,7 @@ public class InteractionController : MonoBehaviour
         MapObjectBase hit = null;
 
         if (Physics.Raycast(cam.transform.position, cam.transform.forward, out var hitInfo, interactRange,
-                ~0, QueryTriggerInteraction.Collide))
+                interactMask, QueryTriggerInteraction.Collide))
         {
             var obj = hitInfo.collider.GetComponentInParent<MapObjectBase>();
             if (obj is IInteractable) hit = obj;

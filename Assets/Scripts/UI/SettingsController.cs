@@ -31,7 +31,7 @@ public class SettingsController : MonoBehaviour
         }
         if (sensitivitySlider)
         {
-            var fpc = FindAnyObjectByType<FirstPersonController>();
+            var fpc = FirstPersonController.Instance;
             if (fpc) sensitivitySlider.SetValueWithoutNotify(fpc.mouseSensitivity);
             sensitivitySlider.onValueChanged.AddListener(SetSensitivity);
         }
@@ -49,7 +49,7 @@ public class SettingsController : MonoBehaviour
 
     void SetSensitivity(float v)
     {
-        var fpc = FindAnyObjectByType<FirstPersonController>();
+        var fpc = FirstPersonController.Instance;
         if (fpc) fpc.mouseSensitivity = v;
     }
 

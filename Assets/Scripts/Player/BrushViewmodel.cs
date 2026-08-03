@@ -8,50 +8,37 @@ using UnityEngine;
 /// 대상은 brushRoot로 분리한다 — 스크립트 자신을 껐다 켜면 이벤트 구독이 끊겨 다시 켜질 방법이
 /// 없어지기 때문이다.
 /// </summary>
-public class BrushViewmodel : MonoBehaviour
+public class BrushViewmodel : GameStateListener
 {
     [SerializeField] GameObject brushRoot;
     [SerializeField] Renderer brushTipRenderer;
 
-    ColorStacks player;
-
-    ColorStacks Player
-    {
-        get
-        {
-            if (player == null) player = FindAnyObjectByType<ColorStacks>();
-            return player;
-        }
-    }
+    ColorStacks Player => ColorStacks.Instance;
 
     void OnEnable()
     {
         EventBus.Subscribe<ColorStackChanged>(OnStackChanged);
         EventBus.Subscribe<SceneLoadCompleted>(OnStageStart);
-        GameManager.Instance.OnStateChanged += OnStateChanged;
     }
 
     void OnDisable()
     {
         EventBus.Unsubscribe<ColorStackChanged>(OnStackChanged);
         EventBus.Unsubscribe<SceneLoadCompleted>(OnStageStart);
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnStateChanged -= OnStateChanged;
     }
 
-    void Start()
+    protected override void Start()
     {
         RefreshColor();
-        Refresh(GameManager.Instance.State);
+        base.Start();
     }
 
     void OnStackChanged(ColorStackChanged e) => RefreshColor();
     void OnStageStart(SceneLoadCompleted e) => RefreshColor();
-    void OnStateChanged(GameState previous, GameState next) => Refresh(next);
 
-    void Refresh(GameState state)
+    protected override void OnGameStateChanged(GameState previous, GameState next)
     {
-        if (brushRoot) brushRoot.SetActive(state != GameState.MainMenu);
+        if (brushRoot) brushRoot.SetActive(next != GameState.MainMenu);
     }
 
     void RefreshColor()

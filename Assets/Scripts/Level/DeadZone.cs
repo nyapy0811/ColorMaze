@@ -1,6 +1,4 @@
-using Framework.Core;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 플레이어가 닿으면(맵 밖으로 떨어졌을 때 등) 현재 스테이지를 처음부터 다시 시작한다.
@@ -18,9 +16,6 @@ public class DeadZone : MonoBehaviour
     {
         if (other.GetComponentInParent<ColorStacks>() == null) return;
 
-        Time.timeScale = 1f;
-        string sceneName = SceneManager.GetActiveScene().name;
-        GameManager.Instance.StartGame();
-        SceneLoader.Instance.Load(sceneName);
+        SceneRestarter.RestartCurrentScene();
     }
 }

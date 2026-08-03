@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4165416925393319735}
   - component: {fileID: 8823125658760823055}
   - component: {fileID: 7409897490150306592}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -174,7 +174,7 @@ GameObject:
   - component: {fileID: 784410991108895541}
   - component: {fileID: 274266708820726729}
   - component: {fileID: 6139262307583504558}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Pipe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -267,7 +267,7 @@ GameObject:
   - component: {fileID: 8096270283601874793}
   - component: {fileID: 4865870527428885358}
   - component: {fileID: 1832640300058781535}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Bucket
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -445,6 +445,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bucket
   highlightRoot: {fileID: 3455691443998874141}
+  markerPrefab: {fileID: 0}
   targetColor: 0
   stackColorRenderers:
   - {fileID: 8096270283601874793}

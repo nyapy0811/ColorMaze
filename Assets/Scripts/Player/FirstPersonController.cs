@@ -8,6 +8,9 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class FirstPersonController : MonoBehaviour
 {
+    /// <summary>씬에 하나뿐인 플레이어의 FirstPersonController. Awake에서 등록되고 OnDestroy에서 해제된다.</summary>
+    public static FirstPersonController Instance { get; private set; }
+
     [Tooltip("이동 속도(유닛/초)")]
     public float moveSpeed = 5f;
 
@@ -34,6 +37,7 @@ public class FirstPersonController : MonoBehaviour
 
     void Awake()
     {
+        Instance = this;
         cc = GetComponent<CharacterController>();
         if (cameraPivot == null && Camera.main != null)
             cameraPivot = Camera.main.transform;
@@ -42,6 +46,11 @@ public class FirstPersonController : MonoBehaviour
         float tUp = airTime * 0.5f;
         gravity = 2f * jumpHeight / (tUp * tUp);
         jumpSpeed = gravity * tUp;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void Start()
@@ -93,12 +102,10 @@ public class FirstPersonController : MonoBehaviour
         Vector3 velocity = move * moveSpeed;
         velocity.y = verticalVelocity;
 
-        float yBefore = transform.position.y;
         cc.Move(velocity * Time.deltaTime);
 
-        // 상승 중인데 Y가 거의 안 올랐다면(천장 등에 막힘) 즉시 수직 속도 반전 → 바로 하강
-        float expectedRise = verticalVelocity * Time.deltaTime;
-        if (verticalVelocity > 0f && transform.position.y - yBefore < expectedRise * 0.5f)
+        // 상승 중 천장 등 위쪽에 실제로 부딪혔다면 즉시 수직 속도 반전 → 바로 하강
+        if (verticalVelocity > 0f && (cc.collisionFlags & CollisionFlags.Above) != 0)
             verticalVelocity = -verticalVelocity;
     }
 }

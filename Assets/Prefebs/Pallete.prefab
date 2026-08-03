@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 2162260892370728019}
   - component: {fileID: 5479042569909284636}
   - component: {fileID: 4150614229681717674}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Outline
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -167,7 +167,7 @@ GameObject:
   - component: {fileID: 508116117856712999}
   - component: {fileID: 6417444785515179055}
   - component: {fileID: 7544732719687154847}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -257,7 +257,7 @@ GameObject:
   - component: {fileID: 8510542287792184630}
   - component: {fileID: 7322483177565979354}
   - component: {fileID: 5332623295073148537}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Pallete
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -316,6 +316,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
   highlightRoot: {fileID: 8113321787262052}
+  markerPrefab: {fileID: 0}
   red: 10
   green: 0
   blue: 0
@@ -336,7 +337,7 @@ GameObject:
   - component: {fileID: 2776839335887725057}
   - component: {fileID: 6918600067525533366}
   - component: {fileID: 845083521323095776}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -426,7 +427,7 @@ GameObject:
   - component: {fileID: 466472005690450085}
   - component: {fileID: 8105461857812082466}
   - component: {fileID: 4072876589375610576}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -517,7 +518,7 @@ GameObject:
   - component: {fileID: 6659062001031977797}
   - component: {fileID: 4358787739303325444}
   - component: {fileID: 8472488514289296558}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: TargetLabel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -710,7 +711,7 @@ GameObject:
   - component: {fileID: 8646273804426425197}
   - component: {fileID: 394028426207447319}
   - component: {fileID: 938529743622445122}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -800,7 +801,7 @@ GameObject:
   - component: {fileID: 6245857397109444950}
   - component: {fileID: 6154816121649534510}
   - component: {fileID: 1703444319208195286}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cylinder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -891,7 +892,7 @@ GameObject:
   - component: {fileID: 8055483471544959882}
   - component: {fileID: 8680258304031452033}
   - component: {fileID: 4288032532731578807}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Pallete
   m_TagString: Untagged
   m_Icon: {fileID: 0}

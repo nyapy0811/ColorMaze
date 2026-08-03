@@ -27,7 +27,7 @@ public class ColorStackHUD : MonoBehaviour
         EventBus.Subscribe<ColorStackChanged>(OnChanged);
 
         // 현재 스택 값으로 초기화(이벤트를 놓쳤을 수 있으므로 직접 읽음)
-        var stacks = FindAnyObjectByType<ColorStacks>();
+        var stacks = ColorStacks.Instance;
         if (stacks != null)
             for (int i = 0; i < 3; i++) values[i] = stacks.Get((LightColor)i);
 

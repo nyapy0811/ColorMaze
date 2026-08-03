@@ -11,7 +11,7 @@ using UnityEngine.UI;
 /// 해금 여부(3.7, 5.2)는 ProgressManager가 판정한다 — 챕터 목록/스테이지 목록 패널이 열릴 때마다
 /// chapterButtons/stageButtons의 interactable을 잠금 여부에 맞춰 갱신한다(잠기면 회색 처리, 별도 자물쇠 표시는 없음).
 /// </summary>
-public class MainMenuController : MonoBehaviour
+public class MainMenuController : GameStateListener
 {
     [Header("패널")]
     [SerializeField] GameObject mainPanel;
@@ -28,26 +28,17 @@ public class MainMenuController : MonoBehaviour
 
     int currentChapterIndex = -1;
 
-    void Start()
+    protected override void Start()
     {
         if (stageSelectPanel) stageSelectPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
         if (stageListPanel) stageListPanel.SetActive(false);
-        GameManager.Instance.OnStateChanged += OnStateChanged;
-        Refresh(GameManager.Instance.State);
+        base.Start();
     }
 
-    void OnDestroy()
+    protected override void OnGameStateChanged(GameState previous, GameState next)
     {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnStateChanged -= OnStateChanged;
-    }
-
-    void OnStateChanged(GameState previous, GameState next) => Refresh(next);
-
-    void Refresh(GameState state)
-    {
-        bool show = state == GameState.MainMenu;
+        bool show = next == GameState.MainMenu;
         if (mainPanel) mainPanel.SetActive(show);
         if (!show)
         {

@@ -231,7 +231,6 @@ GameObject:
   - component: {fileID: 5397603748047115882}
   - component: {fileID: 3328415399552620402}
   - component: {fileID: -9080921807358934011}
-  - component: {fileID: 251657533344359429}
   - component: {fileID: 2533558527346987348}
   - component: {fileID: 3990184152427060875}
   m_Layer: 0
@@ -319,18 +318,6 @@ MonoBehaviour:
     start: 0
   blue:
     start: 0
---- !u!114 &251657533344359429
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5204771875393502260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7ec162f5914b61f4f92a199134953b9f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ColorStackInput
 --- !u!114 &2533558527346987348
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -344,6 +331,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractionController
   interactRange: 1.3
+  interactMask:
+    serializedVersion: 2
+    m_Bits: 65
 --- !u!114 &3990184152427060875
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -432,7 +422,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 55
+    m_Bits: 119
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0

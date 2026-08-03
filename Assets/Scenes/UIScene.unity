@@ -525,13 +525,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8416dd6370f811448e7802df06d6570, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapObjectMarkerHUD
-  colorPaletteMarkerPrefab: {fileID: 330257253421163143, guid: 2a07fb100c9648c4bae69325e9812d86, type: 3}
-  stackChangerMarkerPrefab: {fileID: 330257253421163143, guid: 2a07fb100c9648c4bae69325e9812d86, type: 3}
-  colorChangerMarkerPrefab: {fileID: 330257253421163143, guid: 2a07fb100c9648c4bae69325e9812d86, type: 3}
-  bucketMarkerPrefab: {fileID: 330257253421163143, guid: 2a07fb100c9648c4bae69325e9812d86, type: 3}
-  colorCanvasMarkerPrefab: {fileID: 330257253421163143, guid: 2a07fb100c9648c4bae69325e9812d86, type: 3}
+  defaultMarkerPrefab: {fileID: 330257253421163143, guid: 2a07fb100c9648c4bae69325e9812d86, type: 3}
   markerContainer: {fileID: 439634329}
   edgeMargin: 40
+  occlusionMask:
+    serializedVersion: 2
+    m_Bits: 65
 --- !u!224 &99311574
 RectTransform:
   m_ObjectHideFlags: 0

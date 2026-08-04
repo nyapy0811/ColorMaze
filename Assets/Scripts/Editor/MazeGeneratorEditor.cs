@@ -85,15 +85,16 @@ public class MazeGeneratorEditor : Editor
             bool isRgbFilter = maze.rgbFilterPrefab != null
                 && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.rgbFilterPrefab);
 
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Toggle(isBasic, "일반 블록", "Button")) SelectedPrefabPath = "";
-            using (new EditorGUI.DisabledScope(maze.colorFilterPrefab == null))
-                if (GUILayout.Toggle(isColorFilter, "컬러 필터", "Button"))
-                    SelectedPrefabPath = AssetDatabase.GetAssetPath(maze.colorFilterPrefab);
-            using (new EditorGUI.DisabledScope(maze.rgbFilterPrefab == null))
-                if (GUILayout.Toggle(isRgbFilter, "RGB 필터", "Button"))
-                    SelectedPrefabPath = AssetDatabase.GetAssetPath(maze.rgbFilterPrefab);
-            GUILayout.EndHorizontal();
+            // 3개짜리 상호배타 선택은 독립된 Toggle-as-Button 3개 대신 Toolbar 하나로 그린다.
+            // (독립 Toggle 방식은 값이 바뀌는 프레임에 컨트롤 상태가 꼬여 이후 클릭이 먹지 않는 경우가 있었음 — 버그 리포트 반영)
+            int selectedIndex = isBasic ? 0 : isColorFilter ? 1 : isRgbFilter ? 2 : -1;
+            int newIndex = GUILayout.Toolbar(selectedIndex, new[] { "일반 블록", "컬러 필터", "RGB 필터" });
+            if (newIndex != selectedIndex)
+            {
+                if (newIndex == 0) SelectedPrefabPath = "";
+                else if (newIndex == 1 && maze.colorFilterPrefab != null) SelectedPrefabPath = AssetDatabase.GetAssetPath(maze.colorFilterPrefab);
+                else if (newIndex == 2 && maze.rgbFilterPrefab != null) SelectedPrefabPath = AssetDatabase.GetAssetPath(maze.rgbFilterPrefab);
+            }
 
             if (isColorFilter)
             {

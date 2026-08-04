@@ -48,13 +48,22 @@ public class PauseMenuController : GameStateListener
     }
 
     // --- 버튼 OnClick 연결용 ---
-    public void OnResumeButton() => GameManager.Instance.Resume();
+    public void OnResumeButton()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        GameManager.Instance.Resume();
+    }
 
     /// <summary>현재 스테이지 씬을 처음부터 다시 로드한다.</summary>
-    public void OnRestartButton() => SceneRestarter.RestartCurrentScene();
+    public void OnRestartButton()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        SceneRestarter.RestartCurrentScene();
+    }
 
     public void OnSettingsButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         if (pausePanel) pausePanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(true);
     }
@@ -62,18 +71,21 @@ public class PauseMenuController : GameStateListener
     /// <summary>설정 패널을 숨기고 일시정지 패널로 돌아간다.</summary>
     public void OnBackToPauseButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         if (settingsPanel) settingsPanel.SetActive(false);
         if (pausePanel) pausePanel.SetActive(true);
     }
 
     public void OnCloseSettingsButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         if (settingsPanel) settingsPanel.SetActive(false);
     }
 
     /// <summary>게임을 종료하지 않고 메인 화면으로 돌아간다.</summary>
     public void OnQuitButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         Time.timeScale = 1f; // 일시정지 중 멈춰뒀던 시간을 되돌린다.
         GameManager.Instance.ChangeState(GameState.MainMenu);
         SceneLoader.Instance.Load("MainMenu");

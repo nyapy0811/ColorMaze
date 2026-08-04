@@ -56,12 +56,17 @@ public class ClearScreenController : MonoBehaviour
 
     public void OnMainMenuButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         Time.timeScale = 1f;
         GameManager.Instance.ChangeState(GameState.MainMenu);
         SceneLoader.Instance.Load("MainMenu");
     }
 
-    public void OnRetryButton() => SceneRestarter.RestartCurrentScene();
+    public void OnRetryButton()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        SceneRestarter.RestartCurrentScene();
+    }
 
     /// <summary>다음 스테이지가 없으면(마지막 스테이지) 버튼이 비활성화돼 있어 호출되지 않는다.</summary>
     public void OnNextStageButton()
@@ -74,6 +79,7 @@ public class ClearScreenController : MonoBehaviour
             return;
         }
 
+        GameAudio.Instance.PlayButtonClick();
         Time.timeScale = 1f;
         GameManager.Instance.StartGame();
         SceneLoader.Instance.Load(nextSceneName);

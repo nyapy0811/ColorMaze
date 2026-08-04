@@ -16,6 +16,7 @@ public class Bootstrap : MonoBehaviour
         _ = GameManager.Instance;
         _ = SaveManager.Instance;
         _ = AudioManager.Instance;
+        _ = GameAudio.Instance;
         _ = SceneLoader.Instance;
         _ = PoolManager.Instance;
         _ = InputManager.Instance;

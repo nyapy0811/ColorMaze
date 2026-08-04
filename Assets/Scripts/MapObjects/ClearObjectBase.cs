@@ -36,6 +36,7 @@ public abstract class ClearObjectBase : MapObjectBase, IInteractable
 
         Completed = true;
         OnCompleted();
+        GameAudio.Instance.PlayClear();
         EventBus.Publish(new CanvasCompleted { Source = this });
     }
 }

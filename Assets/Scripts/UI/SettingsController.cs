@@ -17,16 +17,14 @@ public class SettingsController : MonoBehaviour
 
     void OnEnable()
     {
-        var audio = AudioManager.Instance;
-
         if (bgmSlider)
         {
-            bgmSlider.SetValueWithoutNotify(audio.bgmVolume);
+            bgmSlider.SetValueWithoutNotify(GameAudio.Instance.GetBgmVolume());
             bgmSlider.onValueChanged.AddListener(SetBgm);
         }
         if (sfxSlider)
         {
-            sfxSlider.SetValueWithoutNotify(audio.sfxVolume);
+            sfxSlider.SetValueWithoutNotify(GameAudio.Instance.GetSfxVolume());
             sfxSlider.onValueChanged.AddListener(SetSfx);
         }
         if (sensitivitySlider)
@@ -44,8 +42,9 @@ public class SettingsController : MonoBehaviour
         if (sensitivitySlider) sensitivitySlider.onValueChanged.RemoveListener(SetSensitivity);
     }
 
-    void SetBgm(float v) => AudioManager.Instance.bgmVolume = v;
-    void SetSfx(float v) => AudioManager.Instance.sfxVolume = v;
+    void SetBgm(float v) => GameAudio.Instance.SetBgmVolume(v);
+
+    void SetSfx(float v) => GameAudio.Instance.SetSfxVolume(v);
 
     void SetSensitivity(float v)
     {
@@ -58,12 +57,14 @@ public class SettingsController : MonoBehaviour
     /// <summary>저장 초기화 버튼: 바로 초기화하지 않고 확인창을 띄운다.</summary>
     public void OnResetSaveButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         if (resetConfirmPanel) resetConfirmPanel.SetActive(true);
     }
 
     /// <summary>확인창의 "확인" 버튼: 실제로 저장 파일을 초기화한다.</summary>
     public void OnConfirmResetButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         SaveManager.Instance.Delete();
         if (resetConfirmPanel) resetConfirmPanel.SetActive(false);
     }
@@ -71,6 +72,7 @@ public class SettingsController : MonoBehaviour
     /// <summary>확인창의 "취소" 버튼: 초기화하지 않고 닫는다.</summary>
     public void OnCancelResetButton()
     {
+        GameAudio.Instance.PlayButtonClick();
         if (resetConfirmPanel) resetConfirmPanel.SetActive(false);
     }
 }

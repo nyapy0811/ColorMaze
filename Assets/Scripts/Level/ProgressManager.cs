@@ -65,4 +65,27 @@ public class ProgressManager : MonoSingleton<ProgressManager>
         string previousScene = scenes[stageIndex - 1];
         return !string.IsNullOrEmpty(previousScene) && SaveManager.Instance.Current.IsStageCleared(previousScene);
     }
+
+    public bool IsStageCleared(int chapterIndex, int stageIndex)
+    {
+        if (stageTable?.chapters == null || chapterIndex >= stageTable.chapters.Length) return false;
+
+        string[] scenes = stageTable.chapters[chapterIndex].sceneNames;
+        if (stageIndex < 0 || stageIndex >= scenes.Length) return false;
+
+        string sceneName = scenes[stageIndex];
+        return !string.IsNullOrEmpty(sceneName) && SaveManager.Instance.Current.IsStageCleared(sceneName);
+    }
+
+    /// <summary>챕터의 모든 스테이지를 클리어했으면 챕터 클리어로 판정한다.</summary>
+    public bool IsChapterCleared(int chapterIndex)
+    {
+        if (stageTable?.chapters == null || chapterIndex >= stageTable.chapters.Length) return false;
+
+        string[] scenes = stageTable.chapters[chapterIndex].sceneNames;
+        for (int i = 0; i < scenes.Length; i++)
+            if (!IsStageCleared(chapterIndex, i)) return false;
+
+        return true;
+    }
 }

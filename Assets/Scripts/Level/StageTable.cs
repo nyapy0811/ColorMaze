@@ -13,6 +13,7 @@ public class StageTable : ScriptableObject
     public class ChapterStageScenes
     {
         public string[] sceneNames = new string[10];
+        public Sprite[] thumbnails = new Sprite[10];
     }
 
     public ChapterStageScenes[] chapters;

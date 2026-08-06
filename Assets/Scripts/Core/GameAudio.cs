@@ -1,3 +1,4 @@
+using System.Collections;
 using Framework.Core;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -36,6 +37,17 @@ public class GameAudio : MonoSingleton<GameAudio>
     {
         AudioManager.Instance.PlayBGM(bgm);
         RouteAudioSources();
+
+        // AudioMixer.SetFloat은 Awake 시점엔 믹서가 아직 준비 안 돼 있어서 조용히 씹히는 경우가 있다
+        // (한 프레임 뒤에 적용하면 문제없이 반영됨). 그래서 한 프레임 미루고 적용한다.
+        StartCoroutine(ApplySavedVolumeNextFrame());
+    }
+
+    IEnumerator ApplySavedVolumeNextFrame()
+    {
+        yield return null;
+        SetMixerVolume(BgmParam, GameSettings.Current.bgmVolume);
+        SetMixerVolume(SfxParam, GameSettings.Current.sfxVolume);
     }
 
     public void PlayButtonClick() => AudioManager.Instance.PlaySFX(buttonClick);
@@ -55,22 +67,27 @@ public class GameAudio : MonoSingleton<GameAudio>
             sources[i].outputAudioMixerGroup = sfxGroup;
     }
 
-    public void SetBgmVolume(float linear) => SetMixerVolume(BgmParam, linear);
-    public void SetSfxVolume(float linear) => SetMixerVolume(SfxParam, linear);
+    public void SetBgmVolume(float linear)
+    {
+        SetMixerVolume(BgmParam, linear);
+        GameSettings.Current.bgmVolume = linear;
+        GameSettings.Save();
+    }
 
-    public float GetBgmVolume() => GetMixerVolume(BgmParam);
-    public float GetSfxVolume() => GetMixerVolume(SfxParam);
+    public void SetSfxVolume(float linear)
+    {
+        SetMixerVolume(SfxParam, linear);
+        GameSettings.Current.sfxVolume = linear;
+        GameSettings.Save();
+    }
+
+    public float GetBgmVolume() => GameSettings.Current.bgmVolume;
+    public float GetSfxVolume() => GameSettings.Current.sfxVolume;
 
     void SetMixerVolume(string param, float linear)
     {
         if (!audioMixer) return;
         float dB = 20f * Mathf.Log10(Mathf.Max(linear, MinLinearVolume));
         audioMixer.SetFloat(param, dB);
-    }
-
-    float GetMixerVolume(string param)
-    {
-        if (!audioMixer || !audioMixer.GetFloat(param, out float dB)) return 1f;
-        return Mathf.Pow(10f, dB / 20f);
     }
 }

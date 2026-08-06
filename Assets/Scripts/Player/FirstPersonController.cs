@@ -42,6 +42,8 @@ public class FirstPersonController : MonoBehaviour
         if (cameraPivot == null && Camera.main != null)
             cameraPivot = Camera.main.transform;
 
+        if (GameSettings.HasSave()) mouseSensitivity = GameSettings.Current.mouseSensitivity;
+
         // 상승시간 t = airTime/2,  g = 2h/t²,  v₀ = g·t = √(2gh)
         float tUp = airTime * 0.5f;
         gravity = 2f * jumpHeight / (tUp * tUp);

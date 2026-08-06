@@ -29,8 +29,10 @@ public class SettingsController : MonoBehaviour
         }
         if (sensitivitySlider)
         {
+            // 게임 씬(FirstPersonController가 있는 상태)이면 그 값을, 메인 메뉴처럼 없으면 저장된 값을 보여준다.
             var fpc = FirstPersonController.Instance;
-            if (fpc) sensitivitySlider.SetValueWithoutNotify(fpc.mouseSensitivity);
+            float sensitivity = fpc ? fpc.mouseSensitivity : GameSettings.Current.mouseSensitivity;
+            sensitivitySlider.SetValueWithoutNotify(sensitivity);
             sensitivitySlider.onValueChanged.AddListener(SetSensitivity);
         }
     }
@@ -50,6 +52,8 @@ public class SettingsController : MonoBehaviour
     {
         var fpc = FirstPersonController.Instance;
         if (fpc) fpc.mouseSensitivity = v;
+        GameSettings.Current.mouseSensitivity = v;
+        GameSettings.Save();
     }
 
     // --- 버튼 OnClick 연결용 ---

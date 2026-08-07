@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &2403935809638268365
+--- !u!1 &3776233312449846519
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,39 +8,39 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1274050893876162118}
-  - component: {fileID: 7613377748604392532}
-  - component: {fileID: 8436510999980503348}
-  - component: {fileID: 8770206476984904709}
+  - component: {fileID: 7826978067403086344}
+  - component: {fileID: 5168045305626206134}
+  - component: {fileID: 7271814864862969432}
+  - component: {fileID: 548028613117789812}
   m_Layer: 0
-  m_Name: Cone
+  m_Name: Capsule
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1274050893876162118
+--- !u!4 &7826978067403086344
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2403935809638268365}
+  m_GameObject: {fileID: 3776233312449846519}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
-  m_LocalScale: {x: 1, y: 2, z: 1}
+  m_LocalPosition: {x: 0, y: 3.1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 104094478783265454}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7613377748604392532
+--- !u!114 &5168045305626206134
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2403935809638268365}
+  m_GameObject: {fileID: 3776233312449846519}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: -2105364572, guid: 355474d781e5561489e3595e39866770, type: 3}
@@ -52,30 +52,21 @@ MonoBehaviour:
   texturePaintData:
   - {fileID: 0}
   paintBundles:
-  - materialAsset: {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
-    entries:
-    - channelName: Albedo
-      paintData: {fileID: 11400000, guid: 3bd1758f3d0ee00449efccbfc088b293, type: 2}
-      isActive: 0
-    - channelName: Metallic
-      paintData: {fileID: 11400000, guid: 62901409416e8ff49ae8739aebd5afdb, type: 2}
-      isActive: 0
-    - channelName: Smoothness
-      paintData: {fileID: 11400000, guid: 62901409416e8ff49ae8739aebd5afdb, type: 2}
-      isActive: 0
+  - materialAsset: {fileID: 0}
+    entries: []
   isRiggingEnabled: 0
-  isPaintingEnabled: 1
+  isPaintingEnabled: 0
   currentEditor: 
   materials:
-  - {fileID: 2100000, guid: 91cfe922974c75a4aad7b06e7720ae67, type: 2}
+  - {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
   materialsPath:
-  - Assets/Material/Color.mat
-  currentMaterialIndex: -1
+  - Packages/com.tripolygon.umodeler-x/Editor/Resources/Materials/UModelerX_Gray_URP.mat
+  currentMaterialIndex: 0
   renderableMesh:
-    name: UM_OperatedMesh_9cb1cdd1-734d-4106-813a-b3e7670f1dd6
+    name: UM_OperatedMesh_f06e2641-34ca-4920-b4cb-91ab3df02133
     skinnedMesh: 0
-    sharedMesh: {fileID: 4300000, guid: c75b8b7e3040f8f408ee10bd4d261a0e, type: 2}
-    persistedAssetMesh: {fileID: 4300000, guid: c75b8b7e3040f8f408ee10bd4d261a0e, type: 2}
+    sharedMesh: {fileID: 4300000, guid: b8d7365c70124bc4da8ec537cae22619, type: 2}
+    persistedAssetMesh: {fileID: 4300000, guid: b8d7365c70124bc4da8ec537cae22619, type: 2}
     buidVersion:
       ModifierGUID: 
       PosVersion: 0
@@ -86,8 +77,8 @@ MonoBehaviour:
       OptimizedTopology: 0
       TransformVersion: 0
   sourceMesh: {fileID: 0}
-  sourceMeshRendererGUID: 9cb1cdd1-734d-4106-813a-b3e7670f1dd6
-  guid: 22d447a1-45fd-44ca-a3c8-069de6b98774
+  sourceMeshRendererGUID: f06e2641-34ca-4920-b4cb-91ab3df02133
+  guid: 750e3d05-8226-459d-a2d7-cd0710d554d8
   localOptions:
     RecalculateTangents: 0
     SaveInSceneFolder: 0
@@ -102,24 +93,24 @@ MonoBehaviour:
     MeshReadOnlyMode: 0
   hotspotObject: {fileID: 0}
   saveData: {fileID: 0}
-  saveDataAssetGuid: becefdf56591ccd46aba1902ef908d6d
+  saveDataAssetGuid: e235beb97c7978a47ae4db9c321e887c
   IsSaveDataLoaded: 0
   <IsDirtySaveData>k__BackingField: 1
---- !u!33 &8436510999980503348
+--- !u!33 &7271814864862969432
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2403935809638268365}
-  m_Mesh: {fileID: 4300000, guid: c75b8b7e3040f8f408ee10bd4d261a0e, type: 2}
---- !u!23 &8770206476984904709
+  m_GameObject: {fileID: 3776233312449846519}
+  m_Mesh: {fileID: 4300000, guid: b8d7365c70124bc4da8ec537cae22619, type: 2}
+--- !u!23 &548028613117789812
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2403935809638268365}
+  m_GameObject: {fileID: 3776233312449846519}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -138,7 +129,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 91cfe922974c75a4aad7b06e7720ae67, type: 2}
+  - {fileID: 2100000, guid: 411015fa9b8552242a15c2a74dc8b602, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -194,7 +185,7 @@ Transform:
   m_LocalScale: {x: 0.05, y: 0.05, z: 0.05}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 1274050893876162118}
+  - {fileID: 7826978067403086344}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &952709109191908190
@@ -215,15 +206,25 @@ MonoBehaviour:
   texturePaintData:
   - {fileID: 0}
   paintBundles:
-  - materialAsset: {fileID: 0}
-    entries: []
+  - materialAsset: {fileID: 2100000, guid: 5049ff3b752cdcc48925cf5fe482c509, type: 2}
+    entries:
+    - channelName: Albedo
+      paintData: {fileID: 11400000, guid: 04dd77bc78c7e1b459815d2a4d58aee9, type: 2}
+      isActive: 0
+    - channelName: Metallic
+      paintData: {fileID: 11400000, guid: cd62d4cbdad451e469dccbc073998ddf, type: 2}
+      isActive: 0
+    - channelName: Smoothness
+      paintData: {fileID: 11400000, guid: cd62d4cbdad451e469dccbc073998ddf, type: 2}
+      isActive: 0
   isRiggingEnabled: 0
-  isPaintingEnabled: 0
+  isPaintingEnabled: 1
   currentEditor: 
   materials:
   - {fileID: 2100000, guid: 5049ff3b752cdcc48925cf5fe482c509, type: 2}
-  materialsPath: []
-  currentMaterialIndex: -1
+  materialsPath:
+  - Assets/Material/Wood.mat
+  currentMaterialIndex: 0
   renderableMesh:
     name: UM_OperatedMesh_ca85d76d-6e23-43e6-bd62-3046392fd355
     skinnedMesh: 0

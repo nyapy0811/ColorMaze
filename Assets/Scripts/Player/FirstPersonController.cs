@@ -1,4 +1,17 @@
+using Framework.Core;
 using UnityEngine;
+
+/// <summary>실제로 점프가 발동한 순간(지면에서 뛰어오른 순간)마다 발행.</summary>
+public struct PlayerJumped : IEvent { }
+
+/// <summary>공중에 있다가 지면에 닿은 순간(착지)마다 발행.</summary>
+public struct PlayerLanded : IEvent { }
+
+/// <summary>이동 입력이 있는지 없는지가 바뀔 때만 발행 (뷰모델 이동 애니메이션 등에 사용).</summary>
+public struct PlayerMoveStateChanged : IEvent
+{
+    public bool IsMoving;
+}
 
 /// <summary>
 /// 1인칭 이동 + 마우스 시점.
@@ -34,6 +47,8 @@ public class FirstPersonController : MonoBehaviour
     float verticalVelocity;
     float gravity;     // 양수 크기 (jumpHeight/airTime에서 역산)
     float jumpSpeed;   // 점프 초기 속도
+    bool wasMoving;
+    bool wasGrounded = true;
 
     void Awake()
     {
@@ -91,12 +106,25 @@ public class FirstPersonController : MonoBehaviour
         Vector3 move = transform.forward * input.y + transform.right * input.x;
         if (move.sqrMagnitude > 1f) move.Normalize();
 
+        bool isMoving = input.sqrMagnitude > 0.01f;
+        if (isMoving != wasMoving)
+        {
+            wasMoving = isMoving;
+            EventBus.Publish(new PlayerMoveStateChanged { IsMoving = isMoving });
+        }
+
         bool grounded = cc.isGrounded;
+        if (grounded && !wasGrounded) EventBus.Publish(new PlayerLanded());
+        wasGrounded = grounded;
+
         if (grounded && verticalVelocity < 0f) verticalVelocity = -2f;
 
         // 점프 (지면에 있을 때만)
         if (grounded && InputManager.Instance.ReadJump())
+        {
             verticalVelocity = jumpSpeed;
+            EventBus.Publish(new PlayerJumped());
+        }
 
         // 중력 (아래로)
         verticalVelocity -= gravity * Time.deltaTime;

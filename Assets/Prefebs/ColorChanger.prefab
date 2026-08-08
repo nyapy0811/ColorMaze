@@ -258,6 +258,10 @@ PrefabInstance:
       propertyPath: currentMaterialIndex
       value: -1
       objectReference: {fileID: 0}
+    - target: {fileID: 2070096064642494635, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: f25b0b020d410b54ba64a642ab0a7fab, type: 2}
     - target: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
       propertyPath: m_Name
       value: Brush

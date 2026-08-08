@@ -14,7 +14,7 @@
       "dependencies": {
         "com.cysharp.unitask": "2.5.10"
       },
-      "hash": "23e4a13b2d4d858fbde6b2e2462f328906d05805"
+      "hash": "58e0dff3f9be93b7cf0091028455684ceec3ea5e"
     },
     "com.tripolygon.umodeler-x": {
       "version": "file:../UModelerXPackages/com.tripolygon.umodeler-x-1.2.2+f1.tgz",

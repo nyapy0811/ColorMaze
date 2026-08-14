@@ -35,6 +35,12 @@ public class MainMenuController : GameStateListener
     int currentChapterIndex = -1;
     int currentStageIndex = -1;
 
+    // 히든 코드: 메인 화면에서 0을 4번 연속으로(제한 시간 안에) 누르면 모든 스테이지 해금.
+    const int UnlockAllPressCount = 4;
+    const float UnlockAllPressWindow = 1.5f;
+    int zeroPressCount;
+    float lastZeroPressTime;
+
     protected override void Start()
     {
         if (stageSelectPanel) stageSelectPanel.SetActive(false);
@@ -68,11 +74,31 @@ public class MainMenuController : GameStateListener
     /// (기존 "뒤로가기" 버튼과 동일한 동작).</summary>
     void Update()
     {
+        CheckUnlockAllHiddenCode();
+
         if (!InputManager.Instance.ReadPause()) return;
 
         bool settingsOpen = settingsPanel && settingsPanel.activeSelf;
         bool stageSelectOpen = stageSelectPanel && stageSelectPanel.activeSelf;
         if (settingsOpen || stageSelectOpen) OnBackToMainButton();
+    }
+
+    /// <summary>메인 패널(챕터/설정 선택 이전 첫 화면)이 보이는 동안 0을 정해진 시간 안에
+    /// 4번 연속으로 누르면 모든 스테이지를 해금한다.</summary>
+    void CheckUnlockAllHiddenCode()
+    {
+        if (!mainPanel || !mainPanel.activeSelf) return;
+        if (!InputManager.Instance.ReadDigit0()) return;
+
+        if (Time.unscaledTime - lastZeroPressTime > UnlockAllPressWindow) zeroPressCount = 0;
+        lastZeroPressTime = Time.unscaledTime;
+        zeroPressCount++;
+
+        if (zeroPressCount < UnlockAllPressCount) return;
+
+        zeroPressCount = 0;
+        ProgressManager.Instance.UnlockAllStages();
+        GameAudio.Instance.PlayButtonClick();
     }
 
     protected override void OnGameStateChanged(GameState previous, GameState next)

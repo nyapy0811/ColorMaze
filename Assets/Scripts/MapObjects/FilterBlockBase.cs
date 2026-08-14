@@ -45,6 +45,11 @@ public abstract class FilterBlockBase : MapObjectBase
     /// <summary>그룹(같은 색 필터 전체)에 하나만 띄울 라벨 텍스트. null/빈 문자열을 반환하면 라벨을 만들지 않는다. 하위 클래스가 구현한다.</summary>
     protected abstract string GetLabelText();
 
+    /// <summary>그룹 라벨을 만들 때 쓸 컴포넌트. 위치/회전 방식을 다르게 하고 싶은 하위 클래스가 오버라이드한다
+    /// (기본은 CellGroupLabel — 면 위에 그 면의 바깥 법선 방향으로 고정).</summary>
+    protected virtual CellGroupLabel CreateGroupLabel(Transform parent, string name, Vector3Int[] cells, string text, GameObject prefab)
+        => CellGroupLabel.Create(parent, name, cells, text, prefab);
+
     /// <summary>이 게이트의 외형 색(메시 병합 시 그룹 키로도 쓰인다).</summary>
     public Color32 RGB => GetAppearanceColor();
 
@@ -319,15 +324,11 @@ public abstract class FilterBlockBase : MapObjectBase
         // 그룹당 하나만: 라벨 텍스트가 있는 그룹(대표 블록 기준)에만 라벨을 만든다.
         string labelText = settings.GetLabelText();
         if (!string.IsNullOrEmpty(labelText))
-            BuildGroupLabel(parent, baseName + "_Label", cells, labelText, settings.labelPrefab);
-    }
-
-    // 그룹의 칸(셀) 위에 라벨 하나를 띄운다. 실제 위치·회전 계산은 범용 컴포넌트 CellGroupLabel이 담당한다.
-    static void BuildGroupLabel(Transform parent, string name, HashSet<Vector3Int> cells, string text, GameObject prefab)
-    {
-        var cellArray = new Vector3Int[cells.Count];
-        cells.CopyTo(cellArray);
-        CellGroupLabel.Create(parent, name, cellArray, text, prefab);
+        {
+            var cellArray = new Vector3Int[cells.Count];
+            cells.CopyTo(cellArray);
+            settings.CreateGroupLabel(parent, baseName + "_Label", cellArray, labelText, settings.labelPrefab);
+        }
     }
 
     static Material defaultBorderMat;

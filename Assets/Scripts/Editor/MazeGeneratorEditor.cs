@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 
 /// <summary>
 /// [개발자 전용] MazeGenerator 커스텀 에디터.
-/// Scene 뷰에서 마인크래프트식으로 블록을 편집한다(클릭 설치 / Shift+클릭 제거).
+/// Scene 뷰에서 마인크래프트식으로 블록을 편집한다(클릭 설치 / Ctrl+클릭 제거).
 /// 인스펙터에서 프리팹을 지정하면 기본 블록 대신 그 프리팹(컬러 필터 등 기물)을 설치할 수 있다.
 /// 만든 오브젝트는 실제 씬 오브젝트라 씬과 함께 저장된다.
 /// </summary>
@@ -55,6 +55,59 @@ public class MazeGeneratorEditor : Editor
         set => SessionState.SetInt("MazeEdit.RgbFilter.Target", (int)value);
     }
 
+    // 버킷 설치 시 미리 지정해둘, 0으로 만들 색.
+    LightColor PresetBucketColor
+    {
+        get => (LightColor)SessionState.GetInt("MazeEdit.Bucket.Target", 0);
+        set => SessionState.SetInt("MazeEdit.Bucket.Target", (int)value);
+    }
+
+    // 팔레트 설치 시 미리 지정해둘 증가시킬 스택량.
+    int PresetPaletteRed
+    {
+        get => SessionState.GetInt("MazeEdit.Palette.R", 0);
+        set => SessionState.SetInt("MazeEdit.Palette.R", value);
+    }
+    int PresetPaletteGreen
+    {
+        get => SessionState.GetInt("MazeEdit.Palette.G", 0);
+        set => SessionState.SetInt("MazeEdit.Palette.G", value);
+    }
+    int PresetPaletteBlue
+    {
+        get => SessionState.GetInt("MazeEdit.Palette.B", 0);
+        set => SessionState.SetInt("MazeEdit.Palette.B", value);
+    }
+
+    // 스택 체인저 설치 시 미리 지정해둘, 서로 교환할 두 색.
+    LightColor PresetStackChangerColorA
+    {
+        get => (LightColor)SessionState.GetInt("MazeEdit.StackChanger.A", (int)LightColor.Red);
+        set => SessionState.SetInt("MazeEdit.StackChanger.A", (int)value);
+    }
+    LightColor PresetStackChangerColorB
+    {
+        get => (LightColor)SessionState.GetInt("MazeEdit.StackChanger.B", (int)LightColor.Blue);
+        set => SessionState.SetInt("MazeEdit.StackChanger.B", (int)value);
+    }
+
+    // 캔버스 설치 시 미리 지정해둘 목표 스택 값.
+    int PresetCanvasRed
+    {
+        get => SessionState.GetInt("MazeEdit.Canvas.R", 0);
+        set => SessionState.SetInt("MazeEdit.Canvas.R", value);
+    }
+    int PresetCanvasGreen
+    {
+        get => SessionState.GetInt("MazeEdit.Canvas.G", 0);
+        set => SessionState.SetInt("MazeEdit.Canvas.G", value);
+    }
+    int PresetCanvasBlue
+    {
+        get => SessionState.GetInt("MazeEdit.Canvas.B", 0);
+        set => SessionState.SetInt("MazeEdit.Canvas.B", value);
+    }
+
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
@@ -77,23 +130,43 @@ public class MazeGeneratorEditor : Editor
                 "설치할 프리팹 (비우면 기본 블록)", currentPrefab, typeof(GameObject), false);
             SelectedPrefabPath = newPrefab != null ? AssetDatabase.GetAssetPath(newPrefab) : "";
 
-            // 자주 쓰는 3종류(일반 블록/컬러 필터/RGB 필터)는 라디오 버튼으로 바로 고를 수 있다.
+            // 자주 쓰는 종류(일반 블록/필터/상호작용 기물)는 라디오 버튼으로 바로 고를 수 있다.
             // 버튼을 누르면 위 프리팹 칸이 그 프리팹으로 바뀌는 것과 같다(같은 SelectedPrefabPath를 공유).
+            // 0번(일반 블록)은 프리팹이 없고, 나머지는 인덱스 순서대로 quickLabels ↔ quickPrefabs가 대응한다.
+            string[] quickLabels = { "일반 블록", "컬러 필터", "RGB 필터", "버킷", "캔버스", "팔레트", "컬러체인저", "스택체인저" };
+            GameObject[] quickPrefabs =
+            {
+                null, maze.colorFilterPrefab, maze.rgbFilterPrefab,
+                maze.bucketPrefab, maze.canvasPrefab, maze.palettePrefab,
+                maze.colorChangerPrefab, maze.stackChangerPrefab,
+            };
+
             bool isBasic = string.IsNullOrEmpty(SelectedPrefabPath);
             bool isColorFilter = maze.colorFilterPrefab != null
                 && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.colorFilterPrefab);
             bool isRgbFilter = maze.rgbFilterPrefab != null
                 && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.rgbFilterPrefab);
+            bool isBucket = maze.bucketPrefab != null
+                && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.bucketPrefab);
+            bool isPalette = maze.palettePrefab != null
+                && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.palettePrefab);
+            bool isStackChanger = maze.stackChangerPrefab != null
+                && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.stackChangerPrefab);
+            bool isCanvas = maze.canvasPrefab != null
+                && SelectedPrefabPath == AssetDatabase.GetAssetPath(maze.canvasPrefab);
 
-            // 3개짜리 상호배타 선택은 독립된 Toggle-as-Button 3개 대신 Toolbar 하나로 그린다.
+            // 상호배타 선택은 독립된 Toggle-as-Button 여러 개 대신 Toolbar 하나로 그린다.
             // (독립 Toggle 방식은 값이 바뀌는 프레임에 컨트롤 상태가 꼬여 이후 클릭이 먹지 않는 경우가 있었음 — 버그 리포트 반영)
-            int selectedIndex = isBasic ? 0 : isColorFilter ? 1 : isRgbFilter ? 2 : -1;
-            int newIndex = GUILayout.Toolbar(selectedIndex, new[] { "일반 블록", "컬러 필터", "RGB 필터" });
+            int selectedIndex = isBasic ? 0 : -1;
+            for (int i = 1; i < quickPrefabs.Length && selectedIndex < 0; i++)
+                if (quickPrefabs[i] != null && SelectedPrefabPath == AssetDatabase.GetAssetPath(quickPrefabs[i]))
+                    selectedIndex = i;
+
+            int newIndex = GUILayout.Toolbar(selectedIndex, quickLabels);
             if (newIndex != selectedIndex)
             {
                 if (newIndex == 0) SelectedPrefabPath = "";
-                else if (newIndex == 1 && maze.colorFilterPrefab != null) SelectedPrefabPath = AssetDatabase.GetAssetPath(maze.colorFilterPrefab);
-                else if (newIndex == 2 && maze.rgbFilterPrefab != null) SelectedPrefabPath = AssetDatabase.GetAssetPath(maze.rgbFilterPrefab);
+                else if (quickPrefabs[newIndex] != null) SelectedPrefabPath = AssetDatabase.GetAssetPath(quickPrefabs[newIndex]);
             }
 
             if (isColorFilter)
@@ -108,11 +181,36 @@ public class MazeGeneratorEditor : Editor
                 EditorGUILayout.LabelField("RGB 필터 값 (설치 시 적용)", EditorStyles.boldLabel);
                 PresetTargetColor = (LightColor)EditorGUILayout.EnumPopup("목표 색", PresetTargetColor);
             }
+            else if (isBucket)
+            {
+                EditorGUILayout.LabelField("버킷 값 (설치 시 적용)", EditorStyles.boldLabel);
+                PresetBucketColor = (LightColor)EditorGUILayout.EnumPopup("0으로 만들 색", PresetBucketColor);
+            }
+            else if (isPalette)
+            {
+                EditorGUILayout.LabelField("팔레트 값 (설치 시 적용)", EditorStyles.boldLabel);
+                PresetPaletteRed = EditorGUILayout.IntField("R", PresetPaletteRed);
+                PresetPaletteGreen = EditorGUILayout.IntField("G", PresetPaletteGreen);
+                PresetPaletteBlue = EditorGUILayout.IntField("B", PresetPaletteBlue);
+            }
+            else if (isStackChanger)
+            {
+                EditorGUILayout.LabelField("스택 체인저 값 (설치 시 적용)", EditorStyles.boldLabel);
+                PresetStackChangerColorA = (LightColor)EditorGUILayout.EnumPopup("교환할 색 A", PresetStackChangerColorA);
+                PresetStackChangerColorB = (LightColor)EditorGUILayout.EnumPopup("교환할 색 B", PresetStackChangerColorB);
+            }
+            else if (isCanvas)
+            {
+                EditorGUILayout.LabelField("캔버스 값 (설치 시 적용)", EditorStyles.boldLabel);
+                PresetCanvasRed = EditorGUILayout.IntField("R", PresetCanvasRed);
+                PresetCanvasGreen = EditorGUILayout.IntField("G", PresetCanvasGreen);
+                PresetCanvasBlue = EditorGUILayout.IntField("B", PresetCanvasBlue);
+            }
 
             EditorGUILayout.HelpBox(
-                "Scene 뷰에서 클릭 = 설치, Shift+클릭 = 제거.\n" +
+                "Scene 뷰에서 클릭 = 설치, Ctrl+클릭 = 제거.\n" +
                 "블록의 면을 보고 클릭하면 그 면 쪽(위/아래/옆, -y 포함)에 놓입니다.\n" +
-                "Ctrl+드래그 = 직사각형 범위 설치, Shift+Ctrl+드래그 = 직사각형 범위 제거.\n" +
+                "Shift+드래그 = 직사각형 범위 설치, Shift+Ctrl+드래그 = 직사각형 범위 제거.\n" +
                 "위 프리팹 칸에 기물 프리팹을 지정하면 기본 블록 대신 그 프리팹이 설치됩니다.",
                 MessageType.None);
         }
@@ -158,7 +256,7 @@ public class MazeGeneratorEditor : Editor
         {
             var prev = Handles.zTest;
             Handles.zTest = CompareFunction.LessEqual;
-            Handles.color = e.shift ? new Color(1f, 0.25f, 0.25f, 1f) : new Color(0.3f, 1f, 0.4f, 1f);
+            Handles.color = e.control ? new Color(1f, 0.25f, 0.25f, 1f) : new Color(0.3f, 1f, 0.4f, 1f);
             Handles.DrawWireCube(center, Vector3.one * 1.001f);
             Handles.zTest = prev;
         }
@@ -169,11 +267,11 @@ public class MazeGeneratorEditor : Editor
 
         if (e.type == EventType.MouseDown && e.button == 0 && !e.alt)
         {
-            // Ctrl+클릭 시작 = 직사각형 드래그 배치/제거 시작
-            if (e.control && hasTarget)
+            // Shift+클릭 시작 = 직사각형 드래그 배치/제거 시작
+            if (e.shift && hasTarget)
             {
                 dragging = true;
-                dragRemove = e.shift;
+                dragRemove = e.control;
                 dragAxis = DominantAxis(normal);
 
                 // 고정축은 클릭한 면 쪽 이웃 칸이 아니라, 실제로 클릭한 블록 자신의 칸으로 맞춘다.
@@ -189,8 +287,8 @@ public class MazeGeneratorEditor : Editor
                 return;
             }
 
-            // 좌클릭 = 설치, Shift+좌클릭 = 제거
-            if (e.shift) RemoveAt(maze, e.mousePosition);
+            // 좌클릭 = 설치, Ctrl+좌클릭 = 제거
+            if (e.control) RemoveAt(maze, e.mousePosition);
             else if (hasTarget) PlaceAt(maze, center);
             e.Use();
         }
@@ -344,7 +442,7 @@ public class MazeGeneratorEditor : Editor
             go = (GameObject)PrefabUtility.InstantiatePrefab(prefabAsset, mapObjects);
             Undo.RegisterCreatedObjectUndo(go, "Place Prefab");
             go.transform.position = center;
-            ApplyFilterPreset(go);
+            ApplyPreset(go);
 
             if (prefabAsset.GetComponent<FilterBlockBase>() != null)
             {
@@ -365,9 +463,9 @@ public class MazeGeneratorEditor : Editor
         MarkDirty(maze);
     }
 
-    // 방금 설치한 오브젝트가 컬러 필터/RGB 필터면, 라디오 버튼 아래에서 미리 지정해둔 값을 채워 넣는다.
+    // 방금 설치한 오브젝트가 필터/상호작용 기물이면, 라디오 버튼 아래에서 미리 지정해둔 값을 채워 넣는다.
     // private [SerializeField] 필드라 SerializedObject로 값을 써야 한다.
-    void ApplyFilterPreset(GameObject go)
+    void ApplyPreset(GameObject go)
     {
         if (go.TryGetComponent<ColorFilterBlock>(out var colorFilter))
         {
@@ -381,6 +479,35 @@ public class MazeGeneratorEditor : Editor
         {
             var so = new SerializedObject(rgbFilter);
             so.FindProperty("targetColor").enumValueIndex = (int)PresetTargetColor;
+            so.ApplyModifiedProperties();
+        }
+        else if (go.TryGetComponent<Bucket>(out var bucket))
+        {
+            var so = new SerializedObject(bucket);
+            so.FindProperty("targetColor").enumValueIndex = (int)PresetBucketColor;
+            so.ApplyModifiedProperties();
+        }
+        else if (go.TryGetComponent<ColorPalette>(out var palette))
+        {
+            var so = new SerializedObject(palette);
+            so.FindProperty("red").intValue = PresetPaletteRed;
+            so.FindProperty("green").intValue = PresetPaletteGreen;
+            so.FindProperty("blue").intValue = PresetPaletteBlue;
+            so.ApplyModifiedProperties();
+        }
+        else if (go.TryGetComponent<StackChanger>(out var stackChanger))
+        {
+            var so = new SerializedObject(stackChanger);
+            so.FindProperty("colorA").enumValueIndex = (int)PresetStackChangerColorA;
+            so.FindProperty("colorB").enumValueIndex = (int)PresetStackChangerColorB;
+            so.ApplyModifiedProperties();
+        }
+        else if (go.TryGetComponent<ColorCanvas>(out var canvas))
+        {
+            var so = new SerializedObject(canvas);
+            so.FindProperty("targetRed").intValue = PresetCanvasRed;
+            so.FindProperty("targetGreen").intValue = PresetCanvasGreen;
+            so.FindProperty("targetBlue").intValue = PresetCanvasBlue;
             so.ApplyModifiedProperties();
         }
     }
@@ -432,14 +559,26 @@ public class MazeGeneratorEditor : Editor
 
     static bool IsContainerFolder(Transform t) => FilterClusterOrganizer.IsClusterFolder(t);
 
+    // Maze는 MazeGenerator의 자식이 아니라 같은 계층(형제)에 둔다(3-1 씬 구조와 동일).
     static Transform GetMazeRoot(MazeGenerator maze)
     {
-        var existing = maze.transform.Find("Maze");
-        if (existing != null) return existing;
+        Transform mazeParent = maze.transform.parent;
+
+        var existing = GameObject.Find("Maze");
+        if (existing != null && existing.transform.parent == mazeParent) return existing.transform;
+
+        // 예전 방식(MazeGenerator의 자식)으로 이미 만들어진 Maze가 있으면 새로 만들지 않고
+        // 같은 계층으로 옮겨서 재사용한다(안에 쌓인 블록을 그대로 유지).
+        var legacy = maze.transform.Find("Maze");
+        if (legacy != null)
+        {
+            Undo.SetTransformParent(legacy, mazeParent, "Move Maze to Sibling Level");
+            return legacy;
+        }
 
         var root = new GameObject("Maze");
         Undo.RegisterCreatedObjectUndo(root, "Create Maze Root");
-        root.transform.SetParent(maze.transform, false);
+        if (mazeParent != null) root.transform.SetParent(mazeParent, false);
         return root.transform;
     }
 

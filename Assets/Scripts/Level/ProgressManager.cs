@@ -14,6 +14,16 @@ public class ProgressManager : MonoSingleton<ProgressManager>
 
     StageTable stageTable;
 
+    /// <summary>히든 코드 등으로 활성화되는 전체 해금 오버라이드. 세이브 파일은 건드리지 않고
+    /// 이번 실행 동안만 모든 챕터/스테이지를 해금 상태로 취급한다(클리어 여부 표시는 그대로 유지).</summary>
+    bool unlockAllOverride;
+
+    public void UnlockAllStages()
+    {
+        unlockAllOverride = true;
+        Debug.Log("[ProgressManager] 히든 코드로 모든 스테이지를 해금했습니다.");
+    }
+
     protected override void OnAwake()
     {
         stageTable = Resources.Load<StageTable>("StageTable");
@@ -50,11 +60,12 @@ public class ProgressManager : MonoSingleton<ProgressManager>
         }
     }
 
-    public bool IsChapterUnlocked(int chapterIndex) => chapterIndex < SaveManager.Instance.Current.unlockedChapterCount;
+    public bool IsChapterUnlocked(int chapterIndex) => unlockAllOverride || chapterIndex < SaveManager.Instance.Current.unlockedChapterCount;
 
     /// <summary>챕터의 0번째 스테이지는 챕터만 해금돼 있으면 항상 열려있고, 그 외엔 바로 앞 스테이지를 클리어해야 열린다.</summary>
     public bool IsStageUnlocked(int chapterIndex, int stageIndex)
     {
+        if (unlockAllOverride) return true;
         if (!IsChapterUnlocked(chapterIndex)) return false;
         if (stageIndex <= 0) return true;
         if (stageTable?.chapters == null || chapterIndex >= stageTable.chapters.Length) return false;

@@ -550,106 +550,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2459033524855925004}
-    - targetCorrespondingSourceObject: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7268939924080764861}
-    - targetCorrespondingSourceObject: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 5552944763058019718}
-    - targetCorrespondingSourceObject: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 605630494617822318}
-    - targetCorrespondingSourceObject: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7561476255671164523}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
 --- !u!1 &1594542152151778690 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4969415607711829684, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}
   m_PrefabInstance: {fileID: 5968987532251548470}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &2459033524855925004
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1594542152151778690}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 41f8a2ef3690dae4a9c13567cd3fed84, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
---- !u!114 &7268939924080764861
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1594542152151778690}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3072f541ba7dc2940a84b754704fc598, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JumpAnimatorTrigger
-  animator: {fileID: 2459033524855925004}
-  parameterName: Jump
---- !u!114 &5552944763058019718
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1594542152151778690}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aca3f2cd5fc997b4d877037c9bc6063a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MovingAnimatorBoolBridge
-  animator: {fileID: 2459033524855925004}
-  parameterName: Moving
---- !u!114 &605630494617822318
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1594542152151778690}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 047ee5827fb0c154aa4a69d1301ddd30, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LandAnimatorTrigger
-  animator: {fileID: 2459033524855925004}
-  parameterName: Land
---- !u!114 &7561476255671164523
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1594542152151778690}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 78f9da0a7f4f4f64d8c18f9a04c02fa1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InteractAnimatorTrigger
-  animator: {fileID: 2459033524855925004}
-  parameterName: Interact
 --- !u!4 &6028010829564244376 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 104094478783265454, guid: 8afa422fbbf285849ba60e9d1065a7bb, type: 3}

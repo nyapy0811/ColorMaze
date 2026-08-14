@@ -49,4 +49,11 @@ public class InputManager : MonoSingleton<InputManager>
         var mouse = Mouse.current;
         return mouse != null && mouse.leftButton.wasPressedThisFrame;
     }
+
+    /// <summary>이번 프레임에 숫자 0 키(메인 자판/숫자패드 공용)를 눌렀는지.</summary>
+    public bool ReadDigit0()
+    {
+        var kb = Keyboard.current;
+        return kb != null && (kb.digit0Key.wasPressedThisFrame || kb.numpad0Key.wasPressedThisFrame);
+    }
 }

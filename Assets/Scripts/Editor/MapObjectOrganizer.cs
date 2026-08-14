@@ -3,10 +3,9 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 
 /// <summary>
-/// [개발자 전용] 씬의 특수 블록(MapObjectBase 파생 — 필터/팔레트/체인저/버킷/캔버스 등)과
-/// 튜토리얼 텍스트(TutorialTextMarker로 식별되는 UI 프리팹)를
+/// [개발자 전용] 씬의 특수 블록(MapObjectBase 파생 — 필터/팔레트/체인저/버킷/캔버스 등)을
 /// MapObjects 폴더 아래로 모아 하이어라키에서 일반 미로 블록과 구분되게 정리한다.
-/// 필터가 아닌 기물/튜토리얼 텍스트는 폴더 없이 MapObjects 바로 밑에 두고, 필터만 메시를 공유하는(같은 색+인접) 것끼리
+/// 필터가 아닌 기물은 폴더 없이 MapObjects 바로 밑에 두고, 필터만 메시를 공유하는(같은 색+인접) 것끼리
 /// 종류별 클러스터 폴더(ColorFilterN / RGBFilterN)로 묶는다.
 /// 메뉴에서 수동으로 실행한다. 콜라이더·위치는 그대로 유지되고(월드 좌표 보존) 부모만 바뀐다.
 /// </summary>
@@ -18,9 +17,8 @@ public static class MapObjectOrganizer
     static void Organize()
     {
         var objects = Object.FindObjectsByType<MapObjectBase>(FindObjectsSortMode.None);
-        var tutorialTexts = Object.FindObjectsByType<TutorialTextMarker>(FindObjectsSortMode.None);
 
-        if (objects.Length == 0 && tutorialTexts.Length == 0)
+        if (objects.Length == 0)
         {
             Debug.Log("정리할 특수 블록이 없습니다.");
             return;
@@ -38,15 +36,6 @@ public static class MapObjectOrganizer
             if (obj.transform.parent != root)
             {
                 Undo.SetTransformParent(obj.transform, root, "특수 블록 정리");
-                moved++;
-            }
-        }
-
-        foreach (var marker in tutorialTexts)
-        {
-            if (marker.transform.parent != root)
-            {
-                Undo.SetTransformParent(marker.transform, root, "특수 블록 정리");
                 moved++;
             }
         }

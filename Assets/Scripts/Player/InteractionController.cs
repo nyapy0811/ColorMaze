@@ -7,9 +7,6 @@ public struct InteractableTargetChanged : IEvent
     public bool HasTarget;
 }
 
-/// <summary>클릭 상호작용(TryInteract)이 호출될 때마다 발행. 뷰모델 모션 등에 사용.</summary>
-public struct MapObjectInteracted : IEvent { }
-
 /// <summary>
 /// 조준+좌클릭으로 기물과 상호작용한다(걸어서 닿는 것과 별개의 추가 수단).
 /// 매 프레임 카메라 정면으로 짧은 레이캐스트를 쏴서, 가장 가까운 대상이 IInteractable이면
@@ -41,7 +38,6 @@ public class InteractionController : MonoBehaviour
         if (currentTarget != null && InputManager.Instance.ReadInteract())
         {
             (currentTarget as IInteractable)?.TryInteract();
-            EventBus.Publish(new MapObjectInteracted());
         }
     }
 

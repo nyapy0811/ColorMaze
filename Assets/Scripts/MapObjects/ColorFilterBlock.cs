@@ -21,5 +21,9 @@ public class ColorFilterBlock : FilterBlockBase
     // ToRGB가 채널별 절대값 변환이라 색 비교가 곧 정숫값 비교와 같으므로, 공백 구분 형식을 쓴다.
     protected override string GetLabelText() => StackLabelFormat.ByValue(red, green, blue);
 
+    // 컬러 필터 라벨은 면 위가 아니라 카메라와 가장 가까운 큐브의 정중앙에 놓고, 항상 플레이어를 바라보게 한다.
+    protected override CellGroupLabel CreateGroupLabel(Transform parent, string name, Vector3Int[] cells, string text, GameObject prefab)
+        => CellGroupLabel.Create<CenterFacingLabel>(parent, name, cells, text, prefab);
+
     static bool ColorEquals(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b;
 }

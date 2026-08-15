@@ -441,7 +441,8 @@ public class MazeGeneratorEditor : Editor
 
             go = (GameObject)PrefabUtility.InstantiatePrefab(prefabAsset, mapObjects);
             Undo.RegisterCreatedObjectUndo(go, "Place Prefab");
-            go.transform.position = center;
+            // 버킷은 다른 기물보다 0.5 낮게 설치한다(다른 기물이 y 0.5에 놓이는 자리면 버킷은 y 0).
+            go.transform.position = prefabAsset == maze.bucketPrefab ? center + new Vector3(0f, -0.5f, 0f) : center;
             ApplyPreset(go);
 
             if (prefabAsset.GetComponent<FilterBlockBase>() != null)

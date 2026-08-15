@@ -20,6 +20,12 @@ public class FirstPersonController : MonoBehaviour
     [Tooltip("위/아래 시점 제한(도)")]
     public float pitchLimit = 85f;
 
+    [Tooltip("정지 상태에서 최대 이동 속도까지 도달하는 데 걸리는 시간(초, 지면 전용)")]
+    public float accelerationTime = 0.1f;
+
+    [Tooltip("공중에서 이동키를 뗐을 때 최대 속도에서 0까지 감속되는 데 걸리는 시간(초)")]
+    public float airDecelerationTime = 0.1f;
+
     [Tooltip("점프 높이(유닛)")]
     public float jumpHeight = 1.2f;
 
@@ -34,7 +40,8 @@ public class FirstPersonController : MonoBehaviour
     float verticalVelocity;
     float gravity;     // 양수 크기 (jumpHeight/airTime에서 역산)
     float jumpSpeed;   // 점프 초기 속도
-    Vector3 horizontalVelocity; // 공중에서는 이동키로 바꿀 수 없다 — 땅을 떠난 순간의 값이 그대로 유지된다.
+    Vector3 horizontalVelocity; // 수평 이동 속도. 공중에서는 땅을 떠난 순간 값(방향+속도)이 착지할 때까지 그대로 고정된다
+                                 // (그렇지 않으면 공중에서 이동키로 방향을 바꿔 1칸짜리 벽을 옆으로 우회해 넘어갈 수 있다).
 
     void Awake()
     {
@@ -89,14 +96,24 @@ public class FirstPersonController : MonoBehaviour
     void Move()
     {
         bool grounded = cc.isGrounded;
+        Vector2 input = InputManager.Instance.ReadMove();
 
-        // 지면에 있을 때만 이동 입력을 반영한다. 공중에서는 이동키를 눌러도 방향이 바뀌지 않는다.
         if (grounded)
         {
-            Vector2 input = InputManager.Instance.ReadMove();
+            // 지면: 입력 방향으로 목표 속도를 정하고, accelerationTime으로 역산한 가속도만큼씩 서서히 다가간다(관성).
+            float accel = moveSpeed / Mathf.Max(accelerationTime, 0.0001f);
             Vector3 move = transform.forward * input.y + transform.right * input.x;
             if (move.sqrMagnitude > 1f) move.Normalize();
-            horizontalVelocity = move * moveSpeed;
+            Vector3 targetVelocity = move * moveSpeed;
+            horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, targetVelocity, accel * Time.deltaTime);
+        }
+        else if (input.sqrMagnitude == 0f)
+        {
+            // 공중: 방향은 못 바꾼다. 땅에서 누르고 있던 이동키를 계속 누르고 있으면 속도를 유지하고,
+            // 키를 떼면 airDecelerationTime으로 역산한 비율로 감속한다.
+            float decel = moveSpeed / Mathf.Max(airDecelerationTime, 0.0001f);
+            float speed = Mathf.MoveTowards(horizontalVelocity.magnitude, 0f, decel * Time.deltaTime);
+            horizontalVelocity = horizontalVelocity.normalized * speed;
         }
 
         if (grounded && verticalVelocity < 0f) verticalVelocity = -2f;

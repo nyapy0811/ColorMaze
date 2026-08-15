@@ -1344,7 +1344,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1361698474775932510, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_text
-      value: <color=#FF0000>14</color> <color=#00FF00>01</color> <color=#0000FF>03</color>
+      value: <color=#FF0000>14</color> <color=#00FF00>01</color> <color=#0000FF>02</color>
       objectReference: {fileID: 0}
     - target: {fileID: 5189202601508781566, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1392,7 +1392,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767441416768567066, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: targetBlue
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7767441416768567066, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
       propertyPath: targetGreen

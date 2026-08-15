@@ -61,6 +61,7 @@ public class ColorCanvas : ClearObjectBase
 
     protected override void OnCompleted()
     {
+        Player.ResetAll();
         // TODO: 완료 연출(발광 등)은 아트 연동 시 추가. 지금은 확인용 로그만 남긴다.
         Debug.Log($"[ColorCanvas] {name} 완료");
     }

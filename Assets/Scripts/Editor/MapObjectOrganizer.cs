@@ -1,6 +1,8 @@
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// [개발자 전용] 씬의 특수 블록(MapObjectBase 파생 — 필터/팔레트/체인저/버킷/캔버스 등)을
@@ -16,16 +18,59 @@ public static class MapObjectOrganizer
     [MenuItem("ColorMaze/특수 블록 하이어라키 정리")]
     static void Organize()
     {
-        var objects = Object.FindObjectsByType<MapObjectBase>(FindObjectsSortMode.None);
+        int moved = OrganizeScene(SceneManager.GetActiveScene());
+        Debug.Log($"특수 블록 {moved}개를 정리했습니다.");
+    }
 
-        if (objects.Length == 0)
-        {
-            Debug.Log("정리할 특수 블록이 없습니다.");
+    [MenuItem("ColorMaze/특수 블록 하이어라키 정리 (전체 스테이지 일괄)")]
+    static void OrganizeAllStages()
+    {
+        if (!EditorUtility.DisplayDialog("전체 스테이지 하이어라키 정리",
+                "Assets/Scenes 아래 모든 씬을 열어서 특수 블록 하이어라키를 정리합니다.\n" +
+                "되돌리기 어려우니 먼저 Git 등으로 백업해두는 걸 권장합니다.\n계속할까요?",
+                "계속", "취소"))
             return;
+
+        string[] guids = AssetDatabase.FindAssets("t:Scene", new[] { "Assets/Scenes" });
+        var paths = guids.Select(AssetDatabase.GUIDToAssetPath).ToList();
+
+        int scenesTouched = 0;
+        int totalMoved = 0;
+
+        foreach (var path in paths)
+        {
+            var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+            int moved = OrganizeScene(scene);
+            if (moved > 0)
+            {
+                scenesTouched++;
+                totalMoved += moved;
+                EditorSceneManager.SaveScene(scene);
+            }
+            Debug.Log($"[MapObjectOrganizer] {path} — {moved}개 정리.");
         }
 
-        var rootGo = GameObject.Find(RootName);
-        if (rootGo == null) rootGo = new GameObject(RootName);
+        EditorUtility.DisplayDialog("전체 스테이지 하이어라키 정리",
+            $"완료됐습니다.\n전체 {paths.Count}개 씬 중 {scenesTouched}개 씬에서 특수 블록 {totalMoved}개를 정리했습니다.",
+            "확인");
+    }
+
+    // 현재 로드된 씬 하나를 정리하고, 이동시킨 특수 블록 개수를 반환한다.
+    static int OrganizeScene(Scene scene)
+    {
+        var objects = Object.FindObjectsByType<MapObjectBase>(FindObjectsSortMode.None)
+            .Where(o => o.gameObject.scene == scene)
+            .ToArray();
+
+        if (objects.Length == 0)
+            return 0;
+
+        var rootGo = FindInScene(scene, RootName);
+        if (rootGo == null)
+        {
+            rootGo = new GameObject(RootName);
+            SceneManager.MoveGameObjectToScene(rootGo, scene);
+        }
         var root = rootGo.transform;
 
         int moved = 0;
@@ -50,7 +95,15 @@ public static class MapObjectOrganizer
                 Undo.DestroyObjectImmediate(child.gameObject);
         }
 
-        EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
-        Debug.Log($"특수 블록 {moved}개를 정리했습니다.");
+        EditorSceneManager.MarkSceneDirty(scene);
+        return moved;
+    }
+
+    static GameObject FindInScene(Scene scene, string name)
+    {
+        foreach (var root in scene.GetRootGameObjects())
+            if (root.name == name)
+                return root;
+        return null;
     }
 }

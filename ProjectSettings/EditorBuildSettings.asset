@@ -63,6 +63,15 @@ EditorBuildSettings:
     path: Assets/Scenes/Chapter2/2-7.unity
     guid: 491299c415723634dbe26a921258ac7d
   - enabled: 1
+    path: Assets/Scenes/Chapter2/2-8.unity
+    guid: f93517cf917581b4f8d25a2eb635ad0b
+  - enabled: 1
+    path: Assets/Scenes/Chapter2/2-9.unity
+    guid: 2091e2d243c4e424eb1e06a6ee99b516
+  - enabled: 1
+    path: Assets/Scenes/Chapter2/2-10.unity
+    guid: 2a7546be85e2a9c489235d376d87bb97
+  - enabled: 1
     path: Assets/Scenes/Chapter3/3-1.unity
     guid: f4543406c8cd02f4a883df0b132d9288
   - enabled: 1
@@ -70,7 +79,13 @@ EditorBuildSettings:
     guid: 194c9273b6ef0d84995479ae46984c8c
   - enabled: 1
     path: Assets/Scenes/Chapter3/3-3.unity
-    guid: 9e67b982389dafb49afb52e16007fc14
+    guid: e5797c1a3b9ae1046ad216a90d7d4ba7
+  - enabled: 1
+    path: Assets/Scenes/Chapter3/3-4.unity
+    guid: c10e74e1a1243ef43afb9e3c712c3745
+  - enabled: 1
+    path: Assets/Scenes/Chapter3/3-5.unity
+    guid: e702bbdfede1440418b66200190ac530
   - enabled: 1
     path: Assets/Scenes/BaseMap.unity
     guid: 7eb26e6fc1f34f54889c62f97e05f967

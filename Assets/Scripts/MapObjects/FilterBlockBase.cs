@@ -33,6 +33,7 @@ public abstract class FilterBlockBase : MapObjectBase
     public GameObject labelPrefab;
 
     bool passing;
+    Vector3Int enterFace; // 들어갈 때 어느 면으로 들어왔는지(콜라이더 중심 기준 가장 튀어나온 축)
     MeshRenderer fillRenderer; // 이 블록이 속한 그룹의 채움(fill) 메시 렌더러(테두리 제외, 그룹 전체가 공유)
     float builtFillAlpha; // 통과 불가능할 때 되돌아갈 원래 채움 투명도
 
@@ -123,14 +124,30 @@ public abstract class FilterBlockBase : MapObjectBase
 
     void OnTriggerEnter(Collider other)
     {
-        if (IsPlayer(other)) passing = true;
+        if (!IsPlayer(other)) return;
+        passing = true;
+        enterFace = GetFaceDir(other);
     }
 
     void OnTriggerExit(Collider other)
     {
         if (!passing || !IsPlayer(other)) return;
         passing = false;
-        Player.ResetAll(); // 통과 완료 → 스택 초기화
+        // 들어갔던 면과 다른 면으로 나올 때만(=실제로 통과했을 때만) 스택을 초기화한다.
+        // 같은 면으로 도로 나오면(들어가려다 되돌아 나온 경우) 효과를 적용하지 않는다.
+        if (GetFaceDir(other) != enterFace)
+            Player.ResetAll();
+    }
+
+    // 플레이어 콜라이더 중심이 이 블록 콜라이더 중심에서 어느 축 방향으로 가장 벗어나 있는지로 면을 판정한다.
+    Vector3Int GetFaceDir(Collider other)
+    {
+        Vector3 offset = other.bounds.center - Col.bounds.center;
+        float ax = Mathf.Abs(offset.x), ay = Mathf.Abs(offset.y), az = Mathf.Abs(offset.z);
+
+        if (ax >= ay && ax >= az) return new Vector3Int(offset.x >= 0 ? 1 : -1, 0, 0);
+        if (ay >= ax && ay >= az) return new Vector3Int(0, offset.y >= 0 ? 1 : -1, 0);
+        return new Vector3Int(0, 0, offset.z >= 0 ? 1 : -1);
     }
 
     // 인스펙터에서 값을 바꾸면(에디터 미리보기) 씬 전체를 다시 병합한다.

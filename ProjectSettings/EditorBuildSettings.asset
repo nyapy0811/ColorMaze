@@ -13,79 +13,55 @@ EditorBuildSettings:
     guid: 8171f5176dac72d429dc0ba7a2d0988e
   - enabled: 1
     path: Assets/Scenes/Chapter1/1-1.unity
-    guid: 984e46ce2860153409095f5d93afbb58
-  - enabled: 1
-    path: Assets/Scenes/Chapter1/1-2.unity
     guid: d41c2c16b15366942ad9e974c1e75695
   - enabled: 1
-    path: Assets/Scenes/Chapter1/1-3.unity
+    path: Assets/Scenes/Chapter1/1-2.unity
     guid: 4cca7da47c9330a4d8b896c2e3e449e8
   - enabled: 1
-    path: Assets/Scenes/Chapter1/1-4.unity
-    guid: 98864f30bcef3204eade7a8fa96cf706
+    path: Assets/Scenes/Chapter1/1-3.unity
+    guid: 710ba8f6cef66fe45b27c3318399ce39
   - enabled: 1
-    path: Assets/Scenes/Chapter1/1-5.unity
+    path: Assets/Scenes/Chapter1/1-4.unity
     guid: 120af8e37681d354e95abc4b5733211c
   - enabled: 1
-    path: Assets/Scenes/Chapter1/1-6.unity
+    path: Assets/Scenes/Chapter1/1-5.unity
     guid: a60f5d69937e60641ad1e7135f8d22d7
+  - enabled: 1
+    path: Assets/Scenes/Chapter1/1-6.unity
+    guid: 4f6f579bcf5efa043a0b61a676c660f3
   - enabled: 1
     path: Assets/Scenes/Chapter1/1-7.unity
     guid: c5742daed9190c7429f68852e6be5842
   - enabled: 1
     path: Assets/Scenes/Chapter1/1-8.unity
-    guid: 23bc03a976aac6040a80decfbc89ad62
+    guid: 52652ed3d974e7544b5c322020afbc47
   - enabled: 1
     path: Assets/Scenes/Chapter1/1-9.unity
     guid: 16b0e54105ff11c45bc2210b7ecc75da
   - enabled: 1
     path: Assets/Scenes/Chapter1/1-10.unity
-    guid: 9ec8af0d176ea1545b26476402a2b9ea
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-1.unity
-    guid: 710ba8f6cef66fe45b27c3318399ce39
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-2.unity
-    guid: 60bf5f8de424b164495b340f49f9c4d0
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-3.unity
-    guid: 4f6f579bcf5efa043a0b61a676c660f3
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-4.unity
-    guid: c5e299f3be21f28418c30c6e48aa3626
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-5.unity
-    guid: f81d3b986c9971f4385a36ef736a61e3
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-6.unity
-    guid: 52652ed3d974e7544b5c322020afbc47
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-7.unity
-    guid: 491299c415723634dbe26a921258ac7d
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-8.unity
-    guid: f93517cf917581b4f8d25a2eb635ad0b
-  - enabled: 1
-    path: Assets/Scenes/Chapter2/2-9.unity
     guid: 2091e2d243c4e424eb1e06a6ee99b516
   - enabled: 1
-    path: Assets/Scenes/Chapter2/2-10.unity
-    guid: 2a7546be85e2a9c489235d376d87bb97
-  - enabled: 1
-    path: Assets/Scenes/Chapter3/3-1.unity
+    path: Assets/Scenes/Chapter2/2-1.unity
     guid: f4543406c8cd02f4a883df0b132d9288
   - enabled: 1
-    path: Assets/Scenes/Chapter3/3-2.unity
+    path: Assets/Scenes/Chapter2/2-2.unity
     guid: 194c9273b6ef0d84995479ae46984c8c
   - enabled: 1
-    path: Assets/Scenes/Chapter3/3-3.unity
+    path: Assets/Scenes/Chapter2/2-3.unity
     guid: e5797c1a3b9ae1046ad216a90d7d4ba7
   - enabled: 1
-    path: Assets/Scenes/Chapter3/3-4.unity
+    path: Assets/Scenes/Chapter2/2-4.unity
     guid: c10e74e1a1243ef43afb9e3c712c3745
   - enabled: 1
-    path: Assets/Scenes/Chapter3/3-5.unity
+    path: Assets/Scenes/Chapter2/2-5.unity
+    guid: 7ad7e67eda527df49969ebf8227a4fe4
+  - enabled: 1
+    path: Assets/Scenes/Chapter2/2-6.unity
     guid: e702bbdfede1440418b66200190ac530
+  - enabled: 1
+    path: Assets/Scenes/Chapter2/2-7.unity
+    guid: 9b411e7a183f9f54886919c4d1955823
   - enabled: 1
     path: Assets/Scenes/BaseMap.unity
     guid: 7eb26e6fc1f34f54889c62f97e05f967

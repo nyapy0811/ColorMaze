@@ -9,7 +9,7 @@ using UnityEngine;
 /// [개발자 전용] Build Settings의 씬 리스트를 정리한다.
 ///   1) Assets/Scenes 아래 있는데 리스트에 없는 씬을 전부 추가한다(활성화 상태로).
 ///   2) 리스트 전체를 아래 순서로 다시 정렬한다: MainMenu → UIScene → 챕터 스테이지
-///      (Chapter1/1-1 ~ Chapter3/3-1처럼 "N-M" 이름을 챕터·스테이지 번호 기준 자연수 정렬) → 그 외(테스트용 등, 이름순).
+///      (Chapter1/1-1 ~ Chapter2/2-1처럼 "N-M" 이름을 챕터·스테이지 번호 기준 자연수 정렬) → 그 외(테스트용 등, 이름순).
 /// 기존에 등록돼 있던 씬의 enabled(빌드 포함 여부) 값은 그대로 유지한다.
 /// </summary>
 public static class BuildSceneListOrganizer

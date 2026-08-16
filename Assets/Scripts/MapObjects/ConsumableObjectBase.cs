@@ -24,7 +24,11 @@ public abstract class ConsumableObjectBase : MapObjectBase, IInteractable
     {
         if (Consumed) return;
         Apply();
-        if (ShouldConsume()) Consume();
+        if (ShouldConsume())
+        {
+            GameAudio.Instance.PlayInteract();
+            Consume();
+        }
     }
 
     /// <summary>Apply() 이후 실제로 사라져야 하는지. 기본은 항상 사라짐(true).</summary>

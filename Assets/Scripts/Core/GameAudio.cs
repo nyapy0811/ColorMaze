@@ -27,6 +27,7 @@ public class GameAudio : MonoSingleton<GameAudio>
     [SerializeField] AudioClip buttonClick;
     [SerializeField] AudioClip clear;
     [SerializeField] AudioClip nope;
+    [SerializeField] AudioClip interact;
 
     [Header("믹서 (음량 조절용)")]
     [SerializeField] AudioMixer audioMixer;
@@ -53,6 +54,7 @@ public class GameAudio : MonoSingleton<GameAudio>
     public void PlayButtonClick() => AudioManager.Instance.PlaySFX(buttonClick);
     public void PlayClear() => AudioManager.Instance.PlaySFX(clear);
     public void PlayNope() => AudioManager.Instance.PlaySFX(nope);
+    public void PlayInteract() => AudioManager.Instance.PlaySFX(interact);
 
     /// <summary>AudioManager가 자기 오브젝트에 만든 AudioSource들을 믹서 그룹으로 연결한다.
     /// AudioManager.OnAwake()에서 BGM 소스를 먼저 추가하고 그 다음 SFX 풀을 추가하므로,

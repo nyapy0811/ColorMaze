@@ -32,8 +32,12 @@ public abstract class FilterBlockBase : MapObjectBase
     [Tooltip("그룹 라벨을 만들 때 쓸 프리팹(TextMeshPro 포함). 비워두면 기본 스타일로 코드에서 자동 생성한다.")]
     public GameObject labelPrefab;
 
-    bool passing;
-    Vector3Int enterFace; // 들어갈 때 어느 면으로 들어왔는지(콜라이더 중심 기준 가장 튀어나온 축)
+    // 필터가 2칸 이상 연달아 있으면 한 칸을 통과하는 순간(그 칸만 보면 다른 면으로 나온 것) 스택이
+    // 초기화돼 다음 칸이 막혀버리는 문제가 있었다. 그래서 "플레이어가 필터 안에 있는지"를 개별 블록이 아니라
+    // 전체가 공유하는 카운터로 추적해, 마지막 칸까지 완전히 빠져나올 때만(카운터가 0으로 돌아올 때만) 판정한다.
+    static int playerFilterDepth;
+    static Vector3Int playerEntryFace;
+
     MeshRenderer fillRenderer; // 이 블록이 속한 그룹의 채움(fill) 메시 렌더러(테두리 제외, 그룹 전체가 공유)
     float builtFillAlpha; // 통과 불가능할 때 되돌아갈 원래 채움 투명도
 
@@ -91,7 +95,12 @@ public abstract class FilterBlockBase : MapObjectBase
 
     // 스테이지(씬)가 로드 완료됐을 때도 한 번 판정한다 — Start() 시점엔 플레이어 스택이
     // 아직 이번 스테이지용으로 정리되지 않았을 수 있어서다.
-    void OnStageStart(SceneLoadCompleted e) => Refresh();
+    // 필터 통과 카운터도 새 스테이지 기준으로 초기화한다(이전 씬에서 필터 안에 있다 로드된 경우 대비).
+    void OnStageStart(SceneLoadCompleted e)
+    {
+        playerFilterDepth = 0;
+        Refresh();
+    }
 
     // 통과 가능 여부를 다시 판정해 콜라이더와 채움 메시 투명도를 갱신한다.
     void Refresh()
@@ -125,17 +134,21 @@ public abstract class FilterBlockBase : MapObjectBase
     void OnTriggerEnter(Collider other)
     {
         if (!IsPlayer(other)) return;
-        passing = true;
-        enterFace = GetFaceDir(other);
+        if (playerFilterDepth == 0)
+            playerEntryFace = GetFaceDir(other);
+        playerFilterDepth++;
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (!passing || !IsPlayer(other)) return;
-        passing = false;
-        // 들어갔던 면과 다른 면으로 나올 때만(=실제로 통과했을 때만) 스택을 초기화한다.
+        if (!IsPlayer(other)) return;
+        Vector3Int exitFace = GetFaceDir(other);
+        playerFilterDepth = Mathf.Max(0, playerFilterDepth - 1);
+        if (playerFilterDepth != 0) return; // 아직 다른 필터 칸 안에 있으면(연달아 붙은 필터) 최종 판정을 미룬다.
+
+        // 처음 들어갔던 면과 다른 면으로 완전히 나올 때만(=실제로 통과했을 때만) 스택을 초기화한다.
         // 같은 면으로 도로 나오면(들어가려다 되돌아 나온 경우) 효과를 적용하지 않는다.
-        if (GetFaceDir(other) != enterFace)
+        if (exitFace != playerEntryFace)
             Player.ResetAll();
     }
 

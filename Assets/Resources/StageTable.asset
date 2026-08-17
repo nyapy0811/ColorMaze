@@ -24,6 +24,17 @@ MonoBehaviour:
     - 1-8
     - 1-9
     - 1-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
   - sceneNames:
     - 2-1
     - 2-2
@@ -35,6 +46,17 @@ MonoBehaviour:
     - 2-8
     - 2-9
     - 2-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
   - sceneNames:
     - 3-1
     - 3-2
@@ -46,6 +68,17 @@ MonoBehaviour:
     - 3-8
     - 3-9
     - 3-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
   - sceneNames:
     - 4-1
     - 4-2
@@ -57,6 +90,17 @@ MonoBehaviour:
     - 4-8
     - 4-9
     - 4-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
   - sceneNames:
     - 5-1
     - 5-2
@@ -68,6 +112,17 @@ MonoBehaviour:
     - 5-8
     - 5-9
     - 5-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
   - sceneNames:
     - 6-1
     - 6-2
@@ -79,3 +134,36 @@ MonoBehaviour:
     - 6-8
     - 6-9
     - 6-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+  - sceneNames:
+    - 7-1
+    - 7-2
+    - 7-3
+    - 7-4
+    - 7-5
+    - 7-6
+    - 7-7
+    - 7-8
+    - 7-9
+    - 7-10
+    thumbnails:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}

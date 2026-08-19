@@ -91,7 +91,46 @@ EditorBuildSettings:
     guid: 4bd7d380c4feda1489c15bd8207cc548
   - enabled: 1
     path: Assets/Scenes/Chapter3/3-7.unity
+    guid: d3636eb9dbdfd6842bd29a0999503274
+  - enabled: 1
+    path: Assets/Scenes/Chapter3/3-8.unity
     guid: c18dfd70a382ece45a47c5d8eebaa160
+  - enabled: 1
+    path: Assets/Scenes/Chapter3/3-9.unity
+    guid: f7aeac0729cc47648a54c14cf0790d3c
+  - enabled: 1
+    path: Assets/Scenes/Chapter3/3-10.unity
+    guid: 9ae4f9ec4465c6648b5473be0c9c6079
+  - enabled: 1
+    path: Assets/Scenes/Chapter4/4-1.unity
+    guid: ce3b0552c027b714eabd0f4a4495aa14
+  - enabled: 1
+    path: Assets/Scenes/Chapter4/4-2.unity
+    guid: f692731108454974db88984d9f4d97fc
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-10(\uBBF8\uC644).unity"
+    guid: efe1788767c89ba42a428398243a54a3
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-3(\uBBF8\uC644).unity"
+    guid: 97202b6b0f7ef874fa31e051de44d239
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-4(\uBBF8\uC644).unity"
+    guid: c4f1508ff6f843245b2c88504e8b2f55
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-5(\uBBF8\uC644).unity"
+    guid: 3e120cd60ecb589458fa05092f1d493a
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-6(\uBBF8\uC644).unity"
+    guid: 7d382d4e7c109ab44af4acf9294d88a0
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-7(\uBBF8\uC644).unity"
+    guid: 3261d05e820996c4dbe3e552a8a84457
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-8(\uBBF8\uC644).unity"
+    guid: ea8bb60cd8a63734d981349a63d87d44
+  - enabled: 1
+    path: "Assets/Scenes/Chapter4/4-9(\uBBF8\uC644).unity"
+    guid: 1963b78ed7272124cba4e6c4a9792e31
   - enabled: 1
     path: Assets/Scenes/BaseMap.unity
     guid: 7eb26e6fc1f34f54889c62f97e05f967

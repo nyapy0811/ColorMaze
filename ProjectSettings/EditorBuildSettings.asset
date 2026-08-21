@@ -126,10 +126,10 @@ EditorBuildSettings:
     path: Assets/Scenes/Chapter4/4-8.unity
     guid: ea8bb60cd8a63734d981349a63d87d44
   - enabled: 1
-    path: "Assets/Scenes/Chapter4/4-10(\uBBF8\uC644).unity"
+    path: Assets/Scenes/Chapter4/4-10.unity
     guid: efe1788767c89ba42a428398243a54a3
   - enabled: 1
-    path: "Assets/Scenes/Chapter4/4-9(\uBBF8\uC644).unity"
+    path: Assets/Scenes/Chapter4/4-9.unity
     guid: 1963b78ed7272124cba4e6c4a9792e31
   - enabled: 1
     path: Assets/Scenes/BaseMap.unity

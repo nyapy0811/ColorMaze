@@ -17,4 +17,11 @@ public class MazeGenerator : MonoBehaviour
     public GameObject palettePrefab;
     public GameObject colorChangerPrefab;
     public GameObject stackChangerPrefab;
+
+    [Header("기물 순서 참고용 (인게임 기능과 무관 — 설계 확인용 목록)")]
+    [Tooltip("정답 순서대로 기물을 끌어다 놓는 목록 1 (캔버스가 여러 개인 스테이지의 첫 번째 서브 퍼즐 등)")]
+    public System.Collections.Generic.List<MapObjectBase> correctOrder1 = new();
+    [Tooltip("정답 순서대로 기물을 끌어다 놓는 목록 2 (두 번째 서브 퍼즐 등, 없으면 비워둠)")]
+    public System.Collections.Generic.List<MapObjectBase> correctOrder2 = new();
+    // 두 목록 중 어디에도 없는 기물은 전부 더미/함정으로 취급한다(별도 목록 불필요).
 }

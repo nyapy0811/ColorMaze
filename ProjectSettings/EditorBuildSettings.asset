@@ -126,11 +126,35 @@ EditorBuildSettings:
     path: Assets/Scenes/Chapter4/4-8.unity
     guid: ea8bb60cd8a63734d981349a63d87d44
   - enabled: 1
+    path: Assets/Scenes/Chapter4/4-9.unity
+    guid: 1963b78ed7272124cba4e6c4a9792e31
+  - enabled: 1
     path: Assets/Scenes/Chapter4/4-10.unity
     guid: efe1788767c89ba42a428398243a54a3
   - enabled: 1
-    path: Assets/Scenes/Chapter4/4-9.unity
-    guid: 1963b78ed7272124cba4e6c4a9792e31
+    path: Assets/Scenes/Chapter5/5-1.unity
+    guid: 651566f6cc697984a9c746aa1faf01a3
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-2.unity
+    guid: d25a0f00678a35d4bb9bf60cb062e6fc
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-3.unity
+    guid: 452b39ee23e2e5c4b9fa2dbf92f865df
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-4.unity
+    guid: cc0a5e9071b69e94f8f03b42cf9fc8ca
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-5.unity
+    guid: 324cff72fa5aa284390335bdf6124325
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-6.unity
+    guid: b6dcec688d12c0c45aece7f66db68546
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-7.unity
+    guid: c3d407d873e9d02479b278f8d4934e4c
+  - enabled: 1
+    path: Assets/Scenes/Chapter5/5-8.unity
+    guid: 6efa79d6733922f4c8f5df2300a4a2a6
   - enabled: 1
     path: Assets/Scenes/BaseMap.unity
     guid: 7eb26e6fc1f34f54889c62f97e05f967

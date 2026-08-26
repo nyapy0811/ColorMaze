@@ -64,6 +64,7 @@ ColorMaze 스테이지를 설계/수정할 때 지켜야 하는 규칙 모음. �
 - 캔버스가 2개(서브 퍼즐 2개)인 스테이지는 `correctOrder1`/`correctOrder2`에 각각의 정답 순서를 넣는다. 캔버스가 1개면 `correctOrder1`만 채운다.
 - 두 리스트 중 어디에도 없는 기물은 전부 더미/함정으로 간주한다(별도 더미 리스트 없음).
 - 씬 YAML에서는 `MazeGenerator` PrefabInstance의 `m_Modifications`에 `correctOrder1.Array.size`/`correctOrder1.Array.data[N]` 형태로 저장되고, 각 `data[N]`의 `objectReference: {fileID: X}`는 대상 컴포넌트의 **stripped 참조**(`--- !u!114 &X stripped`)를 가리킨다. 그 stripped 블록의 `m_PrefabInstance: {fileID: Y}`가 실제 기물의 PrefabInstance fileID다. 이 경로로 리스트 안 기물들의 진짜 fileID를 역추적한다.
+- **리스트에 포함된 필터 vs 포함되지 않은 필터**: 정답 경로가 어떤 필터를 리스트(`correctOrder1`/`2`)에 넣었다면, 그 필터는 정답 경로 상에서 실제로 통과(=초기화)된다는 뜻이다. 반대로 필터가 리스트에 없다면, 정답 경로는 그 필터를 통과(초기화)하지 않는다는 뜻 — 즉 그 필터를 아예 지나지 않거나(우회 경로 이용), 지나더라도 진짜 통과(들어간 면과 다른 면으로 완전히 빠져나오는 것)가 아니어야 한다. 값 설계 시 이 전제를 지켜야 한다: 리스트에 없는 필터를 정답 경로가 매칭시켜 실제로 통과하게 만들면 안 된다(그 시점까지 쌓은 스택이 리셋되어 뒤 계산이 다 틀어진다).
 
 ## 6. 이동 경로 검증 (지형 연결성)
 

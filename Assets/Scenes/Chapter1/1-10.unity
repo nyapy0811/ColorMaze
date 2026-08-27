@@ -955,7 +955,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2254589863684002556, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
       propertyPath: m_Name
-      value: Pallete (1)
+      value: Pallete
       objectReference: {fileID: 0}
     - target: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
       propertyPath: red
@@ -1305,7 +1305,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2254589863684002556, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
       propertyPath: m_Name
-      value: Pallete (2)
+      value: Pallete
       objectReference: {fileID: 0}
     - target: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
       propertyPath: red
@@ -1940,6 +1940,42 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder1.Array.data[0]'
+      value: 
+      objectReference: {fileID: 151026458}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder1.Array.data[1]'
+      value: 
+      objectReference: {fileID: 229630268}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder1.Array.data[2]'
+      value: 
+      objectReference: {fileID: 261790502}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder2.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder2.Array.data[0]'
+      value: 
+      objectReference: {fileID: 576088756}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder2.Array.data[1]'
+      value: 
+      objectReference: {fileID: 402857579}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder2.Array.data[2]'
+      value: 
+      objectReference: {fileID: 523988744}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: 'correctOrder2.Array.data[3]'
+      value: 
+      objectReference: {fileID: 224084480}
     - target: {fileID: 8592247396497469328, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -2501,7 +2537,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4758781512660324627, guid: 7b1c3a33baf867f46a030e3a375abc31, type: 3}
       propertyPath: m_Name
-      value: Bucket (1)
+      value: Bucket
       objectReference: {fileID: 0}
     - target: {fileID: 5907907739204115491, guid: 7b1c3a33baf867f46a030e3a375abc31, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2903,7 +2939,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4758781512660324627, guid: 7b1c3a33baf867f46a030e3a375abc31, type: 3}
       propertyPath: m_Name
-      value: Bucket (2)
+      value: Bucket
       objectReference: {fileID: 0}
     - target: {fileID: 5907907739204115491, guid: 7b1c3a33baf867f46a030e3a375abc31, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3649,6 +3685,83 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4ab91a3c15f328345ac8ee401be263fb, type: 3}
+--- !u!114 &151026458 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 537266638}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &229630268 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 520047399}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &261790502 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7767441416768567066, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
+  m_PrefabInstance: {fileID: 209900246}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a31fde9007292d459dfb3a9a4ef7198, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorCanvas
+--- !u!114 &576088756 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 868078212}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &402857579 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 1374433665}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &523988744 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1832640300058781535, guid: 7b1c3a33baf867f46a030e3a375abc31, type: 3}
+  m_PrefabInstance: {fileID: 2034533380}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75329470c21c1d0408abcd85042d361e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bucket
+--- !u!114 &224084480 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7767441416768567066, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
+  m_PrefabInstance: {fileID: 1431177686}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a31fde9007292d459dfb3a9a4ef7198, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorCanvas
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

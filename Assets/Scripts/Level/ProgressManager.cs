@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Framework.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,6 +19,52 @@ public class ProgressManager : MonoSingleton<ProgressManager>
     /// 이번 실행 동안만 모든 챕터/스테이지를 해금 상태로 취급한다(클리어 여부 표시는 그대로 유지).</summary>
     bool unlockAllOverride;
 
+    // ── 스테이지별 시도 횟수 ─────────────────────────────────────────
+    // SceneRestarter가 씬을 다시 불러올 때마다 1 증가(=그 스테이지를 다시 시작한 횟수).
+    // Framework.Core의 공용 SaveData(다른 게임과 공유)는 안 건드리고, ColorMaze 전용 파일로 따로 저장한다.
+
+    const string AttemptsFileName = "stage_attempts.json";
+
+    [System.Serializable]
+    class StageAttemptEntry
+    {
+        public string sceneName;
+        public int count;
+    }
+
+    [System.Serializable]
+    class StageAttemptSaveData
+    {
+        public List<StageAttemptEntry> entries = new();
+    }
+
+    readonly Dictionary<string, int> attemptCounts = new();
+
+    void LoadAttemptCounts()
+    {
+        var data = SaveManager.Instance.LoadJson<StageAttemptSaveData>(AttemptsFileName);
+        foreach (var entry in data.entries)
+            attemptCounts[entry.sceneName] = entry.count;
+    }
+
+    void SaveAttemptCounts()
+    {
+        var data = new StageAttemptSaveData();
+        foreach (var kv in attemptCounts)
+            data.entries.Add(new StageAttemptEntry { sceneName = kv.Key, count = kv.Value });
+        SaveManager.Instance.SaveJson(AttemptsFileName, data);
+    }
+
+    /// <summary>SceneRestarter가 씬을 다시 불러올 때마다 호출한다.</summary>
+    public void RecordStageAttempt(string sceneName)
+    {
+        attemptCounts.TryGetValue(sceneName, out int count);
+        attemptCounts[sceneName] = count + 1;
+        SaveAttemptCounts();
+    }
+
+    public int GetAttemptCount(string sceneName) => attemptCounts.GetValueOrDefault(sceneName, 0);
+
     public void UnlockAllStages()
     {
         unlockAllOverride = true;
@@ -29,6 +76,8 @@ public class ProgressManager : MonoSingleton<ProgressManager>
         stageTable = Resources.Load<StageTable>("StageTable");
         if (stageTable == null)
             Debug.LogError("[ProgressManager] Resources/StageTable.asset을 찾을 수 없음.");
+
+        LoadAttemptCounts();
     }
 
     void OnEnable() => EventBus.Subscribe<StageCleared>(OnStageCleared);

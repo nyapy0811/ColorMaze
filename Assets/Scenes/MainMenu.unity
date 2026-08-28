@@ -516,7 +516,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 40}
-  m_SizeDelta: {x: 950, y: 500}
+  m_SizeDelta: {x: 1040, y: 585}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &731499263
 MonoBehaviour:
@@ -591,7 +591,6 @@ MonoBehaviour:
   stagePanelRoot: {fileID: 903175592567768826}
   previewPanel: {fileID: 2004124503}
   previewImage: {fileID: 731499263}
-  defaultPreviewSprite: {fileID: 21300000, guid: 7fa8382c2c4db0748af2c313689a647c, type: 3}
   stageTable: {fileID: 11400000, guid: 296028f388b7dfc428c5eb4c1bba9651, type: 2}
   chapterButtons:
   - {fileID: 990669034939799040}
@@ -1367,7 +1366,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.105882354, g: 0, b: 0.3764706, a: 0.31764707}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.6117647}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1428,8 +1427,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 350, y: -150}
-  m_SizeDelta: {x: 1000, y: 600}
+  m_AnchoredPosition: {x: 350, y: -100}
+  m_SizeDelta: {x: 1100, y: 705}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2004124505
 MonoBehaviour:
@@ -3434,7 +3433,7 @@ MonoBehaviour:
   buttonClick: {fileID: 8300000, guid: 3ea1e356217b8fd43a9a58c8f3072c5e, type: 3}
   clear: {fileID: 8300000, guid: d6ad8d9ee71c1fa4885bd2fa4be7d2ff, type: 3}
   nope: {fileID: 8300000, guid: 5d3fd80ace0eab941995378ba0008c1d, type: 3}
-  interact: {fileID: 0}
+  interact: {fileID: 8300000, guid: 7004bea058d49bc4eae0a360414ae3ef, type: 3}
   audioMixer: {fileID: 24100000, guid: 086b19d9d40ee224a96a4f7a9769cc1c, type: 2}
   bgmGroup: {fileID: 5131473065672853390, guid: 086b19d9d40ee224a96a4f7a9769cc1c, type: 2}
   sfxGroup: {fileID: 4251728336380152592, guid: 086b19d9d40ee224a96a4f7a9769cc1c, type: 2}
@@ -4236,10 +4235,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3

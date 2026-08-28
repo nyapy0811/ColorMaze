@@ -41,7 +41,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8113321787262052}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: -2105364572, guid: 355474d781e5561489e3595e39866770, type: 3}
   m_Name: 
@@ -55,7 +55,7 @@ MonoBehaviour:
   - materialAsset: {fileID: 2100000, guid: c17d3e296502a8848bd6c1664c87bcb6, type: 2}
     entries:
     - channelName: Albedo
-      paintData: {fileID: 11400000, guid: efb201fd10615d7449ca39c6eb87c8a3, type: 2}
+      paintData: {fileID: 0, guid: efb201fd10615d7449ca39c6eb87c8a3, type: 2}
       isActive: 0
   isRiggingEnabled: 0
   isPaintingEnabled: 1
@@ -926,7 +926,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8166567206206574650}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: -2105364572, guid: 355474d781e5561489e3595e39866770, type: 3}
   m_Name: 
@@ -940,13 +940,13 @@ MonoBehaviour:
   - materialAsset: {fileID: 2100000, guid: 3229bb0d6ada8134ba1b75a88b66f2d9, type: 2}
     entries:
     - channelName: Albedo
-      paintData: {fileID: 11400000, guid: 83b1359854d45c34392ad9f94e5e6dff, type: 2}
+      paintData: {fileID: 0, guid: 83b1359854d45c34392ad9f94e5e6dff, type: 2}
       isActive: 0
     - channelName: Metallic
-      paintData: {fileID: 11400000, guid: 3f17db47161dcb94da96e67731c5b687, type: 2}
+      paintData: {fileID: 0, guid: 3f17db47161dcb94da96e67731c5b687, type: 2}
       isActive: 0
     - channelName: Smoothness
-      paintData: {fileID: 11400000, guid: 3f17db47161dcb94da96e67731c5b687, type: 2}
+      paintData: {fileID: 0, guid: 3f17db47161dcb94da96e67731c5b687, type: 2}
       isActive: 0
   isRiggingEnabled: 0
   isPaintingEnabled: 1

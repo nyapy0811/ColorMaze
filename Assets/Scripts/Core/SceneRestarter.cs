@@ -12,6 +12,7 @@ public static class SceneRestarter
     {
         Time.timeScale = 1f; // 일시정지/클리어로 멈춰뒀던 시간을 되돌린다.
         string sceneName = SceneManager.GetActiveScene().name;
+        ProgressManager.Instance.RecordStageAttempt(sceneName);
         GameManager.Instance.StartGame();
         SceneLoader.Instance.Load(sceneName);
     }

@@ -23,7 +23,6 @@ public class MainMenuController : GameStateListener
     [SerializeField] GameObject stagePanelRoot; // 스테이지 스크롤 (챕터를 골라야 보임)
     [SerializeField] GameObject previewPanel; // 미리보기 + Play 버튼 (스테이지를 골라야 보임)
     [SerializeField] Image previewImage;
-    [SerializeField] Sprite defaultPreviewSprite; // 스테이지에 썸네일이 없을 때 대신 쓸 기본 이미지
 
     [Header("스테이지 데이터 (ClearScreenController와 공유하는 애셋)")]
     [SerializeField] StageTable stageTable;
@@ -250,7 +249,7 @@ public class MainMenuController : GameStateListener
             var thumbnails = chapters[chapterIndex].thumbnails;
             if (thumbnails != null && stageIndex < thumbnails.Length) thumbnail = thumbnails[stageIndex];
         }
-        previewImage.sprite = thumbnail ? thumbnail : defaultPreviewSprite;
+        previewImage.sprite = thumbnail;
     }
 
     /// <summary>미리보기의 Play 버튼: 현재 선택된 챕터/스테이지 기준으로 stageTable에서 씬 이름을 찾아 로드한다.</summary>

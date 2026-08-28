@@ -8,11 +8,14 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public static class SceneRestarter
 {
-    public static void RestartCurrentScene()
+    /// <summary>keepGuide가 false(기본값)면 진행 중이던 스테이지 가이드를 끈다.
+    /// 가이드 버튼을 통한 재시작(StageGuideController.ActivateGuide)만 true를 넘긴다.</summary>
+    public static void RestartCurrentScene(bool keepGuide = false)
     {
         Time.timeScale = 1f; // 일시정지/클리어로 멈춰뒀던 시간을 되돌린다.
         string sceneName = SceneManager.GetActiveScene().name;
         ProgressManager.Instance.RecordStageAttempt(sceneName);
+        if (!keepGuide) StageGuideController.Instance.Deactivate();
         GameManager.Instance.StartGame();
         SceneLoader.Instance.Load(sceneName);
     }

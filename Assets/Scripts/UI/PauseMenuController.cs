@@ -1,5 +1,6 @@
 using Framework.Core;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 일시정지 메뉴. ESC로 열고 닫으며 GameManager의 Pause/Resume과 연동한다.
@@ -10,6 +11,7 @@ public class PauseMenuController : GameStateListener
 {
     [SerializeField] GameObject pausePanel;
     [SerializeField] GameObject settingsPanel;
+    [SerializeField] GameObject guideButton;
 
     protected override void Start()
     {
@@ -32,6 +34,15 @@ public class PauseMenuController : GameStateListener
         bool paused = next == GameState.Paused;
         if (pausePanel) pausePanel.SetActive(paused);
         if (!paused && settingsPanel) settingsPanel.SetActive(false);
+
+        // 가이드 버튼은 조건(시도 10회 초과 또는 이미 클리어)을 만족할 때만 보이게 한다.
+        if (paused && guideButton)
+        {
+            string sceneName = SceneManager.GetActiveScene().name;
+            bool unlocked = ProgressManager.Instance.GetAttemptCount(sceneName) > 10
+                || SaveManager.Instance.Current.IsStageCleared(sceneName);
+            guideButton.SetActive(unlocked);
+        }
 
         // 커서는 이 컨트롤러가 다루는 Playing/Paused 전환에서만 조정한다.
         // Cleared 같은 다른 상태는 각자의 컨트롤러(ClearScreenController 등)가 커서를 관리하므로 여기서 건드리지 않는다.
@@ -59,6 +70,13 @@ public class PauseMenuController : GameStateListener
     {
         GameAudio.Instance.PlayButtonClick();
         SceneRestarter.RestartCurrentScene();
+    }
+
+    /// <summary>가이드를 켜고 스테이지를 처음부터 다시 시작한다.</summary>
+    public void OnGuideButton()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        StageGuideController.Instance.ActivateGuide();
     }
 
     public void OnSettingsButton()

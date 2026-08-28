@@ -1,3 +1,4 @@
+using Framework.Core;
 using UnityEngine;
 
 /// <summary>
@@ -39,6 +40,7 @@ public abstract class ConsumableObjectBase : MapObjectBase, IInteractable
     {
         Consumed = true;
         Col.enabled = false;
+        EventBus.Publish(new MapObjectUsed { Source = this });
         Destroy(gameObject);
     }
 }

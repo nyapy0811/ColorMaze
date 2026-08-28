@@ -22,6 +22,7 @@ public class Bootstrap : MonoBehaviour
         _ = InputManager.Instance;
         _ = LevelManager.Instance;
         _ = ProgressManager.Instance;
+        _ = StageGuideController.Instance;
         _ = UIManager.Instance; // UI 씬을 additive로 로드
         _ = FPSCounter.Instance; // 개발 빌드에서만 화면에 FPS 표시
     }

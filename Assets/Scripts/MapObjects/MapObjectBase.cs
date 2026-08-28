@@ -1,4 +1,12 @@
+using Framework.Core;
 using UnityEngine;
+
+/// <summary>기물이 실제로 유효하게 "사용"됐을 때 발행된다(소모/획득/캔버스 완료/필터 통과 등,
+/// 각 베이스 클래스가 자기 완료 시점에 발행한다). StageGuideController가 정답 순서 진행에 쓴다.</summary>
+public struct MapObjectUsed : IEvent
+{
+    public MapObjectBase Source;
+}
 
 /// <summary>
 /// 모든 맵 기물(4장)의 공통 베이스.

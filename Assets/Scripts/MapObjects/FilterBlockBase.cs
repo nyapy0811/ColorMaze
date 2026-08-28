@@ -41,6 +41,10 @@ public abstract class FilterBlockBase : MapObjectBase
     MeshRenderer fillRenderer; // 이 블록이 속한 그룹의 채움(fill) 메시 렌더러(테두리 제외, 그룹 전체가 공유)
     float builtFillAlpha; // 통과 불가능할 때 되돌아갈 원래 채움 투명도
 
+    /// <summary>이 필터가 속한 병합 그룹(같은 색 + 서로 붙어있는 셀들)의 채움 메시 렌더러.
+    /// 가이드 마커가 그룹 중앙(bounds.center)을 표시할 때 쓴다.</summary>
+    public MeshRenderer GroupFillRenderer => fillRenderer;
+
     /// <summary>현재 플레이어 상태로 통과 가능한지 판정한다. 하위 클래스가 구현한다.</summary>
     protected abstract bool Matches(ColorStacks player);
 
@@ -149,7 +153,10 @@ public abstract class FilterBlockBase : MapObjectBase
         // 처음 들어갔던 면과 다른 면으로 완전히 나올 때만(=실제로 통과했을 때만) 스택을 초기화한다.
         // 같은 면으로 도로 나오면(들어가려다 되돌아 나온 경우) 효과를 적용하지 않는다.
         if (exitFace != playerEntryFace)
+        {
             Player.ResetAll();
+            EventBus.Publish(new MapObjectUsed { Source = this });
+        }
     }
 
     // 플레이어 콜라이더 중심이 이 블록 콜라이더 중심에서 어느 축 방향으로 가장 벗어나 있는지로 면을 판정한다.

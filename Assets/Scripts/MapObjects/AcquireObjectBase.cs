@@ -1,3 +1,4 @@
+using Framework.Core;
 using UnityEngine;
 
 /// <summary>
@@ -18,6 +19,8 @@ public abstract class AcquireObjectBase : MapObjectBase, IInteractable
     /// <summary>조준+좌클릭 상호작용으로만 발동한다(걸어서 닿는 것으로는 발동하지 않음).</summary>
     public void TryInteract()
     {
-        if (Player != null) OnAcquire(Player);
+        if (Player == null) return;
+        OnAcquire(Player);
+        EventBus.Publish(new MapObjectUsed { Source = this });
     }
 }

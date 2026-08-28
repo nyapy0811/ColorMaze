@@ -6257,10 +6257,6 @@ PrefabInstance:
       propertyPath: 'correctOrder1.Array.data[4]'
       value: 
       objectReference: {fileID: 426822500}
-    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
-      propertyPath: 'correctOrder1.Array.data[5]'
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 8592247396497469328, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

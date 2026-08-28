@@ -8657,6 +8657,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.size
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.data[0]
+      value: 
+      objectReference: {fileID: 951000000001}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.data[1]
+      value: 
+      objectReference: {fileID: 951000000002}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.data[2]
+      value: 
+      objectReference: {fileID: 951000000003}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.data[3]
+      value: 
+      objectReference: {fileID: 951000000004}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.data[4]
+      value: 
+      objectReference: {fileID: 951000000005}
+    - target: {fileID: 7556427093220978423, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
+      propertyPath: correctOrder1.Array.data[5]
+      value: 
+      objectReference: {fileID: 951000000006}
     - target: {fileID: 8592247396497469328, guid: 88a03cadade09da48ba83a45c39dbd0c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -10405,6 +10433,62 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4ab91a3c15f328345ac8ee401be263fb, type: 3}
+--- !u!114 &951000000001 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 1300549173}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &951000000002 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 1268690142}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &951000000003 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6396187570608342303, guid: 53542c3397da75043a2fc2f8f311a402, type: 3}
+  m_PrefabInstance: {fileID: 104815826}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+--- !u!114 &951000000004 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5332623295073148537, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  m_PrefabInstance: {fileID: 1869041745}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73da2cdc7e80f30449eaf036df23e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorPalette
+--- !u!114 &951000000005 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6396187570608342303, guid: 53542c3397da75043a2fc2f8f311a402, type: 3}
+  m_PrefabInstance: {fileID: 607067016}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+--- !u!114 &951000000006 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7767441416768567066, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
+  m_PrefabInstance: {fileID: 1133184435}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a31fde9007292d459dfb3a9a4ef7198, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorCanvas
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

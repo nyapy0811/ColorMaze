@@ -26,6 +26,13 @@ public class ClearScreenController : MonoBehaviour
     void OnEnable() => EventBus.Subscribe<StageCleared>(OnStageCleared);
     void OnDisable() => EventBus.Unsubscribe<StageCleared>(OnStageCleared);
 
+    // 클리어 화면이 떠 있을 때 스페이스바로도 다음 스테이지 버튼과 동일하게 넘어갈 수 있게 한다.
+    void Update()
+    {
+        if (clearPanel == null || !clearPanel.activeSelf) return;
+        if (InputManager.Instance.ReadJump()) OnNextStageButton();
+    }
+
     void OnStageCleared(StageCleared e)
     {
         nextSceneName = FindNextSceneName();

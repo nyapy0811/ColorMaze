@@ -380,6 +380,7 @@ MonoBehaviour:
   occlusionMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  markerScale: 2
 --- !u!224 &1300264109
 RectTransform:
   m_ObjectHideFlags: 0
@@ -610,6 +611,11 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3455104339603957562, guid: 3d044b2e923b57446a03286dd331ebd0, type: 3}
   m_PrefabInstance: {fileID: 1911663997}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1911663999 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3623921104221529572, guid: 3d044b2e923b57446a03286dd331ebd0, type: 3}
+  m_PrefabInstance: {fileID: 1911663997}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2000734456
 GameObject:
   m_ObjectHideFlags: 0
@@ -645,7 +651,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenuController
   pausePanel: {fileID: 294277867}
   settingsPanel: {fileID: 743175947}
-  guideButton: {fileID: 0}
+  guideButton: {fileID: 1911663999}
 --- !u!114 &2000734458
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -12,6 +12,13 @@ public class RgbFilterBlock : FilterBlockBase
     [Header("이 필터가 요구하는 색상")]
     [SerializeField] LightColor targetColor;
 
+    /// <summary>런타임에 목표 색을 지정한다(인게임 맵 에디터용). 외형은 이 필터가 속한 병합 그룹이
+    /// 다시 만들어질 때 반영되므로, 호출 후 FilterBlockBase.RebuildAll()을 직접 불러야 한다.</summary>
+    public void Configure(LightColor target)
+    {
+        targetColor = target;
+    }
+
     protected override bool Matches(ColorStacks player)
     {
         var maxColors = player.GetMaxColors();

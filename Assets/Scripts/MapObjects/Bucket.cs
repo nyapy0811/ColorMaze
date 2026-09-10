@@ -12,6 +12,13 @@ public class Bucket : StackModifierConsumable
     [Header("스택 색을 입힐 렌더러 목록")]
     [SerializeField] Renderer[] stackColorRenderers;
 
+    /// <summary>런타임에 0으로 만들 색을 지정한다(인게임 맵 에디터용).</summary>
+    public void Configure(LightColor target)
+    {
+        targetColor = target;
+        ApplyColor();
+    }
+
     void Start() => ApplyColor();
 
     // 인스펙터에서 값을 바꾸면(플레이 전에도) 기본 색이 바로 보이게 한다.

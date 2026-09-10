@@ -16,6 +16,14 @@ public class ColorCanvas : ClearObjectBase
     [Header("스택 색을 입힐 렌더러 목록")]
     [SerializeField] Renderer[] stackColorRenderers;
 
+    /// <summary>런타임에 목표 스택 값을 지정한다(인게임 맵 에디터용).</summary>
+    public void Configure(int r, int g, int b)
+    {
+        targetRed = r; targetGreen = g; targetBlue = b;
+        ApplyTargetColor();
+        ApplyTargetLabel();
+    }
+
     // 인스펙터에서 값을 바꾸면 에디터에서도 바로 반영되게 한다.
     void OnValidate()
     {

@@ -17,6 +17,12 @@ public class StackChanger : PreviewingStackModifier
     [Header("발동 후 색을 입힐 렌더러 목록")]
     [SerializeField] Renderer[] resultColorRenderers;
 
+    /// <summary>런타임에 교환할 두 색을 지정한다(인게임 맵 에디터용).</summary>
+    public void Configure(LightColor a, LightColor b)
+    {
+        colorA = a; colorB = b;
+    }
+
     protected override void RefreshPreview()
     {
         if (Player == null) return;

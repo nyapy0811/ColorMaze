@@ -13,6 +13,13 @@ public class ColorFilterBlock : FilterBlockBase
     [SerializeField, Min(0)] int green;
     [SerializeField, Min(0)] int blue;
 
+    /// <summary>런타임에 요구 스택 값을 지정한다(인게임 맵 에디터용). 외형은 이 필터가 속한 병합 그룹이
+    /// 다시 만들어질 때 반영되므로, 호출 후 FilterBlockBase.RebuildAll()을 직접 불러야 한다.</summary>
+    public void Configure(int r, int g, int b)
+    {
+        red = r; green = g; blue = b;
+    }
+
     protected override Color32 GetAppearanceColor() => ColorStacks.ToRGB(red, green, blue);
 
     protected override bool Matches(ColorStacks player) => ColorEquals(player.CurrentRGB, GetAppearanceColor());

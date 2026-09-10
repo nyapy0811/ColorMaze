@@ -37,10 +37,23 @@ public class ColorCanvas : ClearObjectBase
         ApplyTargetLabel();
     }
 
+    // 캔버스 전체를 Y축 기준으로만 플레이어 쪽으로 회전시킨다(기울어지지 않고 수평으로만 돎).
+    // 라벨은 캔버스의 자식이라 별도 처리 없이 같이 따라 돈다.
+    void LateUpdate()
+    {
+        if (Player == null) return;
+
+        Vector3 dir = Player.transform.position - transform.position;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) return;
+
+        transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+    }
+
     // stackColorRenderers 전체를 목표 스택 값이 나타내는 색으로 표시한다.
     void ApplyTargetColor() => ApplyColorTo(stackColorRenderers, ColorStacks.ToRGB(targetRed, targetGreen, targetBlue));
 
-    // 첫 번째 자식의 -Z면(고정, 카메라를 따라 돌지 않음)에 목표 R/G/B 값을 표시한다.
+    // 첫 번째 자식의 -Z면에 목표 R/G/B 값을 표시한다(캔버스 전체가 LateUpdate에서 플레이어 쪽으로 도니 같이 돈다).
     // 라벨 자동 생성은 필터만 하므로(FilterBlockBase), 캔버스는 자식으로 이미 있는 라벨을 찾아서 쓴다.
     void ApplyTargetLabel()
     {

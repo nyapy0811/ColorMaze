@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2c5e8f1b7d34c60a9e2f5b8d1c4a760, type: 3}
+  m_Name: CustomStagePrefabs
+  m_EditorClassIdentifier: Assembly-CSharp::CustomStagePrefabs
+  colorFilterPrefab: {fileID: 9049275888968721270, guid: cd53bf95ea8ad104393633ad38c80a65, type: 3}
+  rgbFilterPrefab: {fileID: 1527563060800300771, guid: f649c92f9bb3cd148927a4ed58f1b370, type: 3}
+  bucketPrefab: {fileID: 4758781512660324627, guid: 7b1c3a33baf867f46a030e3a375abc31, type: 3}
+  canvasPrefab: {fileID: 8295213273625183482, guid: 4c85ef64429e6f54f8df8cc44e80763d, type: 3}
+  palettePrefab: {fileID: 2254589863684002556, guid: 1a412baf4fc35f24aab71eecb6ae54d5, type: 3}
+  colorChangerPrefab: {fileID: 506980806529069680, guid: 53542c3397da75043a2fc2f8f311a402, type: 3}
+  stackChangerPrefab: {fileID: 3690036253145706666, guid: 921cbe2d406029f468371ddfada7d18a, type: 3}
+  wallBlockPrefab: {fileID: 0}

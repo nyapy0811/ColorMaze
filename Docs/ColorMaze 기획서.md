@@ -15,6 +15,7 @@
 3. [시스템 작동 흐름](#3-시스템-작동-흐름)
 4. [맵 기물](#4-맵-기물)
 5. [레벨 구성](#5-레벨-구성)
+6. [진행 중인 기능](#6-진행-중인-기능)
 
 ---
 
@@ -47,10 +48,24 @@
 ### 3.1 메인 화면
 
 - 스테이지 선택, 설정, 종료를 선택할수 있다
-- 스테이지 선택은 챕터·스테이지 목록으로 이동해 해금된 스테이지를 고른다.
+- '플레이'를 누르면 먼저 모드 선택 패널(챕터 진행 / 맵 에디터 / 커스텀 맵)이 뜬다. 그중 챕터 진행을
+  고르면 기존처럼 챕터·스테이지 목록으로 이동해 해금된 스테이지를 고른다.
 - 설정은 음량·마우스 감도 등 옵션을 조절한다.
 
-*구현: MainMenuController가 담당한다. 메인 패널·스테이지 선택(챕터 목록) 패널·설정 패널을 서로 배타적으로 토글하고, 챕터 버튼을 누르면 공용 스테이지 목록 패널(stageListPanel)을 그 챕터 기준으로 보여준다(챕터마다 패널을 따로 두지 않고, 공용 데이터 애셋 StageTable에서 씬 이름만 갈아끼움 — 이 애셋은 클리어 화면(3.6)의 ClearScreenController와도 함께 참조해 스테이지 목록이 한 곳에만 존재한다). 챕터 목록은 ScrollRect로 스크롤된다. 해금 여부는 ProgressManager(5.1 참고)가 판정하며, 챕터/스테이지 목록이 열릴 때마다 잠긴 버튼은 interactable을 꺼서 회색으로 비활성화한다. GameManager.OnStateChanged 구독/해제와 "현재 상태로 1회 초기 갱신" 보일러플레이트는 공용 베이스 GameStateListener(Core 폴더)로 모아뒀다 — MainMenuController·HUDController·PauseMenuController·BrushViewmodel(Player 폴더) 모두 이 베이스를 상속해 OnGameStateChanged(previous, next)만 구현한다.*
+*구현: MainMenuController가 담당한다. 메인 패널·모드 선택 패널·스테이지 선택(챕터 목록) 패널·설정
+패널을 서로 배타적으로 토글하고, 챕터 버튼을 누르면 공용 스테이지 목록 패널(stageListPanel)을 그
+챕터 기준으로 보여준다(챕터마다 패널을 따로 두지 않고, 공용 데이터 애셋 StageTable에서 씬 이름만
+갈아끼움 — 이 애셋은 클리어 화면(3.6)의 ClearScreenController와도 함께 참조해 스테이지 목록이 한
+곳에만 존재한다). 챕터 목록은 ScrollRect로 스크롤된다. 해금 여부는 ProgressManager(5.1 참고)가
+판정하며, 챕터/스테이지 목록이 열릴 때마다 잠긴 버튼은 interactable을 꺼서 회색으로 비활성화한다.
+GameManager.OnStateChanged 구독/해제와 "현재 상태로 1회 초기 갱신" 보일러플레이트는 공용 베이스
+GameStateListener(Core 폴더)로 모아뒀다 — MainMenuController·HUDController·PauseMenuController·
+BrushViewmodel(Player 폴더) 모두 이 베이스를 상속해 OnGameStateChanged(previous, next)만 구현한다.
+모드 선택은 mainPanel의 Play 버튼(OnModeSelectButton)이 modeSelectionPanel을 열면서 시작되고, 여기서
+챕터 진행(OnStageSelectButton, 기존 로직 그대로)·맵 에디터(OnMapEditorButton, MapEditor 씬으로 이동 —
+아직 Build Settings에 없으면 진입하지 않고 로그만 남김)·커스텀 맵(OnCustomMapButton, 저장된 유저 제작
+맵 목록으로 이동 예정이나 목록 UI가 아직 없어 현재는 안내만 하는 자리표시자, 6.1 참고) 중 고른다.
+ESC/뒤로가기 처리(OnBackToMainButton)도 이 패널을 포함하도록 확장됐다.*
 
 ### 3.2 이동 / 카메라 (1인칭)
 
@@ -109,6 +124,36 @@
 - 카메라와 기물 사이에 벽 등 가리는 것이 있으면 조준·상호작용 모두 되지 않는다.
 
 *구현: Player/InteractionController.cs가 매 프레임 카메라 정면으로 1.3칸 레이캐스트를 쏴서 가장 가까운 대상 하나만 판정한다(레이캐스트 특성상 벽이나 닫힌 필터가 앞에 있으면 자연히 막혀 별도 가림 판정이 필요 없음). 레이캐스트가 검사할 레이어(interactMask)는 인스펙터에서 조절할 수 있다(기본값 Everything) — 좁히려면 벽·필터가 있는 레이어는 반드시 포함해야 "가로막히면 조준 안 됨" 동작이 유지된다. 대상이 IInteractable(ClearObjectBase/ConsumableObjectBase가 구현, 필터는 미구현)이면 조준 중 강조 표시를 하고, 좌클릭(InputManager.ReadInteract()) 시 TryInteract()를 호출한다. 이 두 베이스 클래스는 원래 걸어서 닿으면(OnTriggerEnter) 발동했으나, 이제 그 트리거 로직을 제거하고 TryInteract()로만 발동한다(필터는 대상이 아니므로 기존처럼 걸어서 통과하는 방식 그대로 유지). 강조 표시는 MapObjectBase.SetHighlighted(bool)로 처리하며, 라벨과 동일하게 "미리 배치해둔 자식 오브젝트(highlightRoot)를 켜고 끄기만" 한다 — 실제 시각 효과는 Shaders/InteractionHighlightOutline.shader(인버티드 헐 기법 아웃라인)를 쓰는 별도 메시(본체와 같은 메시를 참조, 여러 파츠로 된 기물은 빈 부모 밑에 파츠별로 둠)로 구현한다. 조준 대상 유무는 InteractableTargetChanged 이벤트로 알리고, UI/CrosshairController.cs가 이를 구독해 조준점 색을 바꾼다.*
+
+### 3.9 스테이지 가이드
+
+- 한 스테이지에서 시도 횟수가 10회를 초과했거나 이미 클리어한 적이 있으면, 일시정지 메뉴에 가이드
+  버튼이 나타난다.
+- 가이드 버튼을 누르면 스테이지가 처음부터 다시 시작되며, 정답 순서 리스트의 기물을 화면에 순서대로
+  마커로 표시한다 — 리스트1은 빨간 마커, 리스트2는 파란 마커.
+- 현재 차례의 기물을 실제로 사용하면(팔레트/버킷/체인저는 소모, 캔버스는 완료, 필터는 실제 통과)
+  다음 순번 마커로 넘어간다.
+- 가이드 마커는 화면 안에 직접 보여도(가려지지 않아도) 항상 표시되고, 일반 마커보다 크게(2배)
+  강조된다. 같은 기물을 가리키는 일반 기물 마커(3.4 참고)는 가이드가 표시 중인 동안 그 기물에
+  한해 숨겨져 우선순위가 유지된다.
+- 일반 재시작(다시하기)을 누르면 가이드는 꺼진다 — 가이드 버튼으로 시작한 시도에서만 유지된다.
+
+*구현: StageGuideController(MonoSingleton, Level 폴더)가 담당한다. MazeGenerator.correctOrder1/2(5.2
+참고, 원래는 설계 확인용 참고 데이터였으나 이제 런타임에도 사용)를 그대로 읽어 index1/index2로 진행
+상황을 추적한다. 기물이 "실제로 사용됐다"는 판정은 4곳에서 공용 이벤트 MapObjectUsed(MapObjectBase에
+선언)로 통일한다 — 소모(ConsumableObjectBase.Consume), 획득(AcquireObjectBase.TryInteract), 캔버스
+완료(ClearObjectBase, Completed가 true가 되는 시점), 필터 통과(FilterBlockBase.OnTriggerExit, 실제로
+반대쪽 면으로 완전히 빠져나갈 때). StageGuideController가 이 이벤트를 구독해 현재 순번의 대상과
+일치하면 인덱스를 올린다. 마커 표시는 StageGuideMarkerHUD(UIScene)가 담당하며, 화면 투영·클램프·
+가림 판정 로직은 ScreenMarkerUtil(MapObjectMarkerHUD와 공유하는 정적 헬퍼로 이번에 추출)을 재사용한다.
+마커 위치는 일반 기물이면 transform.position, 필터면 FilterBlockBase.GroupFillRenderer(그룹 채움
+메시를 노출하는 프로퍼티)의 bounds.center(같은 색끼리 병합된 그룹 전체의 중앙)를 쓴다. alwaysVisible
+옵션으로 직접 보여도 숨기지 않고, markerScale(기본 2배)로 크기를 키운다. MapObjectMarkerHUD는 매
+프레임 그 기물이 현재 가이드 타깃이면 자신의 마커를 SetActive(false)로 꺼서 가이드 마커가 가려지지
+않게 한다. PauseMenuController의 가이드 버튼은 ProgressManager.GetAttemptCount(sceneName) > 10 또는
+SaveManager의 클리어 여부에 따라 SetActive로 표시/숨김된다(누르면 StageGuideController.ActivateGuide()
+→ SceneRestarter.RestartCurrentScene(keepGuide: true)). 일반 재시작 경로는 keepGuide 기본값이 false라
+가이드가 자동으로 꺼진다.*
 
 ## 4. 맵 기물
 
@@ -172,8 +217,9 @@
 ### 4.7 캔버스
 
 - 플레이어가 캔버스를 조준하고 좌클릭시 플레이어의 RGB 스택 값이 캔버스에 지정된 스택 값과 정확히 일치할 경우 맵을 클리어 할수 있다.
+- 캔버스는 항상 Y축 기준으로 플레이어(카메라) 쪽을 바라보도록 회전한다(기울어지지 않고 수평 회전만, 목표값 라벨도 자식이라 함께 돈다).
 
-*구현: ColorCanvas(ClearObjectBase 기반)가 담당한다. 조준+좌클릭 상호작용(3.8 참고) 시점에 스택 값이 목표와 정확히 일치하면 완료 상태로 잠기고(재판정 없음) CanvasCompleted 이벤트를 발행한다. 캔버스가 여러 개면 각각 순차로 완료하면 된다(동시에 만족할 필요 없음) — LevelManager가 모든 캔버스의 완료 여부를 모아 StageCleared를 발행한다.*
+*구현: ColorCanvas(ClearObjectBase 기반)가 담당한다. 조준+좌클릭 상호작용(3.8 참고) 시점에 스택 값이 목표와 정확히 일치하면 완료 상태로 잠기고(재판정 없음) CanvasCompleted 이벤트를 발행한다. 캔버스가 여러 개면 각각 순차로 완료하면 된다(동시에 만족할 필요 없음) — LevelManager가 모든 캔버스의 완료 여부를 모아 StageCleared를 발행한다. LateUpdate()에서 플레이어 방향으로 Y축만 회전시킨다(에디터에서 배치한 초기 회전값은 무시되고 항상 플레이 중 실시간으로 갱신됨).*
 
 ### 4.8 튜토리얼 문구
 
@@ -197,3 +243,17 @@
 - 챌린지 스테이지에서는 캔버스가 2개가 되어서 전부 완성해야 한다.
 
 *구현: 미로 블록은 런타임 절차 생성이 아니라 MazeGeneratorEditor(에디터 전용 Scene 뷰 툴)로 배치되어 씬에 직접 저장된다(클릭 설치/Shift+클릭 제거, Ctrl+드래그로 직사각형 범위 설치/제거, 정수 그리드 스냅). 기본 블록(큐브) 대신 자유 프리팹 칸에 아무 기물 프리팹이나 끌어 넣어 설치할 수 있고, 그중 자주 쓰는 3종류(기본 블록/컬러 필터/RGB 필터)는 라디오 버튼으로 바로 고를 수 있다 — 컬러 필터·RGB 필터를 고르면 설치 시 적용할 R/G/B 값(또는 목표 색)도 미리 지정해둘 수 있다. 설치된 필터·기물은 Maze가 아니라 씬 바로 아래 MapObjects 폴더에 자동으로 모이며, 필터는 그중에서도 메시가 병합되는 것과 같은 기준(같은 색 + 6방향 인접, FilterClusterOrganizer 공용 로직)으로 ColorFilterN/RGBFilterN 하위 폴더에 묶인다 — 필터를 설치·제거할 때마다 폴더 구성과 병합 메시가 함께 갱신된다. 이미 씬에 있는 기물이나 튜토리얼 텍스트(4.8 참고)를 한 번에 다시 정리하고 싶을 때는 메뉴 ColorMaze › 특수 블록 하이어라키 정리(MapObjectOrganizer)를 수동으로 실행하면 된다. 캔버스 여러 개 조건은 ColorCanvas의 순차 완료 방식으로 지원된다(4.7 참고). 스테이지 클리어 후 챕터·스테이지 해금은 ProgressManager(Level/ProgressManager.cs)가 담당한다 — StageTable(각 챕터의 스테이지 씬 이름 배열, Resources 폴더에 있어 Resources.Load로 불러옴)에서 클리어한 씬이 챕터의 배열 인덱스 7(8번째, 응용 스테이지 마지막)이면 다음 챕터를 해금한다. 챕터 안의 개별 스테이지는 별도 저장 없이 clearedStages만으로 판정한다 — 0번째 스테이지는 챕터가 해금돼 있으면 항상 열려있고, 나머지는 바로 앞 스테이지가 클리어돼 있어야 열린다. MainMenuController가 챕터/스테이지 버튼의 interactable을 이 판정에 맞춰 갱신해 잠긴 항목은 회색으로 비활성화된다.*
+
+## 6. 진행 중인 기능
+
+이 장은 아직 완성되지 않아 위 장들처럼 상세 기술하지 않는 기능들을 짧게만 짚어둔다. 완료되면 해당
+기능을 다루는 정식 절로 승격해서 정리한다.
+
+### 6.1 인게임 맵 에디터 (UGC)
+
+- 유니티 에디터 없이 빌드된 게임 안에서 플레이어가 직접 스테이지를 제작하는 기능(3.1의 "맵 에디터"
+  모드 진입점과 연결). 배치 정보를 JSON으로 저장하고 플레이 시점에 실제 기물 프리팹을 런타임
+  Instantiate하는 방식이라, 소환만 되면 LevelManager·StageGuideController·MapObjectMarkerHUD 등
+  기존 로직은 그대로 재사용된다.
+- 설계 세부사항과 진행 상황(현재 단계, 남은 작업)은 `Docs/MapEditorDesign.md`가 단일 출처로 관리한다
+  — 이 기획서에는 중복 기록하지 않는다.

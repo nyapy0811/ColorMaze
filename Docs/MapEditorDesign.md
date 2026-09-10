@@ -1,7 +1,11 @@
 # 인게임 맵 에디터 설계 (초안)
 
 작성일: 2026-09-09
-상태: 설계만 확정, 구현 착수 전
+최종 갱신: 2026-09-11
+상태: 1~3단계 코드 구현 완료. `MapEditor.unity` 씬도 이미 만들어져 Build Settings에 등록되고
+`MapEditController`(→`CustomStagePrefabs.asset` 연결됨)·UICanvas·HotBar·RGBInput 패널·카메라·
+EventSystem까지 배치됨 — 남은 건 HotBar 버튼/RGB 입력창을 컨트롤러 public 메서드에 연결하는
+이벤트 배선뿐(§ "남은 에디터(유니티) 작업" 참고).
 
 ## 목적 / 대상
 
@@ -95,11 +99,82 @@ public class FixtureEntry
 
 ## 구현 순서 (합의된 진행 계획)
 
-1. `CustomStageData` + 관련 타입 정의
-2. 런타임 로더(데이터 → Instantiate → MazeGenerator 동적 부착 → RebuildAll)
-3. `MapEditor.unity` 새 씬 + 배치/제거 입력 + 기물 팔레트 UI + 파라미터 입력 UI
-4. 배치된 기물 재선택 → 파라미터 수정 + 정답 리스트1/2 추가·순서 편집 UI
-5. 저장/불러오기(로컬 JSON) + "내 맵" 목록 UI
-6. 플레이 테스트 버튼(로더 재사용)
+1. ✅ `CustomStageData` + 관련 타입 정의 — 완료
+2. ✅ 런타임 로더(데이터 → Instantiate → MazeGenerator 동적 부착 → RebuildAll) — 완료
+3. ✅(코드) / ✅(씬 배치) / ⬜(이벤트 배선) 배치/제거 입력 + 기물 팔레트·파라미터 입력용 public API —
+   로직 완료, `MapEditor.unity` 씬에 카메라·UICanvas·HotBar·RGBInput·`MapEditController`(prefabs 필드
+   연결됨)까지 배치 완료. HotBar 버튼의 OnClick과 RGBInput 입력창의 OnValueChanged를
+   `SelectBlockTool()`/`SelectFixtureTool(int)`/`SetPresetR/G/B(string)`/`SetPresetColorA/B(int)`에
+   연결하는 것만 남음 — **다음 단계**. Player 프리팹 배치 여부(InteractionController 비활성화 포함)도
+   아직 미확인.
+4. ⬜ 배치된 기물 재선택 → 파라미터 수정 + 정답 리스트1/2 추가·순서 편집 UI
+5. ⬜ 저장/불러오기(로컬 JSON) + "내 맵" 목록 UI
+6. ⬜ 플레이 테스트 버튼(로더 재사용)
 
 각 단계는 순서대로 구현하고 중간중간 확인받으며 진행.
+
+## 진행 상황 (1~2단계 완료 내역)
+
+**새 파일**
+- `Assets/Scripts/MapEditor/CustomStageData.cs` — `FixtureType` enum, `BlockEntry`, `FixtureEntry`,
+  `CustomStageData` 클래스.
+- `Assets/Scripts/MapEditor/CustomStagePrefabs.cs` — 기물 7종 + 벽 블록 프리팹을 들고 있는
+  `ScriptableObject`(`ColorMaze/Custom Stage Prefabs` 메뉴로 생성). 현재 애셋은
+  `Assets/Scripts/MapEditor/CustomStagePrefabs.cs`(스크립트) 기준으로 만들어졌고, 실제 프리팹 참조는
+  `.meta`의 `MonoImporter.defaultReferences`에 7종 기물 프리팹이 이미 연결돼 있음(wallBlockPrefab은
+  아직 비어있음 — 전용 벽 프리팹 생기면 채우면 됨).
+- `Assets/Scripts/MapEditor/CustomStageLoader.cs` — `CustomStageData`를 Instantiate해서
+  `MazeGenerator`를 동적으로 만들고 `correctOrder1/2`를 채운 뒤 `FilterBlockBase.RebuildAll()` +
+  `SceneLoadCompleted` 발행까지 처리하는 정적 로더.
+
+**기존 파일 수정 (Configure 메서드 추가 — 로더가 프리셋 값을 런타임에 넣을 때 사용)**
+- `ColorFilterBlock.Configure(int r, int g, int b)`
+- `RgbFilterBlock.Configure(LightColor target)`
+- `Bucket.Configure(LightColor target)`
+- `ColorPalette.Configure(int r, int g, int b)`
+- `StackChanger.Configure(LightColor a, LightColor b)`
+- `ColorCanvas.Configure(int r, int g, int b)`
+
+**핵심 설계 포인트(재확인용)**: 로더 마지막에 `SceneLoadCompleted`를 발행하는 것만으로 LevelManager
+(캔버스 스캔), StageGuideController(정답 리스트 로드), StackChanger/ColorChanger 미리보기,
+FilterBlockBase 초기화가 전부 기존 로직 그대로 자동으로 맞물려 돎 — 별도 훅 불필요.
+
+**남은 미확정 사항**: 플레이어 스폰 지점을 에디터에서 어떻게 지정할지(3~4단계에서 정할 것).
+아직 별도 스폰 마커 기물 종류나 기본 스폰 규칙이 정해지지 않음.
+
+**3단계 코드 (신규 파일)**
+- `Assets/Scripts/MapEditor/PlacedTag.cs` — 배치된 오브젝트에 그리드 좌표를 붙여두는 꼬리표
+  (제거 입력 시 레이캐스트로 맞은 오브젝트가 어느 칸인지 역추적하는 용도).
+- `Assets/Scripts/MapEditor/MapEditController.cs` — 배치/제거 핵심 로직.
+  - `Update()`: `EventSystem.current.IsPointerOverGameObject()`로 UI 클릭은 걸러내고,
+    `InputManager.ReadInteract()`(좌클릭)=배치, `InputManager.ReadRemove()`(우클릭, 이번에 InputManager에
+    신규 추가)=제거.
+  - 배치 레이캐스트/그리드 스냅 규칙은 `MazeGeneratorEditor.TryGetTargetCell`과 동일(x,z=정수, y=정수+0.5).
+  - 내부적으로 `CustomStageLoader.PlaceBlock`/`PlaceFixture`(이번에 public으로 전환, 반환값도
+    정리)를 그대로 재사용해서 개별 배치 — 로더와 에디터 컨트롤러가 인스턴스화 로직을 공유함.
+  - 배치/제거할 때마다 `CustomStageData`(내부에서 계속 들고 있는 `data` 필드, `Data` 프로퍼티로 공개)를
+    같이 갱신 — 별도 "내보내기" 변환 단계 없이 바로 저장 가능한 상태 유지.
+  - 팔레트/파라미터 UI 연결용 public 메서드: `SelectBlockTool()`, `SelectFixtureTool(int)`,
+    `SetTitle(string)`, `SetPresetR/G/B(string)`, `SetPresetColorA/B(int)`.
+- `Assets/Scripts/Player/InputManager.cs`에 `ReadRemove()`(우클릭) 추가.
+- `Assets/Scripts/MapEditor/CustomStageLoader.cs`의 `PlaceBlock`/`PlaceFixture`를
+  `private static` → `public static`로 전환(위 재사용을 위함). 동작 변경 없음.
+
+**남은 에디터(유니티) 작업 — 3단계를 실제로 쓸 수 있게 하려면**
+1. ✅ `MapEditor.unity` 새 씬 생성 + Build Settings에 등록 — 완료(2026-09-11 확인).
+2. ⬜ 카메라/이동: 기존 Player 프리팹(FirstPersonController)을 배치하되, `InteractionController`는
+   비활성화(장거리 배치 클릭과 근접 상호작용 좌클릭이 같은 입력을 두고 충돌하므로) — 씬에 Player가
+   배치됐는지 아직 미확인, 확인 필요.
+3. ✅ 빈 오브젝트(`MapEditorController`)에 `MapEditController` 컴포넌트 추가, `prefabs` 필드에
+   `CustomStagePrefabs.asset` 연결 완료(2026-09-11 확인).
+4. ⬜ UI Canvas: 기물 팔레트 버튼(HotBar, 씬에 이미 배치됨) → OnClick을 `SelectBlockTool()` /
+   `SelectFixtureTool(int)`(정수 파라미터로 FixtureType 순서 지정)에 연결 — **아직 미배선**
+   (`m_Calls: []`로 확인됨, 2026-09-11).
+5. ⬜ 파라미터 입력 UI(RGBInput 패널, 씬에 이미 배치됨) → `SetPresetR/G/B(string)`,
+   `SetPresetColorA/B(int)`에 연결 — **아직 미배선**. 색상 A/B(스택체인저/RGB필터/버킷용) 선택 UI는
+   씬에서 아직 확인 안 됨, 추가 배치가 필요할 수 있음.
+
+**부수 작업(같은 세션에서 별도로 진행, 맵 에디터와 직접 관련은 없지만 ColorCanvas를 건드림)**
+- `ColorCanvas`가 `LateUpdate()`에서 Y축만 기준으로 플레이어 쪽을 바라보도록 회전.
+- 기존 Chapter1~7 모든 씬의 캔버스 27개 인스턴스의 Y축 회전을 0으로 일괄 정리(스크립트로 처리,
+  자식 오브젝트 회전은 건드리지 않음).

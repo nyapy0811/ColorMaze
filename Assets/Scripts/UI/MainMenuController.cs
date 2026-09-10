@@ -18,6 +18,7 @@ public class MainMenuController : GameStateListener
 {
     [Header("패널")]
     [SerializeField] GameObject mainPanel;
+    [SerializeField] GameObject modeSelectionPanel; // 챕터 진행/맵 에디터/커스텀 맵 중 고르는 패널
     [SerializeField] GameObject stageSelectPanel; // 챕터 목록 패널 (챕터+스테이지+미리보기 전부 포함)
     [SerializeField] GameObject settingsPanel;
     [SerializeField] GameObject stagePanelRoot; // 스테이지 스크롤 (챕터를 골라야 보임)
@@ -42,6 +43,7 @@ public class MainMenuController : GameStateListener
 
     protected override void Start()
     {
+        if (modeSelectionPanel) modeSelectionPanel.SetActive(false);
         if (stageSelectPanel) stageSelectPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
         if (stagePanelRoot) stagePanelRoot.SetActive(false);
@@ -79,7 +81,8 @@ public class MainMenuController : GameStateListener
 
         bool settingsOpen = settingsPanel && settingsPanel.activeSelf;
         bool stageSelectOpen = stageSelectPanel && stageSelectPanel.activeSelf;
-        if (settingsOpen || stageSelectOpen) OnBackToMainButton();
+        bool modeSelectOpen = modeSelectionPanel && modeSelectionPanel.activeSelf;
+        if (settingsOpen || stageSelectOpen || modeSelectOpen) OnBackToMainButton();
     }
 
     /// <summary>메인 패널(챕터/설정 선택 이전 첫 화면)이 보이는 동안 0을 정해진 시간 안에
@@ -106,6 +109,7 @@ public class MainMenuController : GameStateListener
         if (mainPanel) mainPanel.SetActive(show);
         if (!show)
         {
+            if (modeSelectionPanel) modeSelectionPanel.SetActive(false);
             if (stageSelectPanel) stageSelectPanel.SetActive(false);
             if (settingsPanel) settingsPanel.SetActive(false);
             if (stagePanelRoot) stagePanelRoot.SetActive(false);
@@ -118,16 +122,49 @@ public class MainMenuController : GameStateListener
 
     // --- 버튼 OnClick 연결용 ---
 
-    /// <summary>메인 패널을 숨기고 스테이지 선택 패널을 보여준다.</summary>
+    /// <summary>메인 패널을 숨기고 모드 선택 패널(챕터 진행/맵 에디터/커스텀 맵)을 보여준다.</summary>
+    public void OnModeSelectButton()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        if (mainPanel) mainPanel.SetActive(false);
+        if (modeSelectionPanel) modeSelectionPanel.SetActive(true);
+    }
+
+    /// <summary>모드 선택 패널을 숨기고 스테이지 선택 패널을 보여준다.</summary>
     public void OnStageSelectButton()
     {
         GameAudio.Instance.PlayButtonClick();
         if (mainPanel) mainPanel.SetActive(false);
+        if (modeSelectionPanel) modeSelectionPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
         if (stageSelectPanel) stageSelectPanel.SetActive(true);
 
         ResetSelection();
         RefreshChapterButtons();
+    }
+
+    /// <summary>맵 에디터 씬으로 이동한다(아직 씬이 빌드에 없으면 진입하지 않고 로그만 남긴다).</summary>
+    public void OnMapEditorButton()
+    {
+        const string sceneName = "MapEditor";
+        if (!SceneRegistry.IsRegistered(sceneName))
+        {
+            Debug.Log($"[MainMenu] '{sceneName}' 씬이 아직 준비되지 않았습니다.");
+            GameAudio.Instance.PlayNope();
+            return;
+        }
+
+        GameAudio.Instance.PlayButtonClick();
+        GameManager.Instance.StartGame();
+        SceneLoader.Instance.Load(sceneName);
+    }
+
+    /// <summary>저장된 커스텀(유저 제작) 맵 목록으로 이동한다.
+    /// TODO: 목록 UI가 아직 없음(맵 에디터 저장/불러오기 단계에서 구현 예정) — 그때까지는 안내만 한다.</summary>
+    public void OnCustomMapButton()
+    {
+        Debug.Log("[MainMenu] 커스텀 맵 목록은 아직 준비 중입니다.");
+        GameAudio.Instance.PlayNope();
     }
 
     /// <summary>챕터/스테이지 선택 상태를 전부 초기화한다(챕터 목록에 다시 들어올 때마다 호출).</summary>
@@ -284,10 +321,11 @@ public class MainMenuController : GameStateListener
         if (settingsPanel) settingsPanel.SetActive(true);
     }
 
-    /// <summary>스테이지 선택/설정 패널을 숨기고 메인 패널로 돌아간다.</summary>
+    /// <summary>모드 선택/스테이지 선택/설정 패널을 숨기고 메인 패널로 돌아간다.</summary>
     public void OnBackToMainButton()
     {
         GameAudio.Instance.PlayButtonClick();
+        if (modeSelectionPanel) modeSelectionPanel.SetActive(false);
         if (stageSelectPanel) stageSelectPanel.SetActive(false);
         if (settingsPanel) settingsPanel.SetActive(false);
         if (mainPanel) mainPanel.SetActive(true);

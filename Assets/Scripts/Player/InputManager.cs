@@ -50,6 +50,13 @@ public class InputManager : MonoSingleton<InputManager>
         return mouse != null && mouse.leftButton.wasPressedThisFrame;
     }
 
+    /// <summary>이번 프레임에 제거 입력(마우스 우클릭)을 눌렀는지 — 인게임 맵 에디터용.</summary>
+    public bool ReadRemove()
+    {
+        var mouse = Mouse.current;
+        return mouse != null && mouse.rightButton.wasPressedThisFrame;
+    }
+
     /// <summary>이번 프레임에 숫자 0 키(메인 자판/숫자패드 공용)를 눌렀는지.</summary>
     public bool ReadDigit0()
     {

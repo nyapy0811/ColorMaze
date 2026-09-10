@@ -48,7 +48,8 @@ public static class CustomStageLoader
         return maze;
     }
 
-    static void PlaceBlock(BlockEntry block, CustomStagePrefabs prefabs, Transform parent)
+    /// <summary>블록 하나를 Instantiate한다(MapEditController가 개별 배치할 때도 재사용).</summary>
+    public static GameObject PlaceBlock(BlockEntry block, CustomStagePrefabs prefabs, Transform parent)
     {
         Vector3 pos = new Vector3(block.x, block.y + 0.5f, block.z);
 
@@ -64,9 +65,11 @@ public static class CustomStageLoader
             go.transform.position = pos;
         }
         go.name = "Block";
+        return go;
     }
 
-    static MapObjectBase PlaceFixture(FixtureEntry fixture, CustomStagePrefabs prefabs, Transform parent)
+    /// <summary>기물 하나를 Instantiate하고 파라미터를 적용한다(MapEditController가 개별 배치할 때도 재사용).</summary>
+    public static MapObjectBase PlaceFixture(FixtureEntry fixture, CustomStagePrefabs prefabs, Transform parent)
     {
         var prefab = prefabs.PrefabFor(fixture.type);
         if (prefab == null) return null;

@@ -38,6 +38,8 @@ public class ColorCanvas : ClearObjectBase
     }
 
     // 캔버스 전체를 Y축 기준으로만 플레이어 쪽으로 회전시킨다(기울어지지 않고 수평으로만 돎).
+    // 표시면은 로컬 -Z쪽이라(ApplyTargetLabel의 Vector3.back 기준과 동일) +Z가 아니라 -Z가
+    // 플레이어를 향하도록 뒤집어서 LookRotation한다.
     // 라벨은 캔버스의 자식이라 별도 처리 없이 같이 따라 돈다.
     void LateUpdate()
     {
@@ -47,7 +49,7 @@ public class ColorCanvas : ClearObjectBase
         dir.y = 0f;
         if (dir.sqrMagnitude < 0.0001f) return;
 
-        transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+        transform.rotation = Quaternion.LookRotation(-dir, Vector3.up);
     }
 
     // stackColorRenderers 전체를 목표 스택 값이 나타내는 색으로 표시한다.

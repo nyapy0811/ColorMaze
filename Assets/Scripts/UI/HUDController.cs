@@ -1,4 +1,3 @@
-using Framework.Core;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +12,6 @@ public class HUDController : GameStateListener
 
     protected override void OnGameStateChanged(GameState previous, GameState next)
     {
-        if (hudRoot) hudRoot.SetActive(next != GameState.MainMenu);
+        if (hudRoot) hudRoot.SetActive(next != GameState.MainMenu && next != GameState.MapEditor);
     }
 }

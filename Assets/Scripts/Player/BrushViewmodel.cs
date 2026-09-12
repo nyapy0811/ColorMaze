@@ -38,7 +38,7 @@ public class BrushViewmodel : GameStateListener
 
     protected override void OnGameStateChanged(GameState previous, GameState next)
     {
-        if (brushRoot) brushRoot.SetActive(next != GameState.MainMenu);
+        if (brushRoot) brushRoot.SetActive(next != GameState.MainMenu && next != GameState.MapEditor);
     }
 
     void RefreshColor()

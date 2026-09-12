@@ -25,7 +25,7 @@ public class PauseMenuController : GameStateListener
         if (!InputManager.Instance.ReadPause()) return;
 
         var gm = GameManager.Instance;
-        if (gm.State == GameState.Playing) gm.Pause();
+        if (gm.State == GameState.Playing || gm.State == GameState.MapEditor) gm.Pause();
         else if (gm.State == GameState.Paused) gm.Resume();
     }
 

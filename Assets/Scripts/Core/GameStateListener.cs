@@ -1,4 +1,3 @@
-using Framework.Core;
 using UnityEngine;
 
 /// <summary>

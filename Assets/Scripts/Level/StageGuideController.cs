@@ -12,16 +12,16 @@ public class StageGuideController : MonoSingleton<StageGuideController>
 {
     public bool GuideActive { get; private set; }
 
-    List<MapObjectBase> list1 = new();
-    List<MapObjectBase> list2 = new();
-    int index1;
-    int index2;
+    List<List<MapObjectBase>> lists = new();
+    List<int> indices = new();
 
-    /// <summary>리스트1의 현재 타깃(다음에 써야 할 기물). 다 썼거나 가이드가 꺼져 있으면 null.</summary>
-    public MapObjectBase Current1 => GuideActive && index1 < list1.Count ? list1[index1] : null;
+    /// <summary>지금 추적 중인 순서 목록 개수(챕터 스테이지는 최대 2, 맵 에디터 스테이지는 최대 7).</summary>
+    public int ListCount => lists.Count;
 
-    /// <summary>리스트2의 현재 타깃. 다 썼거나 가이드가 꺼져 있으면 null.</summary>
-    public MapObjectBase Current2 => GuideActive && index2 < list2.Count ? list2[index2] : null;
+    /// <summary>i번째 순서 목록의 현재 타깃(다음에 써야 할 기물). 범위를 벗어나거나 다 썼거나 가이드가
+    /// 꺼져 있으면 null.</summary>
+    public MapObjectBase CurrentTarget(int i) =>
+        GuideActive && i >= 0 && i < lists.Count && indices[i] < lists[i].Count ? lists[i][indices[i]] : null;
 
     void OnEnable()
     {
@@ -46,29 +46,29 @@ public class StageGuideController : MonoSingleton<StageGuideController>
     public void Deactivate()
     {
         GuideActive = false;
-        list1.Clear();
-        list2.Clear();
-        index1 = 0;
-        index2 = 0;
+        lists.Clear();
+        indices.Clear();
     }
 
     // 가이드가 켜진 채로 씬이 (다시) 로드됐을 때만 그 씬의 정답 순서를 읽어와 처음부터 추적을 시작한다.
+    // 맵 에디터 커스텀 스테이지(correctOrders 사용)와 기존 챕터 스테이지(correctOrder1/2 고정 2개)를
+    // 여기서 하나로 합류시켜서, 마커 HUD 등 하위 소비자는 어느 쪽 스테이지인지 신경 쓸 필요가 없다.
     void OnSceneLoaded(SceneLoadCompleted e)
     {
         if (!GuideActive) return;
 
         var maze = FindFirstObjectByType<MazeGenerator>();
-        list1 = maze != null ? maze.correctOrder1 : new List<MapObjectBase>();
-        list2 = maze != null ? maze.correctOrder2 : new List<MapObjectBase>();
-        index1 = 0;
-        index2 = 0;
+        lists = maze != null && maze.correctOrders.Count > 0
+            ? maze.correctOrders
+            : maze != null ? new List<List<MapObjectBase>> { maze.correctOrder1, maze.correctOrder2 } : new();
+        indices = new List<int>(new int[lists.Count]);
     }
 
     void OnMapObjectUsed(MapObjectUsed e)
     {
         if (!GuideActive) return;
 
-        if (index1 < list1.Count && list1[index1] == e.Source) index1++;
-        if (index2 < list2.Count && list2[index2] == e.Source) index2++;
+        for (int i = 0; i < lists.Count; i++)
+            if (indices[i] < lists[i].Count && lists[i][indices[i]] == e.Source) indices[i]++;
     }
 }

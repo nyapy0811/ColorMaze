@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -24,12 +25,30 @@ public class MapEditController : MonoBehaviour
     [SerializeField] Color hotBarNormalColor = Color.white;
     [SerializeField] Color hotBarSelectedColor = Color.yellow;
 
+    [SerializeField] Transform orderListContent;       // CorrectOrder/OrderList/Viewport/Content
+    [SerializeField] OrderListItemUI orderItemTemplate; // 위 Content 밑에 비활성 상태로 두는 항목 템플릿
+    [SerializeField] Transform canvasListContent;       // CorrectOrder/CanvasList/Viewport/Content
+    [SerializeField] CanvasCardUI canvasCardTemplate;   // 위 Content 밑에 비활성 상태로 두는 카드 템플릿
+    [SerializeField] Button addToOrderButton;           // 항상 고정 표시되는 "기물 추가" 버튼
+    [SerializeField] Color tabNormalColor = Color.white;
+    [SerializeField] Color tabSelectedColor = Color.yellow;
+
+    int selectedCanvasFixtureId = -1; // 지금 OrderList에 보여주는 캔버스의 기물 id. 없으면 -1
+
     readonly CustomStageData data = new();
     int nextFixtureId = 1;
 
     FixtureType? currentFixtureType; // null = 기본 블록
     int presetR, presetG, presetB;
     LightColor presetColorA, presetColorB;
+
+    // 배치/제거(Place)·값 수정(ValueEdit)·정답 순서 추가(AddToOrder)는 절대 중첩되지 않고 항상
+    // 정확히 1개만 활성화된다 — 이후 모드가 늘어나도 이 enum에 추가하는 방식으로 원칙을 유지한다.
+    enum EditorMode { Place, ValueEdit, AddToOrder }
+    EditorMode mode = EditorMode.Place;
+
+    FixtureEntry editingFixture;          // 값 수정 모드에서 재선택 중인 기물. null이면 편집 대상 없음
+    MapObjectBase editingFixtureInstance; // 위 기물의 실제 인스턴스 — 값 바뀔 때마다 즉시 시각 반영용
 
     // RGBSelect 패널은 단일 색상(RgbFilter/Bucket)과 두 색상(StackChanger, 3개 중 2개 선택) 선택에
     // 재사용된다. pendingColor/SetPendingColor는 기존 토글 onValueChanged 바인딩 때문에 남겨뒀지만
@@ -65,7 +84,11 @@ public class MapEditController : MonoBehaviour
 
         RegisterPreplacedBlocks();
 
+        if (addToOrderButton != null) addToOrderButton.onClick.AddListener(EnterAddToOrderMode);
+
         UpdateHotBarHighlight(1); // 기본 선택(블록) 표시
+        RefreshCanvasList();
+        RefreshOrderListUI();
     }
 
     // 씬에 미리 배치해 둔 시작용 블록(예: 발판용 "Block")을 Maze 밑으로 옮기고 정식 배치 데이터로
@@ -104,6 +127,7 @@ public class MapEditController : MonoBehaviour
             if (slot == 1) SelectBlockTool();
             else SelectFixtureTool(slot - 2);
         }
+        if (!IsParamPanelOpen && InputManager.Instance.ReadDigit0()) SelectEditTool();
 
         // 스페이스바로도 Confirm 버튼과 동일하게 확정할 수 있게 한다(마우스 포인터 위치와 무관).
         if (IsParamPanelOpen && InputManager.Instance.ReadConfirm())
@@ -117,6 +141,18 @@ public class MapEditController : MonoBehaviour
         {
             HideHoverPreview();
             return;
+        }
+
+        switch (mode)
+        {
+            case EditorMode.ValueEdit:
+                HideHoverPreview(); // 설치/제거 미리보기는 이 모드에서 의미 없음
+                if (InputManager.Instance.ReadInteract()) TryEditFixtureAt();
+                return; // 설치·제거·드래그 범위는 전부 비활성
+            case EditorMode.AddToOrder:
+                HideHoverPreview();
+                if (InputManager.Instance.ReadInteract()) TryAddFixtureAt();
+                return; // 설치·제거·드래그 범위는 전부 비활성
         }
 
         HandleDragRect();
@@ -144,6 +180,83 @@ public class MapEditController : MonoBehaviour
     void TryRemove()
     {
         if (TryGetRemoveTargetCell(out Vector3Int cell)) RemoveCell(cell);
+    }
+
+    // 값 수정 모드 전용 — 마우스가 가리키는 기존 기물을 재선택해서 파라미터 편집 패널을 연다.
+    // 블록(기물 아님)을 가리키면 편집할 파라미터가 없으므로 조용히 무시한다.
+    void TryEditFixtureAt()
+    {
+        if (!TryGetRemoveTargetCell(out Vector3Int cell)) return;
+        if (!cells.TryGetValue(cell, out var placed) || placed.Fixture == null) return;
+        BeginEditFixture(placed.Fixture, placed.GameObject);
+    }
+
+    // 기물 리스트 추가 모드 전용 — 마우스가 가리키는 기존 기물을 지금 선택된 캔버스의 정답 순서
+    // 끝에 즉시 추가한다(파라미터 패널 없이). 선택된 캔버스가 없으면 아무 일도 하지 않는다.
+    void TryAddFixtureAt()
+    {
+        var order = SelectedOrder;
+        if (order == null) return; // 캔버스 카드를 먼저 선택해야 함
+
+        if (!TryGetRemoveTargetCell(out Vector3Int cell)) return;
+        if (!cells.TryGetValue(cell, out var placed) || placed.Fixture == null) return;
+
+        if (!order.orderFixtureIds.Contains(placed.Fixture.id))
+        {
+            order.orderFixtureIds.Add(placed.Fixture.id);
+            RefreshOrderListUI();
+        }
+    }
+
+    void BeginEditFixture(FixtureEntry fixture, GameObject go)
+    {
+        editingFixture = fixture;
+        editingFixtureInstance = go.GetComponent<MapObjectBase>();
+
+        switch (fixture.type)
+        {
+            case FixtureType.ColorFilter:
+            case FixtureType.Canvas:
+            case FixtureType.Palette:
+                SetPanelActive(rgbInputPanel, true);
+                SetPanelActive(rgbSelectPanel, false);
+                if (rgbInputField != null)
+                    rgbInputField.text = $"{fixture.paramR:D2}{fixture.paramG:D2}{fixture.paramB:D2}";
+                break;
+            case FixtureType.RgbFilter:
+            case FixtureType.Bucket:
+                SetPanelActive(rgbInputPanel, false);
+                SetPanelActive(rgbSelectPanel, true);
+                SetTogglesForEdit(fixture.paramColorA);
+                break;
+            case FixtureType.StackChanger:
+                SetPanelActive(rgbInputPanel, false);
+                SetPanelActive(rgbSelectPanel, true);
+                SetTogglesForEdit(fixture.paramColorA, fixture.paramColorB);
+                break;
+            default: // ColorChanger 등 파라미터 없는 기물 — 패널은 없지만 정답 순서 추가 대상으로는 계속 선택돼 있음
+                HideParamPanels();
+                break;
+        }
+    }
+
+    void SetTogglesForEdit(params LightColor[] selected)
+    {
+        for (int i = 0; i < rgbSelectToggles.Length; i++)
+            if (rgbSelectToggles[i] != null)
+                rgbSelectToggles[i].isOn = System.Array.IndexOf(selected, (LightColor)i) >= 0;
+    }
+
+    void RefreshEditingVisual()
+    {
+        if (editingFixtureInstance != null) CustomStageLoader.ApplyParams(editingFixtureInstance, editingFixture);
+    }
+
+    void EndEdit()
+    {
+        editingFixture = null;
+        editingFixtureInstance = null;
+        HideParamPanels();
     }
 
     // 마우스가 가리키는 기존 배치물의 칸. 실제 모양과 무관하게 항상 블록 크기로 판정한다
@@ -206,8 +319,14 @@ public class MapEditController : MonoBehaviour
         data.blocks.Add(entry);
     }
 
+    // 캔버스(FixtureType.Canvas)는 배치될 때마다 정답 순서가 하나씩 자동으로 생기므로, 무지개 7색
+    // 마커 한도에 맞춰 최대 7개까지만 배치할 수 있다.
+    int CanvasCount => data.fixtures.Count(f => f.type == FixtureType.Canvas);
+
     void PlaceFixtureAt(Vector3Int cell, FixtureType type)
     {
+        if (type == FixtureType.Canvas && CanvasCount >= 7) return;
+
         var entry = new FixtureEntry
         {
             id = nextFixtureId++,
@@ -222,6 +341,12 @@ public class MapEditController : MonoBehaviour
 
         Register(cell, instance.gameObject, null, entry);
         data.fixtures.Add(entry);
+
+        if (type == FixtureType.Canvas)
+        {
+            data.canvasOrders.Add(new CanvasOrderEntry { canvasFixtureId = entry.id });
+            RefreshCanvasList();
+        }
 
         if (IsFilter(type)) FilterBlockBase.RebuildAll();
     }
@@ -240,8 +365,14 @@ public class MapEditController : MonoBehaviour
         if (placed.Fixture != null)
         {
             data.fixtures.Remove(placed.Fixture);
-            data.correctOrder1FixtureIds.Remove(placed.Fixture.id);
-            data.correctOrder2FixtureIds.Remove(placed.Fixture.id);
+            foreach (var order in data.canvasOrders) order.orderFixtureIds.Remove(placed.Fixture.id);
+
+            if (placed.Fixture.type == FixtureType.Canvas)
+            {
+                data.canvasOrders.RemoveAll(c => c.canvasFixtureId == placed.Fixture.id);
+                if (selectedCanvasFixtureId == placed.Fixture.id) selectedCanvasFixtureId = -1;
+                RefreshCanvasList();
+            }
         }
 
         bool wasFilter = placed.Fixture != null && IsFilter(placed.Fixture.type);
@@ -249,6 +380,7 @@ public class MapEditController : MonoBehaviour
         Object.Destroy(placed.GameObject);
 
         if (wasFilter) FilterBlockBase.RebuildAll();
+        if (placed.Fixture != null) RefreshOrderListUI(); // 지운 기물이 순서 목록에 있었을 수도 있음
     }
 
     static bool IsFilter(FixtureType type) => type == FixtureType.ColorFilter || type == FixtureType.RgbFilter;
@@ -484,9 +616,35 @@ public class MapEditController : MonoBehaviour
     /// <summary>다음 클릭부터 기본 블록을 설치하도록 전환한다.</summary>
     public void SelectBlockTool()
     {
+        mode = EditorMode.Place;
+        editingFixture = null;
+        editingFixtureInstance = null;
         currentFixtureType = null;
         HideParamPanels();
         UpdateHotBarHighlight(1);
+    }
+
+    /// <summary>핫바 숫자 0 — 값 수정 모드로 전환한다. 이 모드에서는 설치·제거·드래그 범위 설치가
+    /// 전부 비활성화되고(카메라 이동은 영향 없음), 좌클릭은 대신 기존 기물을 재선택해 파라미터를
+    /// 편집하는 데 쓰인다.</summary>
+    public void SelectEditTool()
+    {
+        mode = EditorMode.ValueEdit;
+        currentFixtureType = null;
+        HideParamPanels();
+        UpdateHotBarHighlight(0); // 임시: 전용 슬롯 UI가 없어 그냥 기존 하이라이트를 전부 끔
+    }
+
+    /// <summary>CorrectOrder 패널의 "기물 추가" 버튼 OnClick에 연결 — 기물 리스트 추가 모드로 전환한다.
+    /// 이 모드에서는 값 수정 모드와 마찬가지로 설치·제거가 비활성화되고, 좌클릭한 기물이 지금 선택된
+    /// 캔버스 카드의 정답 순서에 파라미터 패널 없이 바로 추가된다.</summary>
+    public void EnterAddToOrderMode()
+    {
+        mode = EditorMode.AddToOrder;
+        currentFixtureType = null;
+        editingFixture = null;
+        editingFixtureInstance = null;
+        HideParamPanels();
     }
 
     /// <summary>다음 클릭부터 지정한 기물을 설치하도록 전환한다. FixtureType의 int 값(순서)을 받는다
@@ -495,6 +653,9 @@ public class MapEditController : MonoBehaviour
     /// 최초 복귀는 재선택이 아니므로 기존 값이 유지된다.</summary>
     public void SelectFixtureTool(int type)
     {
+        mode = EditorMode.Place;
+        editingFixture = null;
+        editingFixtureInstance = null;
         var fixtureType = (FixtureType)type;
         bool reselecting = currentFixtureType.HasValue && currentFixtureType.Value == fixtureType;
         currentFixtureType = fixtureType;
@@ -578,9 +739,28 @@ public class MapEditController : MonoBehaviour
     /// <summary>맵 제목을 지정한다.</summary>
     public void SetTitle(string title) => data.title = title;
 
-    public void SetPresetR(string value) => int.TryParse(value, out presetR);
-    public void SetPresetG(string value) => int.TryParse(value, out presetG);
-    public void SetPresetB(string value) => int.TryParse(value, out presetB);
+    // 편집 중(editingFixture != null)이면 preset이 아니라 그 기물 필드에 바로 쓰고 즉시 시각 갱신,
+    // 아니면 다음 배치에 쓰일 preset 필드에 쓴다.
+    public void SetPresetR(string value)
+    {
+        if (!int.TryParse(value, out int v)) return;
+        if (editingFixture != null) { editingFixture.paramR = v; RefreshEditingVisual(); }
+        else presetR = v;
+    }
+
+    public void SetPresetG(string value)
+    {
+        if (!int.TryParse(value, out int v)) return;
+        if (editingFixture != null) { editingFixture.paramG = v; RefreshEditingVisual(); }
+        else presetG = v;
+    }
+
+    public void SetPresetB(string value)
+    {
+        if (!int.TryParse(value, out int v)) return;
+        if (editingFixture != null) { editingFixture.paramB = v; RefreshEditingVisual(); }
+        else presetB = v;
+    }
 
     /// <summary>RGBInput 입력창("RRGGBB" 6자리, 2자리씩 R/G/B)의 OnValueChanged에 연결.</summary>
     public void SetPresetRGB(string value)
@@ -591,16 +771,31 @@ public class MapEditController : MonoBehaviour
         SetPresetB(value.Substring(4, 2));
     }
 
-    /// <summary>LightColor 드롭다운(Red=0, Green=1, Blue=2)의 OnValueChanged에 바로 연결.</summary>
-    public void SetPresetColorA(int index) => presetColorA = (LightColor)index;
-    public void SetPresetColorB(int index) => presetColorB = (LightColor)index;
+    /// <summary>LightColor 드롭다운(Red=0, Green=1, Blue=2)의 OnValueChanged에 바로 연결.
+    /// 편집 중(editingFixture != null)이면 preset이 아니라 그 기물 필드에 바로 쓴다.</summary>
+    public void SetPresetColorA(int index)
+    {
+        if (editingFixture != null) editingFixture.paramColorA = (LightColor)index;
+        else presetColorA = (LightColor)index;
+    }
+
+    public void SetPresetColorB(int index)
+    {
+        if (editingFixture != null) editingFixture.paramColorB = (LightColor)index;
+        else presetColorB = (LightColor)index;
+    }
 
     /// <summary>RGBSelect의 Red/Green/Blue 토글 OnValueChanged에 정적 인자(0/1/2)로 연결.
     /// 실제 A/B 반영은 Confirm 클릭 시(ConfirmColorSelect)에 이뤄진다.</summary>
     public void SetPendingColor(int index) => pendingColor = (LightColor)index;
 
-    /// <summary>RGBInput의 Confirm 버튼 OnClick에 연결 — 입력은 이미 실시간 반영되므로 패널만 닫는다.</summary>
-    public void ConfirmRGBInput() => HideParamPanels();
+    /// <summary>RGBInput의 Confirm 버튼 OnClick에 연결 — 입력은 이미 실시간 반영되므로 편집 중이 아니면
+    /// 패널만 닫고, 편집 중이면 편집 모드까지 함께 종료한다.</summary>
+    public void ConfirmRGBInput()
+    {
+        if (editingFixture != null) EndEdit();
+        else HideParamPanels();
+    }
 
     /// <summary>RGBSelect의 Confirm 버튼 OnClick에 연결. StackChanger는 3개 중 정확히 2개가 선택돼
     /// 있어야(배열 순서상 앞쪽이 A, 뒤쪽이 B) 한 번에 확정되고, 그 외(RgbFilter/Bucket)는 정확히
@@ -612,7 +807,8 @@ public class MapEditController : MonoBehaviour
             if (rgbSelectToggles[i] != null && rgbSelectToggles[i].isOn)
                 on.Add(i);
 
-        if (currentFixtureType == FixtureType.StackChanger)
+        FixtureType type = editingFixture != null ? editingFixture.type : currentFixtureType.Value;
+        if (type == FixtureType.StackChanger)
         {
             if (on.Count != 2) return; // 정확히 2개 선택돼야 확정 — 아니면 패널 유지
             SetPresetColorA(on[0]);
@@ -624,6 +820,95 @@ public class MapEditController : MonoBehaviour
             SetPresetColorA(on[0]);
         }
 
-        HideParamPanels();
+        if (editingFixture != null) { RefreshEditingVisual(); EndEdit(); }
+        else HideParamPanels();
+    }
+
+    // --- 캔버스별 정답 순서 패널 연결용 ---
+
+    /// <summary>지금 OrderList에 표시 중인 캔버스의 정답 순서. 선택된 캔버스가 없으면 null.</summary>
+    CanvasOrderEntry SelectedOrder => data.canvasOrders.Find(c => c.canvasFixtureId == selectedCanvasFixtureId);
+
+    readonly List<CanvasCardUI> canvasCardInstances = new();
+
+    /// <summary>CanvasList의 캔버스 카드 클릭 시 호출 — 그 캔버스의 정답 순서를 OrderList에 표시한다.</summary>
+    public void SelectCanvasOrder(int canvasFixtureId)
+    {
+        selectedCanvasFixtureId = canvasFixtureId;
+        UpdateCanvasCardHighlight();
+        RefreshOrderListUI();
+    }
+
+    // CanvasList를 지금 배치된 캔버스 개수(data.canvasOrders)에 맞춰 다시 그린다 — OrderList와 동일한
+    // "숨긴 템플릿 복제" 패턴.
+    void RefreshCanvasList()
+    {
+        if (canvasListContent == null || canvasCardTemplate == null) return;
+
+        foreach (var c in canvasCardInstances) Object.Destroy(c.gameObject);
+        canvasCardInstances.Clear();
+
+        for (int i = 0; i < data.canvasOrders.Count; i++)
+        {
+            int canvasId = data.canvasOrders[i].canvasFixtureId;
+            var card = Object.Instantiate(canvasCardTemplate, canvasListContent);
+            card.gameObject.SetActive(true);
+            card.NumberText.text = (i + 1).ToString();
+            card.SelectButton.onClick.AddListener(() => SelectCanvasOrder(canvasId));
+            canvasCardInstances.Add(card);
+        }
+
+        UpdateCanvasCardHighlight();
+    }
+
+    void UpdateCanvasCardHighlight()
+    {
+        for (int i = 0; i < canvasCardInstances.Count; i++)
+            canvasCardInstances[i].CardImage.color =
+                data.canvasOrders[i].canvasFixtureId == selectedCanvasFixtureId ? tabSelectedColor : tabNormalColor;
+    }
+
+    void RefreshOrderListUI()
+    {
+        if (orderListContent == null || orderItemTemplate == null) return;
+
+        for (int i = orderListContent.childCount - 1; i >= 0; i--)
+        {
+            var child = orderListContent.GetChild(i);
+            // 항목 템플릿과 "기물 추가" 버튼(OrderList 안에 항상 고정으로 같이 있음)은 갱신 대상이 아님.
+            if (child == orderItemTemplate.transform) continue;
+            if (addToOrderButton != null && child == addToOrderButton.transform) continue;
+            Object.Destroy(child.gameObject);
+        }
+
+        var order = SelectedOrder;
+        if (order == null) return; // 선택된 캔버스가 없으면 빈 목록
+
+        for (int i = 0; i < order.orderFixtureIds.Count; i++)
+        {
+            int id = order.orderFixtureIds[i];
+            var fixture = data.fixtures.Find(f => f.id == id);
+            if (fixture == null) continue; // 방어적 처리(있을 수 없는 상태지만)
+
+            var item = Object.Instantiate(orderItemTemplate, orderListContent);
+            item.gameObject.SetActive(true);
+            int index = i; // 클로저 캡처용
+            item.OrderNumberText.text = $"{i + 1}";
+            item.ObjectNameText.text = $"{fixture.type} ({fixture.x},{fixture.y},{fixture.z})";
+            item.RemoveButton.onClick.AddListener(() => { SelectedOrder.orderFixtureIds.RemoveAt(index); RefreshOrderListUI(); });
+            item.UpButton.onClick.AddListener(() =>
+            {
+                var ids = SelectedOrder.orderFixtureIds;
+                if (index > 0) { (ids[index], ids[index - 1]) = (ids[index - 1], ids[index]); RefreshOrderListUI(); }
+            });
+            item.DownButton.onClick.AddListener(() =>
+            {
+                var ids = SelectedOrder.orderFixtureIds;
+                if (index < ids.Count - 1) { (ids[index], ids[index + 1]) = (ids[index + 1], ids[index]); RefreshOrderListUI(); }
+            });
+        }
+
+        // "기물 추가" 버튼은 항목이 몇 개든 항상 목록 가장 아래칸에 있어야 한다.
+        if (addToOrderButton != null) addToOrderButton.transform.SetAsLastSibling();
     }
 }

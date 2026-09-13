@@ -2,9 +2,11 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 스테이지 가이드가 켜져 있을 때, 정답 리스트의 "다음 순번" 기물 위치에 마커를 띄운다.
-/// 리스트1의 현재 타깃 = 빨강, 리스트2의 현재 타깃 = 파랑. 최대 2개만 뜨며, 기존 MapObjectMarkerHUD(모든
-/// 기물 마커)와는 별개로 같이 표시된다. 필터는 병합 그룹 중앙(GroupFillRenderer.bounds.center)을 가리킨다.
+/// 스테이지 가이드가 켜져 있을 때, 정답 리스트마다 "다음 순번" 기물 위치에 마커를 띄운다.
+/// 리스트 순서대로 무지개 7색(빨/주/노/초/파/남/보)을 배정한다 — 챕터 스테이지는 리스트가 최대 2개라
+/// 빨강/파랑만 쓰이고, 맵 에디터 커스텀 스테이지는 캔버스 개수(최대 7개)만큼 쓰인다. 기존
+/// MapObjectMarkerHUD(모든 기물 마커)와는 별개로 같이 표시된다. 필터는 병합 그룹
+/// 중앙(GroupFillRenderer.bounds.center)을 가리킨다.
 /// </summary>
 public class StageGuideMarkerHUD : MonoBehaviour
 {
@@ -22,13 +24,19 @@ public class StageGuideMarkerHUD : MonoBehaviour
     [Tooltip("일반 마커와 구분되도록 가이드 마커에 곱할 배율")]
     [SerializeField] float markerScale = 2f;
 
-    RectTransform marker1; // 리스트1 — 빨강
-    RectTransform marker2; // 리스트2 — 파랑
+    static readonly Color[] RainbowColors =
+    {
+        Color.red, new Color(1f, 0.5f, 0f), Color.yellow, Color.green,
+        Color.blue, new Color(0.29f, 0f, 0.51f), new Color(0.56f, 0f, 1f),
+    }; // 빨/주/노/초/파/남/보
+
+    RectTransform[] markers;
 
     void Awake()
     {
-        marker1 = CreateMarker(Color.red);
-        marker2 = CreateMarker(Color.blue);
+        markers = new RectTransform[RainbowColors.Length];
+        for (int i = 0; i < markers.Length; i++)
+            markers[i] = CreateMarker(RainbowColors[i]);
     }
 
     RectTransform CreateMarker(Color color)
@@ -48,8 +56,8 @@ public class StageGuideMarkerHUD : MonoBehaviour
         var cam = Camera.main;
         var guide = StageGuideController.Instance;
 
-        UpdateMarker(marker1, cam, guide.Current1);
-        UpdateMarker(marker2, cam, guide.Current2);
+        for (int i = 0; i < markers.Length; i++)
+            UpdateMarker(markers[i], cam, guide.CurrentTarget(i));
     }
 
     void UpdateMarker(RectTransform marker, Camera cam, MapObjectBase target)

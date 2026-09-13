@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 /// <summary>인게임 맵 에디터 전용 카메라 조작 — 유니티 Scene 뷰와 동일하게 마우스만으로 탐색한다.
 /// 우클릭+드래그=시점 회전, 휠클릭+드래그=평행 이동(Pan), 휠 스크롤=전후 이동(Dolly). 중력/충돌 없음.
@@ -35,7 +36,10 @@ public class EditorFlyCamera : MonoBehaviour
         if (InputManager.Instance.ReadRotateHeld()) Rotate();
         if (InputManager.Instance.ReadPanHeld()) Pan();
 
-        float dolly = InputManager.Instance.ReadDolly();
+        // 마우스 커서가 정답 순서 목록 같은 스크롤 UI 위에 있을 때는 휠 스크롤이 카메라 전후 이동으로
+        // 새지 않게 막는다 — UI 쪽 스크롤이 항상 우선.
+        bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        float dolly = overUI ? 0f : InputManager.Instance.ReadDolly();
         if (dolly != 0f) Dolly(dolly);
     }
 

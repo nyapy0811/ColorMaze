@@ -39,6 +39,16 @@ public class FixtureEntry
     public LightColor paramColorA, paramColorB;
 }
 
+/// <summary>캔버스(Canvas 기물) 하나에 대응하는 정답 순서 하나.</summary>
+[Serializable]
+public class CanvasOrderEntry
+{
+    /// <summary>이 순서가 속한 Canvas 기물의 id(FixtureEntry.id).</summary>
+    public int canvasFixtureId;
+    /// <summary>fixtures의 id를 순서대로 참조하는 정답 순서 목록.</summary>
+    public List<int> orderFixtureIds = new();
+}
+
 /// <summary>플레이어가 인게임 맵 에디터로 만든 스테이지 하나의 전체 데이터. JsonUtility로 직렬화한다
 /// (Dictionary는 지원하지 않으므로 전부 List 기반).</summary>
 [Serializable]
@@ -51,7 +61,8 @@ public class CustomStageData
     public List<BlockEntry> blocks = new();
     public List<FixtureEntry> fixtures = new();
 
-    /// <summary>fixtures의 id를 참조하는 정답 순서 목록(가이드 기능용). 리스트1=빨강, 리스트2=파랑.</summary>
-    public List<int> correctOrder1FixtureIds = new();
-    public List<int> correctOrder2FixtureIds = new();
+    /// <summary>캔버스(FixtureType.Canvas)마다 하나씩 자동으로 생기는 정답 순서(가이드 기능용).
+    /// 배치 순서대로 쌓이며 최대 7개(무지개 7색 마커 한도) — MapEditController가 캔버스 배치 개수를
+    /// 그 한도로 제한한다.</summary>
+    public List<CanvasOrderEntry> canvasOrders = new();
 }

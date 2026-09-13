@@ -1,13 +1,16 @@
 # 인게임 맵 에디터 설계 (초안)
 
 작성일: 2026-09-09
-최종 갱신: 2026-09-12
-상태: 1~3단계(배치/제거 로직 + 이벤트 배선) 전부 완료, **실제 Play 모드 사용자 테스트까지 통과**.
+최종 갱신: 2026-09-13
+상태: 1~4단계 전부 완료, **실제 Play 모드 사용자 테스트까지 통과**.
 `MapEditor.unity` 씬에서 숫자 1~8 키로 핫바 슬롯을 선택하고, 카메라 조작은 유니티 Scene 뷰와
 동일하게 마우스로(우클릭 회전/휠클릭 Pan/스크롤 Dolly) 하며, 좌클릭 설치·Ctrl+좌클릭 제거·
 Shift+드래그 범위 설치/제거까지 지원한다. 파라미터가 필요한 기물을 선택하면 RGBInput/RGBSelect
-패널이 뜨며, Confirm으로 값을 확정한다. 남은 건 4~6단계(배치된 기물 재선택 편집, 저장/불러오기,
-플레이 테스트 버튼)뿐 — § "구현 순서" 참고.
+패널이 뜨며, Confirm으로 값을 확정한다. 배치된 기물을 재선택해 값 수정("0"키 모드)도 가능하고,
+정답 순서는 고정 2개(빨강/파랑)가 아니라 **캔버스(Canvas 기물)를 배치할 때마다 하나씩 자동으로
+생기는 순서 목록**(최대 7개, 무지개 7색 마커) 방식으로 확장됐다 — 상세는 § "4단계: 기물 값 수정
+모드 + 캔버스별 정답 순서 시스템 (2026-09-13)" 참고. 남은 건 5~6단계(저장/불러오기, 플레이 테스트
+버튼)뿐 — § "구현 순서" 참고.
 
 ## 목적 / 대상
 
@@ -43,12 +46,18 @@ public class CustomStageData
     public string title;
     public List<BlockEntry> blocks = new();       // 일반 벽 블록
     public List<FixtureEntry> fixtures = new();   // 필터 포함 전체 기물
-    public List<int> correctOrder1FixtureIds = new(); // fixtures의 id를 참조 (리스트 인덱스 아님 — 편집 중 순서 변경에 안전)
-    public List<int> correctOrder2FixtureIds = new();
+    public List<CanvasOrderEntry> canvasOrders = new(); // 캔버스(Canvas 기물)마다 하나씩 자동 생성(최대 7개)
 }
 
 [Serializable]
 public class BlockEntry { public int x, y, z; }
+
+[Serializable]
+public class CanvasOrderEntry
+{
+    public int canvasFixtureId;           // 이 순서가 속한 Canvas 기물의 id
+    public List<int> orderFixtureIds = new(); // fixtures의 id를 참조 (리스트 인덱스 아님 — 편집 중 순서 변경에 안전)
+}
 
 [Serializable]
 public class FixtureEntry
@@ -67,9 +76,10 @@ public class FixtureEntry
 1. 일반 블록 → `wallBlockPrefab`이 비어있으면 `PrimitiveType.Cube`(에디터 기본값과 동일), 나중에
    전용 벽 프리팹이 생기면 그 필드에 넣기만 하면 자동으로 교체되도록 옵션 필드로 설계.
 2. 기물 → 타입별 프리팹(MazeGenerator가 들고 있는 것과 동일한 7종) Instantiate, 파라미터 적용.
-3. 빈 GameObject에 `MazeGenerator` 컴포넌트를 동적으로 붙이고 `correctOrder1/2`를 방금 생성한
-   실제 인스턴스 참조로 채움 → `StageGuideController`가 지금과 동일하게
-   `FindFirstObjectByType<MazeGenerator>()`로 읽어감(가이드 시스템 변경 불필요).
+3. 빈 GameObject에 `MazeGenerator` 컴포넌트를 동적으로 붙이고, `data.canvasOrders`의 각 항목을
+   실제 인스턴스 참조 리스트로 변환해 `MazeGenerator.correctOrders`(캔버스별 정답 순서 목록)에
+   채움 → `StageGuideController`가 챕터 스테이지용 `correctOrder1/2`와 이 `correctOrders`를 하나로
+   합쳐서 처리(§ "4단계" 참고, 가이드 시스템 하위 소비자는 변경 불필요).
 4. `FilterBlockBase.RebuildAll()` 호출(필터 병합 메시 생성 — 개발자용 에디터/썸네일 캡처와 동일 처리).
 
 ## 인게임 에디터 UI (새 씬, 예: `MapEditor.unity`)
@@ -78,8 +88,9 @@ public class FixtureEntry
   면 판정/그리드 스냅 로직(`TryGetTargetCell`)을 런타임 버전으로 그대로 이식.
 - 화면 하단 기물 팔레트 UI: 블록/컬러필터/RGB필터/버킷/캔버스/팔레트/컬러체인저/스택체인저.
 - 선택한 기물 타입에 맞는 파라미터 입력 UI(RGB 값 등 — 기존 에디터의 Preset 필드와 동일 개념).
-- 이미 배치된 기물 재선택 → 파라미터 수정 + "정답 리스트1/2에 추가" 버튼 + 순서 편집(리스트1=빨강,
-  리스트2=파랑 — 가이드 마커 색과 통일).
+- 이미 배치된 기물 재선택 → 값 수정 모드("0"키)에서 파라미터 재입력. 정답 순서는 캔버스를 배치할
+  때마다 하나씩 자동 생기며(최대 7개), "기물 추가" 모드로 전환해 좌클릭한 기물을 선택된 캔버스의
+  순서에 추가한다 — 상세는 § "4단계" 참고.
 
 ## 저장 / 공유
 
@@ -105,7 +116,8 @@ public class FixtureEntry
 2. ✅ 런타임 로더(데이터 → Instantiate → MazeGenerator 동적 부착 → RebuildAll) — 완료
 3. ✅ 배치/제거 입력 + 기물 팔레트·파라미터 입력용 public API + 이벤트 배선 — 전부 완료(2026-09-12).
    Player 프리팹도 씬에 배치돼 있고 `InteractionController.enabled = false`로 이미 비활성화 확인됨.
-4. ⬜ 배치된 기물 재선택 → 파라미터 수정 + 정답 리스트1/2 추가·순서 편집 UI
+4. ✅ 배치된 기물 재선택 → 파라미터 수정 + 캔버스별 정답 순서 추가·편집 UI — 완료(2026-09-13,
+   § "4단계" 참고).
 5. ⬜ 저장/불러오기(로컬 JSON) + "내 맵" 목록 UI
 6. ⬜ 플레이 테스트 버튼(로더 재사용)
 
@@ -394,6 +406,109 @@ FilterBlockBase 초기화가 전부 기존 로직 그대로 자동으로 맞물�
    내역" 참고, 2026-09-12).
 5. ✅ 파라미터 입력 UI(RGBInput 6자리 입력창, RGBSelect 토글+Confirm) → 전부 배선 완료, 색상
    A/B(스택체인저용) 2단계 선택 흐름까지 구현·검증 완료(2026-09-12).
+
+## 4단계: 기물 값 수정 모드 + 캔버스별 정답 순서 시스템 (2026-09-13)
+
+4단계 전체를 하위 단계(4-1/4-2/4-3)로 나눠서 진행했고, 사용자가 각 단계를 Play 모드에서 직접
+테스트해 전부 정상 동작을 확인했다.
+
+### 4-1. 값 수정 모드 뼈대
+
+기물을 재선택해 파라미터를 고치는 기능을 만들려는데, Alt+클릭·휠클릭 등 조합키 방식은 이미 다른
+기능(제거=Ctrl+좌클릭 등)과 겹치거나 매핑이 늘어질 수 있어 기각하고, 기존 핫바 도구 전환과 같은
+패턴의 **전용 모드**로 결정했다: 숫자 "0"키로 "값 수정 모드"에 진입, 이 모드에서는 설치/제거/드래그가
+전부 막히고 카메라 이동(회전/팬/돌리)만 가능하다.
+
+- `MapEditController`에 `bool isEditMode`(4-3에서 `EditorMode` enum으로 대체됨) 추가,
+  `SelectEditTool()`(0번 슬롯)에서 켜고 다른 도구 선택 시 꺼짐.
+- `Update()`에서 `isEditMode`일 때 설치/제거 로직 전체를 건너뛰고 `TryEditFixtureAt()`만 실행,
+  카메라 스크립트(`EditorFlyCamera`)는 별도 컴포넌트라 이 모드와 무관하게 계속 동작.
+
+### 4-2. 기물 재선택 → 실시간 파라미터 편집
+
+- `TryEditFixtureAt()`: 값 수정 모드에서 좌클릭한 칸의 기물을 찾아 `BeginEditFixture(FixtureEntry, GameObject)` 호출.
+- `editingFixture`/`editingFixtureInstance` 필드로 "지금 편집 중인 기물"을 추적. 편집 시작 시
+  기물 타입에 맞는 파라미터 패널(RGBInput/RGBSelect)을 띄우고 현재 값으로 초기화(`SetTogglesForEdit`).
+- 기존 `SetPresetR/G/B`·`SetPresetColorA/B`·`ConfirmRGBInput`·`ConfirmColorSelect`에
+  `editingFixture != null`일 때의 분기를 추가 — 새로 배치하는 게 아니라 기존 `FixtureEntry`의 값을
+  덮어쓰고 `RefreshEditingVisual()`로 씬의 실제 오브젝트에도 즉시 반영(`CustomStageLoader.ApplyParams`를
+  `public static`으로 전환해 재사용). Confirm을 누르면 `EndEdit()`으로 편집 상태 해제, 패널 닫힘.
+
+### 4-3(개정). 캔버스별 정답 순서 시스템 — 게임 로직까지 확장
+
+원래는 "정답 순서1/순서2"를 편집하는 UI만 만들 계획이었으나, 사용자가 직접 씬 UI를 만들어보며
+요구사항이 구체화됐고, 최종적으로 **정답 순서 자체를 게임 로직 레벨에서 캔버스 1개당 순서 1개**로
+확장하기로 했다(리스트 2개 고정 → N개, 최대 7개 — 마커 색을 무지개 7색으로 구분할 수 있는 한도).
+
+**가장 중요하게 발견한 제약**: `Assets/Scenes/Chapter1~7/*.unity` 70개 기존 씬이 전부
+`MazeGenerator.correctOrder1`/`correctOrder2` 필드를 인스펙터에 직접 값으로 채운 채 직렬화돼 있다
+(그레이드/맵 에디터가 아니라 개발자가 예전부터 손으로 만든 정식 레벨). 이 필드의 이름·타입을
+바꾸면 유니티 직렬화 매칭이 깨져 70개 레벨의 정답 순서가 조용히 날아간다. 그래서
+**`correctOrder1`/`correctOrder2`는 한 글자도 건드리지 않고 그대로 둔 채, 맵 에디터 전용 새 필드
+`correctOrders`를 추가하는 완전 additive 방식**으로 갔다. `CustomStageData`는 아직 저장 기능이
+없어 디스크에 저장된 파일이 없으므로, 여기서는 기존 `correctOrder1FixtureIds`/
+`correctOrder2FixtureIds`를 그냥 지우고 `canvasOrders` 구조로 교체했다(하위 호환 불필요).
+
+**게임 로직 (`Assets/Scripts/Level/`, `Assets/Scripts/UI/`)**
+- `MazeGenerator.cs`: 기존 `correctOrder1/2`는 그대로 두고, `correctOrders : List<List<MapObjectBase>>`
+  필드를 새로 추가(맵 에디터 전용, 비어 있으면 무시).
+- `StageGuideController.cs`: `list1/list2/index1/index2/Current1/Current2`를 리스트의 리스트
+  기반(`lists`/`indices`, `ListCount`/`CurrentTarget(int i)`)으로 일반화. 씬 로드 시
+  `correctOrders`가 있으면(맵 에디터 스테이지) 그걸 쓰고, 없으면(챕터 스테이지)
+  `correctOrder1`/`correctOrder2` 두 개를 리스트로 감싸서 그대로 쓴다 — 두 시스템이 여기서만
+  합류하고 하위 소비자는 소스 구분을 몰라도 된다.
+- `StageGuideMarkerHUD.cs`: 고정 2개(빨강/파랑) 마커를 무지개 7색 배열로 교체, `markers[i]`를
+  `guide.CurrentTarget(i)`로 갱신. 챕터 스테이지는 리스트가 최대 2개뿐이라 markers[2]~[6]은 항상
+  비활성 상태 그대로라 시각적 회귀 없음.
+- `MapObjectMarkerHUD.cs`: `pair.Key == guide.Current1 || pair.Key == guide.Current2` 비교를
+  `guide.ListCount`를 순회하는 `IsCurrentGuideTarget()` 헬퍼로 일반화.
+
+**데이터 모델 + 맵 에디터 로직 (`Assets/Scripts/MapEditor/`)**
+- `CustomStageData.cs`: `CanvasOrderEntry`(`canvasFixtureId` + `orderFixtureIds`) 클래스 신설,
+  `CustomStageData.canvasOrders : List<CanvasOrderEntry>`로 교체.
+- `CustomStageLoader.cs`: `Load()`가 `data.canvasOrders`를 순회하며 각각을 `MazeGenerator.correctOrders`에
+  채우도록 변경.
+- `MapEditController.cs`:
+  - **모드를 enum으로 통합**: `EditorMode { Place, ValueEdit, AddToOrder }` — "모드는 항상 정확히
+    1개만 활성화"라는 요구사항을 타입 수준에서 보장(기존 `isEditMode` bool 대체, 이후 모드가
+    늘어나도 이 구조 유지). `Update()`가 `switch (mode)`로 분기.
+  - **캔버스 배치 제한 + 순서 자동 생성**: 캔버스를 배치할 때마다 `data.canvasOrders`에 새 항목을
+    자동 추가(`CanvasOrderEntry { canvasFixtureId = entry.id }`), 이미 7개면 배치 자체를 막음.
+    캔버스를 제거하면 그 캔버스의 순서 항목도 삭제하고, 다른 모든 캔버스 순서에서도 그 기물 id를
+    제거(어떤 기물이 어느 캔버스 순서에 들어있었든 안전하게 정리).
+  - **"기물 추가" 모드**(`EnterAddToOrderMode()`): 값 수정 모드와 동일하게 설치/제거/드래그를
+    막고 카메라만 허용, 좌클릭한 기물을 **현재 선택된 캔버스 카드의 순서**에 즉시 추가
+    (`TryAddFixtureAt()`, 파라미터 패널 없이 바로 추가). 다른 도구/모드로 전환하면 자동 해제.
+  - `RefreshCanvasList()`/`RefreshOrderListUI()`: "숨긴 템플릿 복제" 패턴(템플릿은 항상
+    `SetActive(false)`로 씬에 남겨두고, 데이터 개수만큼 `Object.Instantiate`)으로 캔버스 카드 목록·
+    선택된 캔버스의 정답 순서 목록을 각각 동적으로 그림. 캔버스 카드 클릭(`SelectCanvasOrder`)
+    시 하이라이트 갱신 + OrderList를 그 캔버스 순서로 전환.
+- 새 파일 `CanvasCardUI.cs`(`NumberText`/`SelectButton`/`CardImage`), `OrderListItemUI.cs`
+  (`OrderNumberText`/`ObjectNameText`/`UpButton`/`DownButton`/`RemoveButton`) — 둘 다 씬의 리스트
+  항목 프리팹에 붙는 순수 필드 홀더.
+
+**씬 UI (`MapEditor.unity`)**: 사용자가 `UICanvas/CorrectOrder` 패널(캔버스 카드 가로 스크롤
+목록 `CanvasList`, 정답 순서 세로 스크롤 목록 `OrderList` + "기물 추가" 버튼)을 직접 만들었고,
+`CanvasCardUI`/`OrderListItemUI` 컴포넌트 연결, "기물 추가" 버튼 → `EnterAddToOrderMode` 연결,
+템플릿 카드 비활성화, `MapEditController`의 새 직렬화 필드 5개 연결은 Unity 라이브 에디터
+연동(`unity-connect`)으로 처리했다.
+
+**버그 수정 2건 (사용자가 UI 완성 후 Play 모드에서 발견)**
+1. 정답 순서 UI 위에서 마우스 휠을 굴리면 카메라가 전후로 움직였다 — `EditorFlyCamera.cs`의
+   Dolly 입력을 `EventSystem.current.IsPointerOverGameObject()`일 때 무시하도록 가드 추가.
+2. UI 리스트가 스크롤되는 것처럼 조금 움직이다 바로 원위치로 튕겨 돌아왔다(1칸도 못 내려감) —
+   원인은 `OrderList`/`CanvasList` 둘 다 `Content`에 `ContentSizeFitter`가 없어서, 스트레치
+   앵커로 고정된 RectTransform이 자식 개수와 무관하게 항상 Viewport 크기와 똑같았던 것(=
+   `ScrollRect` 입장에서 스크롤할 여백이 0). `OrderList/Content`에 `verticalFit=PreferredSize`,
+   `CanvasList/Content`에 `horizontalFit=PreferredSize`인 `ContentSizeFitter`를 추가하고,
+   `CanvasList`의 `ScrollRect`가 세로만 켜져 있던 것도 `horizontal=true, vertical=false`로
+   고쳐서 해결(가로로 늘어서는 카드 목록이라 원래 가로 스크롤이 맞음).
+
+**검증**: 캔버스 7개 + 기물 20개짜리 정답 순서를 리플렉션으로 임시 주입해 스크롤 동작을 먼저
+확인(테스트 종료 후 Play 모드 종료로 데이터는 저장 없이 폐기)했고, 이어서 사용자가 실제 조작으로
+캔버스 배치·7개 제한·카드 클릭 전환·"기물 추가" 모드(설치/제거 차단, 카메라 이동 허용)·모드
+배타성·캔버스 제거 시 순서 정리·OrderList 위/아래/삭제 버튼·기존 챕터 스테이지(1-1)의 빨강/파랑
+마커 회귀 여부까지 전부 Play 모드에서 직접 테스트해 정상 동작을 확인했다.
 
 **부수 작업(같은 세션에서 별도로 진행, 맵 에디터와 직접 관련은 없지만 ColorCanvas를 건드림)**
 - `ColorCanvas`가 `LateUpdate()`에서 Y축만 기준으로 플레이어 쪽을 바라보도록 회전.

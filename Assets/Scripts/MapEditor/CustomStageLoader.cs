@@ -38,8 +38,12 @@ public static class CustomStageLoader
         }
 
         var maze = root.AddComponent<MazeGenerator>();
-        FillCorrectOrder(maze.correctOrder1, data.correctOrder1FixtureIds, byId);
-        FillCorrectOrder(maze.correctOrder2, data.correctOrder2FixtureIds, byId);
+        foreach (var canvasOrder in data.canvasOrders)
+        {
+            var list = new List<MapObjectBase>();
+            FillCorrectOrder(list, canvasOrder.orderFixtureIds, byId);
+            maze.correctOrders.Add(list);
+        }
 
         FilterBlockBase.RebuildAll();
 
@@ -83,7 +87,9 @@ public static class CustomStageLoader
         return instance;
     }
 
-    static void ApplyParams(MapObjectBase instance, FixtureEntry fixture)
+    /// <summary>기물 인스턴스에 저장된 파라미터를 적용한다(재생성 로드뿐 아니라 맵 에디터의 값 수정
+    /// 모드에서 기존 기물 값을 실시간으로 재반영할 때도 재사용).</summary>
+    public static void ApplyParams(MapObjectBase instance, FixtureEntry fixture)
     {
         switch (instance)
         {

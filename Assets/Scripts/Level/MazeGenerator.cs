@@ -24,4 +24,8 @@ public class MazeGenerator : MonoBehaviour
     [Tooltip("정답 순서대로 기물을 끌어다 놓는 목록 2 (두 번째 서브 퍼즐 등, 없으면 비워둠)")]
     public System.Collections.Generic.List<MapObjectBase> correctOrder2 = new();
     // 두 목록 중 어디에도 없는 기물은 전부 더미/함정으로 취급한다(별도 목록 불필요).
+
+    [Tooltip("맵 에디터 커스텀 스테이지 전용 — 캔버스(서브 퍼즐)마다 하나씩 갖는 정답 순서 목록. 최대" +
+        " 7개(무지개 7색 마커 한도). 비어 있으면 무시되고 챕터 스테이지용 correctOrder1/2가 대신 쓰인다.")]
+    public System.Collections.Generic.List<System.Collections.Generic.List<MapObjectBase>> correctOrders = new();
 }

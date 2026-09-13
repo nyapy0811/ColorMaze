@@ -67,7 +67,7 @@ public class MapObjectMarkerHUD : MonoBehaviour
             }
 
             // 가이드 마커가 뜬 기물은 일반 마커를 끈다(같은 자리에 둘이 겹치지 않게 — 가이드가 우선).
-            bool isGuideTarget = guide.GuideActive && (pair.Key == guide.Current1 || pair.Key == guide.Current2);
+            bool isGuideTarget = guide.GuideActive && IsCurrentGuideTarget(guide, pair.Key);
             pair.Value.gameObject.SetActive(!isGuideTarget);
             if (isGuideTarget) continue;
 
@@ -85,4 +85,11 @@ public class MapObjectMarkerHUD : MonoBehaviour
     /// <summary>기물이 자기 markerPrefab을 지정했으면 그것을, 아니면 기본 마커를 쓴다.
     /// 새 기물 타입이 추가돼도 이 파일을 고칠 필요가 없다(MapObjectBase.markerPrefab 참고).</summary>
     GameObject PrefabFor(MapObjectBase obj) => obj.MarkerPrefab != null ? obj.MarkerPrefab : defaultMarkerPrefab;
+
+    static bool IsCurrentGuideTarget(StageGuideController guide, MapObjectBase obj)
+    {
+        for (int i = 0; i < guide.ListCount; i++)
+            if (guide.CurrentTarget(i) == obj) return true;
+        return false;
+    }
 }

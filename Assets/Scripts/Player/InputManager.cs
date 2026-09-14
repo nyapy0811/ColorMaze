@@ -108,23 +108,4 @@ public class InputManager : MonoSingleton<InputManager>
         return kb != null && (kb.digit0Key.wasPressedThisFrame || kb.numpad0Key.wasPressedThisFrame);
     }
 
-    /// <summary>이번 프레임에 숫자 1~8 키(메인 자판/숫자패드 공용) 중 눌린 게 있으면 그 번호(1~8)를
-    /// slot에 담아 true를 반환한다 — 인게임 맵 에디터의 핫바 슬롯 선택용.</summary>
-    public bool ReadHotBarSlot(out int slot)
-    {
-        var kb = Keyboard.current;
-        if (kb != null)
-        {
-            if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) { slot = 1; return true; }
-            if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame) { slot = 2; return true; }
-            if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) { slot = 3; return true; }
-            if (kb.digit4Key.wasPressedThisFrame || kb.numpad4Key.wasPressedThisFrame) { slot = 4; return true; }
-            if (kb.digit5Key.wasPressedThisFrame || kb.numpad5Key.wasPressedThisFrame) { slot = 5; return true; }
-            if (kb.digit6Key.wasPressedThisFrame || kb.numpad6Key.wasPressedThisFrame) { slot = 6; return true; }
-            if (kb.digit7Key.wasPressedThisFrame || kb.numpad7Key.wasPressedThisFrame) { slot = 7; return true; }
-            if (kb.digit8Key.wasPressedThisFrame || kb.numpad8Key.wasPressedThisFrame) { slot = 8; return true; }
-        }
-        slot = 0;
-        return false;
-    }
 }

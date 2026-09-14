@@ -17,13 +17,45 @@ public class MapEditController : MonoBehaviour
     [SerializeField] CustomStagePrefabs prefabs;
     [SerializeField] float maxPlaceDistance = 1000f;
     [SerializeField] LayerMask placementMask = ~0;
-    [SerializeField] GameObject rgbInputPanel;
-    [SerializeField] GameObject rgbSelectPanel;
-    [SerializeField] Toggle[] rgbSelectToggles; // Red, Green, Blue 순서로 연결(LightColor enum과 동일 순서)
-    [SerializeField] TMP_InputField rgbInputField; // 기물 재선택 시 텍스트 초기화용
-    [SerializeField] Image[] hotBarSlotImages; // 슬롯 1~8 순서로 연결
-    [SerializeField] Color hotBarNormalColor = Color.white;
-    [SerializeField] Color hotBarSelectedColor = Color.yellow;
+
+    [System.Serializable]
+    class FixtureValuePanel
+    {
+        public RectTransform buttonRect;   // 이 기물 버튼 자신의 RectTransform — 비활성 80 / 활성 160 높이 전환용
+        public GameObject panel;           // 버튼 밑에 인라인으로 달린 값 입력 컨테이너(Valueinput) — RGBInput/RGBSelect를 둘 다 자식으로 가짐
+        public GameObject rgbInputPanel;   // panel/RGBInput
+        public GameObject rgbSelectPanel;  // panel/RGBSelect
+        public TMP_InputField rgbField;    // panel/RGBInput 안의 TMP_InputField
+        public Image[] colorButtonImages;  // panel/RGBSelect 안의 Red/Green/Blue Image (RGBSelect류일 때만 연결)
+    }
+
+    // RGBInput(텍스트 입력)을 쓰는 기물 종류. 나머지 파라미터 필요 기물(RgbFilter/Bucket/StackChanger)은
+    // RGBSelect(색 버튼 클릭)를 쓴다. ColorChanger/Block은 애초에 파라미터가 없어 해당 없음.
+    static bool UsesRgbInput(FixtureType type) =>
+        type == FixtureType.ColorFilter || type == FixtureType.Canvas || type == FixtureType.Palette;
+
+    // RGBSelect 버튼(Red, Green, Blue 순서)의 원래(선택됨) 색. 선택 안 된 버튼은 흰색과 50% 섞어 연하게 표시한다.
+    static readonly Color[] ColorButtonBaseColors = { Color.red, Color.green, Color.blue };
+
+    static void UpdateColorButtonHighlight(Image[] images, IReadOnlyList<int> selected)
+    {
+        if (images == null) return;
+        for (int i = 0; i < images.Length; i++)
+        {
+            if (images[i] == null) continue;
+            bool isSelected = selected != null && selected.Contains(i);
+            images[i].color = isSelected ? ColorButtonBaseColors[i] : Color.Lerp(ColorButtonBaseColors[i], Color.white, 0.5f);
+        }
+    }
+
+    const float CollapsedButtonHeight = 80f;
+    const float ExpandedButtonHeight = 160f;
+
+    // ObjectButton(0=Block)~(7=StackChanger)과 동일한 인덱스. 파라미터가 필요 없는 기물(Block,
+    // ColorChanger)은 배열 항목의 panel을 비워둔다. 평소엔 버튼 높이 80에 패널 비활성 상태이다가, 그
+    // 버튼이 선택된 동안에만 높이 160으로 커지면서 패널이 활성화된다.
+    [SerializeField] FixtureValuePanel[] fixtureValuePanels;
+    [SerializeField] RectTransform objectListContent; // mode1Panel/ObjectList/Viewport/Content — 높이 변경 후 레이아웃 강제 재계산용
 
     [SerializeField] Transform orderListContent;       // CorrectOrder/OrderList/Viewport/Content
     [SerializeField] OrderListItemUI orderItemTemplate; // 위 Content 밑에 비활성 상태로 두는 항목 템플릿
@@ -33,27 +65,83 @@ public class MapEditController : MonoBehaviour
     [SerializeField] Color tabNormalColor = Color.white;
     [SerializeField] Color tabSelectedColor = Color.yellow;
 
+    [SerializeField] GameObject mode1Panel, mode2Panel, mode3Panel;
+    [SerializeField] Image[] modeTabImages;      // Mode1, Mode2, Mode3 순서
+    [SerializeField] Image[] objectButtonImages; // ObjectButton, (1)..(7) 순서 — 기물 팔레트 하이라이트용
+
+    // mode2Panel 전용 값 수정 파라미터 패널 — mode1Panel의 fixtureValuePanels와는 별개 오브젝트
+    [SerializeField] GameObject editRgbInputPanel;
+    [SerializeField] GameObject editRgbSelectPanel;
+    [SerializeField] TMP_InputField editRgbInputField;
+    [SerializeField] Image[] editColorButtonImages; // editRgbSelectPanel 안의 Red/Green/Blue Image
+
+    // 값 수정 모드에서 기물마다 뜨는 클릭 가능한 화면 마크
+    [SerializeField] Button editMarkTemplate;    // UICanvas 밑에 항상 비활성 상태로 두는 템플릿
+    [SerializeField] RectTransform editMarkRoot; // 화면 전체 크기 컨테이너
+
     int selectedCanvasFixtureId = -1; // 지금 OrderList에 보여주는 캔버스의 기물 id. 없으면 -1
 
     readonly CustomStageData data = new();
     int nextFixtureId = 1;
 
     FixtureType? currentFixtureType; // null = 기본 블록
-    int presetR, presetG, presetB;
-    LightColor presetColorA, presetColorB;
 
-    // 배치/제거(Place)·값 수정(ValueEdit)·정답 순서 추가(AddToOrder)는 절대 중첩되지 않고 항상
-    // 정확히 1개만 활성화된다 — 이후 모드가 늘어나도 이 enum에 추가하는 방식으로 원칙을 유지한다.
-    enum EditorMode { Place, ValueEdit, AddToOrder }
+    // 배치 모드의 파라미터 preset. 기물 종류별로 완전히 독립적으로 저장한다(예: RgbFilter에서 고른 색이
+    // Bucket이나 StackChanger에 새지 않도록) — 예전엔 전역 변수 하나를 모든 종류가 공유해서, 색을 안
+    // 골라도 이전에 다른 기물에 골랐던 색이 그대로 적용되는 버그가 있었다.
+    class PresetValues
+    {
+        public int r, g, b;
+        // RGBSelect류 최근 클릭 기록(중복 색 제거됨) — 단일 선택(RgbFilter/Bucket)은 1개,
+        // StackChanger는 2개가 모여야 유효한 선택으로 친다(colorClicks[0]=A, [1]=B).
+        public readonly List<int> colorClicks = new();
+    }
+
+    readonly Dictionary<FixtureType, PresetValues> presets = new();
+
+    PresetValues GetPreset(FixtureType type)
+    {
+        if (!presets.TryGetValue(type, out var p)) presets[type] = p = new PresetValues();
+        return p;
+    }
+
+    static int RequiredColorClicks(FixtureType type) => type == FixtureType.StackChanger ? 2 : 1;
+
+    // colorIndex를 clicks에 추가한다. 이미 들어있으면(같은 색 재클릭) 무시하고 false를 반환 — StackChanger에서
+    // 같은 색이 A/B에 중복 선택되는 걸 막는다. 꽉 차면(StackChanger 2개, 그 외 1개) 가장 오래된 것부터 밀어낸다.
+    static bool RegisterColorClick(List<int> clicks, int colorIndex, FixtureType type)
+    {
+        if (clicks.Contains(colorIndex)) return false;
+        clicks.Add(colorIndex);
+        int maxClicks = RequiredColorClicks(type);
+        while (clicks.Count > maxClicks) clicks.RemoveAt(0);
+        return true;
+    }
+
+    // 배치 가능 여부: 파라미터가 없는 기물(Block/ColorChanger)이거나 RGBInput류(항상 유효, 기본 0/0/0
+    // 허용)면 항상 true. RGBSelect류는 필요한 개수만큼 색을 실제로 골랐을 때만 true — 색을 안 고르고
+    // 재선택으로 초기화된 채로 설치하면 엉뚱한(예전엔 빨간색 기본값) 기물이 깔리던 버그를 막는다.
+    bool IsPlaceReady(FixtureType? type)
+    {
+        if (!type.HasValue) return true;
+        if (UsesRgbInput(type.Value) || type.Value == FixtureType.ColorChanger) return true;
+        return GetPreset(type.Value).colorClicks.Count == RequiredColorClicks(type.Value);
+    }
+
+    // 배치/제거(Place)·값 수정(ValueEdit)·정답 순서 추가(AddToOrder)·순서 목록 열람(OrderView)은 절대
+    // 중첩되지 않고 항상 정확히 1개만 활성화된다 — 이후 모드가 늘어나도 이 enum에 추가하는 방식으로
+    // 원칙을 유지한다. OrderView는 Mode3 탭 진입 시의 상태로, 카메라 이동만 가능하고 안쪽 "기물 추가"
+    // 버튼을 눌러야 AddToOrder로 전환된다.
+    enum EditorMode { Place, ValueEdit, AddToOrder, OrderView }
     EditorMode mode = EditorMode.Place;
 
     FixtureEntry editingFixture;          // 값 수정 모드에서 재선택 중인 기물. null이면 편집 대상 없음
     MapObjectBase editingFixtureInstance; // 위 기물의 실제 인스턴스 — 값 바뀔 때마다 즉시 시각 반영용
 
-    // RGBSelect 패널은 단일 색상(RgbFilter/Bucket)과 두 색상(StackChanger, 3개 중 2개 선택) 선택에
-    // 재사용된다. pendingColor/SetPendingColor는 기존 토글 onValueChanged 바인딩 때문에 남겨뒀지만
-    // 확정 판정(ConfirmColorSelect)에서는 더 이상 참조하지 않는다(토글의 실제 isOn 상태를 직접 읽음).
-    LightColor pendingColor;
+    // 값 수정 모드 전용 RGBSelect 최근 클릭 기록(Toggle이 아닌 일반 Button, Confirm 없이 클릭 즉시
+    // 반영). 한 번에 기물 하나만 편집하므로 공유 필드 하나로 충분하다 — 배치 모드는 기물 종류별로
+    // 완전히 분리된 PresetValues.colorClicks를 쓴다(값이 서로 새지 않도록).
+    readonly List<int> editColorClicks = new();
 
     class PlacedCell
     {
@@ -86,7 +174,7 @@ public class MapEditController : MonoBehaviour
 
         if (addToOrderButton != null) addToOrderButton.onClick.AddListener(EnterAddToOrderMode);
 
-        UpdateHotBarHighlight(1); // 기본 선택(블록) 표시
+        ShowPlaceTab(); // 기본 상태: Mode1 탭 + 배치 모드
         RefreshCanvasList();
         RefreshOrderListUI();
     }
@@ -121,20 +209,9 @@ public class MapEditController : MonoBehaviour
 
         UpdateCursorLock(); // 우클릭(시점 회전) 상태가 매 프레임 바뀌므로 매 프레임 갱신
 
-        // 파라미터 패널이 떠 있는 동안(RGB 값 입력 중)은 숫자키가 핫바 전환과 겹치면 안 되므로 무시.
-        if (!IsParamPanelOpen && InputManager.Instance.ReadHotBarSlot(out int slot))
-        {
-            if (slot == 1) SelectBlockTool();
-            else SelectFixtureTool(slot - 2);
-        }
-        if (!IsParamPanelOpen && InputManager.Instance.ReadDigit0()) SelectEditTool();
-
-        // 스페이스바로도 Confirm 버튼과 동일하게 확정할 수 있게 한다(마우스 포인터 위치와 무관).
-        if (IsParamPanelOpen && InputManager.Instance.ReadConfirm())
-        {
-            if (rgbInputPanel != null && rgbInputPanel.activeSelf) ConfirmRGBInput();
-            else if (rgbSelectPanel != null && rgbSelectPanel.activeSelf) ConfirmColorSelect();
-        }
+        // 스페이스바 = 지금 편집 중인 기물의 값 수정을 마친다. 패널엔 Confirm 버튼이 없고(클릭/입력
+        // 즉시 반영) 값은 이미 다 반영된 상태이므로, 그냥 편집 모드만 종료하면 된다.
+        if (editingFixture != null && InputManager.Instance.ReadConfirm()) EndEdit();
 
         // 팔레트/입력창 등 UI를 클릭한 것까지 월드 배치로 새지 않게 막는다.
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -146,12 +223,9 @@ public class MapEditController : MonoBehaviour
         switch (mode)
         {
             case EditorMode.ValueEdit:
-                HideHoverPreview(); // 설치/제거 미리보기는 이 모드에서 의미 없음
-                if (InputManager.Instance.ReadInteract()) TryEditFixtureAt();
-                return; // 설치·제거·드래그 범위는 전부 비활성
+            case EditorMode.OrderView:
             case EditorMode.AddToOrder:
-                HideHoverPreview();
-                if (InputManager.Instance.ReadInteract()) TryAddFixtureAt();
+                HideHoverPreview(); // 카메라 이동만, 월드 좌클릭으로 하는 일 없음(대상은 전부 화면 마크로 지정)
                 return; // 설치·제거·드래그 범위는 전부 비활성
         }
 
@@ -169,6 +243,7 @@ public class MapEditController : MonoBehaviour
     void TryPlace()
     {
         if (!TryGetTargetCell(out Vector3 center, out _)) return;
+        if (!IsPlaceReady(currentFixtureType)) return; // RGBSelect류인데 색 선택이 안 끝났으면 설치 안 함
 
         Vector3Int cell = ToCell(center);
         if (cells.ContainsKey(cell)) return; // 이미 그 칸에 뭔가 있으면 무시(기존 에디터와 동일)
@@ -182,74 +257,37 @@ public class MapEditController : MonoBehaviour
         if (TryGetRemoveTargetCell(out Vector3Int cell)) RemoveCell(cell);
     }
 
-    // 값 수정 모드 전용 — 마우스가 가리키는 기존 기물을 재선택해서 파라미터 편집 패널을 연다.
-    // 블록(기물 아님)을 가리키면 편집할 파라미터가 없으므로 조용히 무시한다.
-    void TryEditFixtureAt()
-    {
-        if (!TryGetRemoveTargetCell(out Vector3Int cell)) return;
-        if (!cells.TryGetValue(cell, out var placed) || placed.Fixture == null) return;
-        BeginEditFixture(placed.Fixture, placed.GameObject);
-    }
 
-    // 기물 리스트 추가 모드 전용 — 마우스가 가리키는 기존 기물을 지금 선택된 캔버스의 정답 순서
-    // 끝에 즉시 추가한다(파라미터 패널 없이). 선택된 캔버스가 없으면 아무 일도 하지 않는다.
-    void TryAddFixtureAt()
-    {
-        var order = SelectedOrder;
-        if (order == null) return; // 캔버스 카드를 먼저 선택해야 함
-
-        if (!TryGetRemoveTargetCell(out Vector3Int cell)) return;
-        if (!cells.TryGetValue(cell, out var placed) || placed.Fixture == null) return;
-
-        if (!order.orderFixtureIds.Contains(placed.Fixture.id))
-        {
-            order.orderFixtureIds.Add(placed.Fixture.id);
-            RefreshOrderListUI();
-        }
-    }
-
+    // ColorChanger 등 파라미터 없는 기물은 값 수정 모드의 마크 대상에서 애초에 제외되므로(RefreshMarks의
+    // 필터 조건) 여기 fixture.type은 항상 UsesRgbInput 여부로 RGBInput/RGBSelect 중 하나가 정해진다.
     void BeginEditFixture(FixtureEntry fixture, GameObject go)
     {
         editingFixture = fixture;
         editingFixtureInstance = go.GetComponent<MapObjectBase>();
 
-        switch (fixture.type)
-        {
-            case FixtureType.ColorFilter:
-            case FixtureType.Canvas:
-            case FixtureType.Palette:
-                SetPanelActive(rgbInputPanel, true);
-                SetPanelActive(rgbSelectPanel, false);
-                if (rgbInputField != null)
-                    rgbInputField.text = $"{fixture.paramR:D2}{fixture.paramG:D2}{fixture.paramB:D2}";
-                break;
-            case FixtureType.RgbFilter:
-            case FixtureType.Bucket:
-                SetPanelActive(rgbInputPanel, false);
-                SetPanelActive(rgbSelectPanel, true);
-                SetTogglesForEdit(fixture.paramColorA);
-                break;
-            case FixtureType.StackChanger:
-                SetPanelActive(rgbInputPanel, false);
-                SetPanelActive(rgbSelectPanel, true);
-                SetTogglesForEdit(fixture.paramColorA, fixture.paramColorB);
-                break;
-            default: // ColorChanger 등 파라미터 없는 기물 — 패널은 없지만 정답 순서 추가 대상으로는 계속 선택돼 있음
-                HideParamPanels();
-                break;
-        }
-    }
+        bool usesInput = UsesRgbInput(fixture.type);
+        SetPanelActive(editRgbInputPanel, usesInput);
+        SetPanelActive(editRgbSelectPanel, !usesInput);
 
-    void SetTogglesForEdit(params LightColor[] selected)
-    {
-        for (int i = 0; i < rgbSelectToggles.Length; i++)
-            if (rgbSelectToggles[i] != null)
-                rgbSelectToggles[i].isOn = System.Array.IndexOf(selected, (LightColor)i) >= 0;
+        if (usesInput)
+        {
+            if (editRgbInputField != null)
+                editRgbInputField.text = $"{fixture.paramR:D2}{fixture.paramG:D2}{fixture.paramB:D2}";
+        }
+        else
+        {
+            editColorClicks.Clear();
+            UpdateColorButtonHighlight(editColorButtonImages, editColorClicks); // 클릭 전엔 셋 다 연하게(미선택)
+        }
     }
 
     void RefreshEditingVisual()
     {
-        if (editingFixtureInstance != null) CustomStageLoader.ApplyParams(editingFixtureInstance, editingFixture);
+        if (editingFixtureInstance == null) return;
+        CustomStageLoader.ApplyParams(editingFixtureInstance, editingFixture);
+        // 필터(ColorFilter/RgbFilter)는 같은 색끼리 묶인 병합 메시로 그려지고, 그 외형은 병합 그룹이
+        // 다시 만들어질 때만 반영된다(FilterBlockBase.Configure 주석 참고) — 배치/제거 때와 동일하게 호출.
+        if (IsFilter(editingFixture.type)) FilterBlockBase.RebuildAll();
     }
 
     void EndEdit()
@@ -327,13 +365,15 @@ public class MapEditController : MonoBehaviour
     {
         if (type == FixtureType.Canvas && CanvasCount >= 7) return;
 
+        var preset = GetPreset(type);
         var entry = new FixtureEntry
         {
             id = nextFixtureId++,
             type = type,
             x = cell.x, y = cell.y, z = cell.z,
-            paramR = presetR, paramG = presetG, paramB = presetB,
-            paramColorA = presetColorA, paramColorB = presetColorB,
+            paramR = preset.r, paramG = preset.g, paramB = preset.b,
+            paramColorA = preset.colorClicks.Count > 0 ? (LightColor)preset.colorClicks[0] : default,
+            paramColorB = preset.colorClicks.Count > 1 ? (LightColor)preset.colorClicks[1] : default,
         };
 
         var instance = CustomStageLoader.PlaceFixture(entry, prefabs, mapObjectsRoot);
@@ -365,7 +405,8 @@ public class MapEditController : MonoBehaviour
         if (placed.Fixture != null)
         {
             data.fixtures.Remove(placed.Fixture);
-            foreach (var order in data.canvasOrders) order.orderFixtureIds.Remove(placed.Fixture.id);
+            // 필터는 순서에 여러 번 들어갈 수 있으므로(AddFixtureToOrder) 하나만 지우지 않고 전부 지운다.
+            foreach (var order in data.canvasOrders) order.orderFixtureIds.RemoveAll(id => id == placed.Fixture.id);
 
             if (placed.Fixture.type == FixtureType.Canvas)
             {
@@ -558,6 +599,7 @@ public class MapEditController : MonoBehaviour
 
     void CommitDragRect()
     {
+        bool placeReady = IsPlaceReady(currentFixtureType); // RGBSelect류인데 색 선택이 안 끝났으면 드래그 설치도 안 함
         foreach (var center in GetDragCenters())
         {
             Vector3Int cell = ToCell(center);
@@ -565,7 +607,7 @@ public class MapEditController : MonoBehaviour
             {
                 if (cells.ContainsKey(cell)) RemoveCell(cell);
             }
-            else if (!cells.ContainsKey(cell))
+            else if (placeReady && !cells.ContainsKey(cell))
             {
                 if (currentFixtureType == null) PlaceBlockAt(cell);
                 else PlaceFixtureAt(cell, currentFixtureType.Value);
@@ -621,23 +663,25 @@ public class MapEditController : MonoBehaviour
         editingFixtureInstance = null;
         currentFixtureType = null;
         HideParamPanels();
-        UpdateHotBarHighlight(1);
+        ClearMarks();
+        UpdateObjectButtonHighlight(0);
     }
 
-    /// <summary>핫바 숫자 0 — 값 수정 모드로 전환한다. 이 모드에서는 설치·제거·드래그 범위 설치가
-    /// 전부 비활성화되고(카메라 이동은 영향 없음), 좌클릭은 대신 기존 기물을 재선택해 파라미터를
-    /// 편집하는 데 쓰인다.</summary>
+    /// <summary>값 수정 모드로 전환한다. 이 모드에서는 설치·제거·드래그 범위 설치가 전부 비활성화되고
+    /// (카메라 이동은 영향 없음), 대신 값 수정 가능한 기물마다 뜨는 화면 마크를 눌러 파라미터를
+    /// 편집한다.</summary>
     public void SelectEditTool()
     {
         mode = EditorMode.ValueEdit;
         currentFixtureType = null;
         HideParamPanels();
-        UpdateHotBarHighlight(0); // 임시: 전용 슬롯 UI가 없어 그냥 기존 하이라이트를 전부 끔
+        RefreshMarks(type => type != FixtureType.ColorChanger, SelectFixtureForEdit);
     }
 
     /// <summary>CorrectOrder 패널의 "기물 추가" 버튼 OnClick에 연결 — 기물 리스트 추가 모드로 전환한다.
-    /// 이 모드에서는 값 수정 모드와 마찬가지로 설치·제거가 비활성화되고, 좌클릭한 기물이 지금 선택된
-    /// 캔버스 카드의 정답 순서에 파라미터 패널 없이 바로 추가된다.</summary>
+    /// 이 모드에서도 값 수정 모드와 마찬가지로 설치·제거가 비활성화되고 카메라 이동만 가능하며, 배치된
+    /// 기물마다 뜨는 화면 마크를 눌러 지금 선택된 캔버스 카드의 정답 순서에 파라미터 패널 없이 바로
+    /// 추가한다.</summary>
     public void EnterAddToOrderMode()
     {
         mode = EditorMode.AddToOrder;
@@ -645,6 +689,50 @@ public class MapEditController : MonoBehaviour
         editingFixture = null;
         editingFixtureInstance = null;
         HideParamPanels();
+        RefreshMarks(type => true, AddFixtureToOrder);
+    }
+
+    /// <summary>Mode1 버튼 OnClick — 배치 모드 탭을 보여준다.</summary>
+    public void ShowPlaceTab()
+    {
+        SelectBlockTool();
+        SetActivePanel(mode1Panel);
+        UpdateModeTabHighlight(0);
+    }
+
+    /// <summary>Mode2 버튼 OnClick — 값 수정 모드 탭을 보여준다.</summary>
+    public void ShowValueEditTab()
+    {
+        SelectEditTool();
+        SetActivePanel(mode2Panel);
+        UpdateModeTabHighlight(1);
+    }
+
+    /// <summary>Mode3 버튼 OnClick — 카메라 이동만 가능한 순서 열람 탭을 보여준다. 안쪽 "기물 추가"
+    /// 버튼(EnterAddToOrderMode)을 눌러야 비로소 좌클릭으로 순서에 기물을 추가할 수 있다.</summary>
+    public void ShowOrderTab()
+    {
+        mode = EditorMode.OrderView;
+        editingFixture = null;
+        editingFixtureInstance = null;
+        HideParamPanels();
+        ClearMarks();
+        SetActivePanel(mode3Panel);
+        UpdateModeTabHighlight(2);
+    }
+
+    void SetActivePanel(GameObject panel)
+    {
+        if (mode1Panel != null) mode1Panel.SetActive(panel == mode1Panel);
+        if (mode2Panel != null) mode2Panel.SetActive(panel == mode2Panel);
+        if (mode3Panel != null) mode3Panel.SetActive(panel == mode3Panel);
+    }
+
+    void UpdateModeTabHighlight(int index)
+    {
+        for (int i = 0; i < modeTabImages.Length; i++)
+            if (modeTabImages[i] != null)
+                modeTabImages[i].color = (i == index) ? tabSelectedColor : tabNormalColor;
     }
 
     /// <summary>다음 클릭부터 지정한 기물을 설치하도록 전환한다. FixtureType의 int 값(순서)을 받는다
@@ -662,52 +750,80 @@ public class MapEditController : MonoBehaviour
 
         if (reselecting) ResetPanelValues(fixtureType);
 
-        switch (fixtureType)
-        {
-            case FixtureType.ColorFilter:
-            case FixtureType.Canvas:
-            case FixtureType.Palette:
-                SetPanelActive(rgbInputPanel, true);
-                SetPanelActive(rgbSelectPanel, false);
-                break;
-            case FixtureType.RgbFilter:
-            case FixtureType.Bucket:
-            case FixtureType.StackChanger:
-                SetPanelActive(rgbInputPanel, false);
-                SetPanelActive(rgbSelectPanel, true);
-                break;
-            default: // ColorChanger 등 파라미터가 필요 없는 기물
-                HideParamPanels();
-                break;
-        }
+        ApplyPlacePanelStates(fixtureType);
+        UpdateObjectButtonHighlight(type + 1); // 0=ColorFilter→버튼(1) ... 6=StackChanger→버튼(7)
+    }
 
-        UpdateHotBarHighlight(type + 2); // 0=ColorFilter→슬롯2 ... 6=StackChanger→슬롯8
+    // ObjectButton(0=Block)~(7=StackChanger)과 동일한 인덱스로 그 기물의 인라인 값 입력 패널을 찾는다.
+    // 파라미터가 필요 없는 기물(Block, ColorChanger)은 null.
+    FixtureValuePanel PlacePanelFor(FixtureType? type) =>
+        type.HasValue && fixtureValuePanels != null ? fixtureValuePanels[(int)type.Value + 1] : null;
+
+    // active로 지정한 기물의 버튼만 높이 160 + 패널 활성으로 펼치고, 나머지는 전부 높이 80 + 패널
+    // 비활성으로 접는다. VerticalLayoutGroup이 각 버튼의 현재 높이로 다른 버튼들의 위치를 자동 재배치
+    // 하므로(겹침 없이), 높이를 바꾼 뒤 레이아웃을 강제로 즉시 재계산한다.
+    void ApplyPlacePanelStates(FixtureType? active)
+    {
+        if (fixtureValuePanels != null)
+            for (int i = 0; i < fixtureValuePanels.Length; i++)
+            {
+                var p = fixtureValuePanels[i];
+                if (p == null) continue;
+                bool expanded = active.HasValue && (int)active.Value + 1 == i;
+                SetButtonExpanded(p, expanded, (FixtureType)(i - 1));
+            }
+
+        if (objectListContent != null) LayoutRebuilder.ForceRebuildLayoutImmediate(objectListContent);
+    }
+
+    // 패널을 펼칠 때는 Valueinput 안의 RGBInput/RGBSelect 중 이 기물 종류에 맞는 쪽만 켠다.
+    void SetButtonExpanded(FixtureValuePanel p, bool expanded, FixtureType type)
+    {
+        if (p.buttonRect != null)
+        {
+            var size = p.buttonRect.sizeDelta;
+            size.y = expanded ? ExpandedButtonHeight : CollapsedButtonHeight;
+            p.buttonRect.sizeDelta = size;
+        }
+        SetPanelActive(p.panel, expanded);
+        if (expanded)
+        {
+            bool usesInput = UsesRgbInput(type);
+            SetPanelActive(p.rgbInputPanel, usesInput);
+            SetPanelActive(p.rgbSelectPanel, !usesInput);
+            if (!usesInput)
+            {
+                // 이 기물 종류 전용 preset을 그대로 반영한다(지우지 않음) — 한 번도 안 건드렸으면
+                // 원래 비어있어서 셋 다 연하게 보이고, 전에 이 종류에서 골라둔 색이 있으면 그대로 유지된다.
+                UpdateColorButtonHighlight(p.colorButtonImages, GetPreset(type).colorClicks);
+            }
+        }
     }
 
     // 같은 기물을 다시 선택했을 때(재선택)만 패널을 빈 상태로 되돌린다.
     void ResetPanelValues(FixtureType type)
     {
-        switch (type)
+        var panel = PlacePanelFor(type);
+        if (panel == null) return;
+
+        var preset = GetPreset(type);
+        if (panel.rgbField != null)
         {
-            case FixtureType.ColorFilter:
-            case FixtureType.Canvas:
-            case FixtureType.Palette:
-                presetR = presetG = presetB = 0;
-                if (rgbInputField != null) rgbInputField.text = "";
-                break;
-            case FixtureType.RgbFilter:
-            case FixtureType.Bucket:
-            case FixtureType.StackChanger:
-                foreach (var t in rgbSelectToggles)
-                    if (t != null) t.isOn = false;
-                break;
+            preset.r = preset.g = preset.b = 0;
+            panel.rgbField.text = "";
+        }
+        else
+        {
+            preset.colorClicks.Clear();
+            UpdateColorButtonHighlight(panel.colorButtonImages, preset.colorClicks);
         }
     }
 
     void HideParamPanels()
     {
-        SetPanelActive(rgbInputPanel, false);
-        SetPanelActive(rgbSelectPanel, false);
+        ApplyPlacePanelStates(null);
+        SetPanelActive(editRgbInputPanel, false);
+        SetPanelActive(editRgbSelectPanel, false);
     }
 
     static void SetPanelActive(GameObject panel, bool active)
@@ -716,7 +832,8 @@ public class MapEditController : MonoBehaviour
     }
 
     bool IsParamPanelOpen =>
-        (rgbInputPanel != null && rgbInputPanel.activeSelf) || (rgbSelectPanel != null && rgbSelectPanel.activeSelf);
+        (fixtureValuePanels != null && fixtureValuePanels.Any(p => p != null && p.panel != null && p.panel.activeSelf)) ||
+        (editRgbInputPanel != null && editRgbInputPanel.activeSelf) || (editRgbSelectPanel != null && editRgbSelectPanel.activeSelf);
 
     // 우클릭(시점 회전, EditorFlyCamera) 중일 때만 커서를 잠근다 — 유니티 씬 뷰와 동일하게 그 외에는
     // 항상 커서가 보여야 Pan/Dolly나 RGBInput/RGBSelect 패널 조작이 가능하다.
@@ -727,11 +844,92 @@ public class MapEditController : MonoBehaviour
         Cursor.visible = !shouldLock;
     }
 
-    void UpdateHotBarHighlight(int slot)
+    void UpdateObjectButtonHighlight(int index)
     {
-        for (int i = 0; i < hotBarSlotImages.Length; i++)
-            if (hotBarSlotImages[i] != null)
-                hotBarSlotImages[i].color = (i + 1 == slot) ? hotBarSelectedColor : hotBarNormalColor;
+        for (int i = 0; i < objectButtonImages.Length; i++)
+            if (objectButtonImages[i] != null)
+                objectButtonImages[i].color = (i == index) ? tabSelectedColor : tabNormalColor;
+    }
+
+    // --- 값 수정 모드 / 정답 순서 추가 모드 공용 화면 마크 ---
+    // 두 모드 다 카메라 이동만 가능하고 월드 클릭 대신 화면 마크를 눌러 대상을 지정한다 — 마크가 켜져
+    // 있는 동안 배치된 기물 목록은 안 바뀌므로(두 모드 다 설치·제거가 막혀 있음) 모드 진입 시 한 번만
+    // 만들면 된다.
+
+    readonly List<(Transform worldTransform, RectTransform marker)> marks = new();
+
+    // 모드 진입 시(SelectEditTool/EnterAddToOrderMode) 호출 — include(기물 타입)가 true인 기물마다
+    // 클릭 가능한 화면 마크를 하나씩 만들고, 클릭하면 onClick(기물 id)을 호출한다.
+    void RefreshMarks(System.Func<FixtureType, bool> include, UnityEngine.Events.UnityAction<int> onClick)
+    {
+        ClearMarks();
+        if (editMarkTemplate == null || editMarkRoot == null) return;
+
+        foreach (var placed in cells.Values)
+        {
+            if (placed.Fixture == null || !include(placed.Fixture.type)) continue;
+
+            var marker = Object.Instantiate(editMarkTemplate, editMarkRoot);
+            marker.gameObject.SetActive(true);
+            int id = placed.Fixture.id;
+            marker.onClick.AddListener(() => onClick(id));
+            marks.Add((placed.GameObject.transform, marker.GetComponent<RectTransform>()));
+        }
+    }
+
+    void ClearMarks()
+    {
+        foreach (var (_, marker) in marks)
+            if (marker != null) Object.Destroy(marker.gameObject);
+        marks.Clear();
+    }
+
+    /// <summary>값 수정 모드의 화면 마크 클릭 시 호출 — 해당 기물을 재선택해서 파라미터 편집 패널을 연다.</summary>
+    public void SelectFixtureForEdit(int fixtureId)
+    {
+        foreach (var placed in cells.Values)
+            if (placed.Fixture != null && placed.Fixture.id == fixtureId)
+            {
+                BeginEditFixture(placed.Fixture, placed.GameObject);
+                return;
+            }
+    }
+
+    /// <summary>정답 순서 추가 모드의 화면 마크 클릭 시 호출 — 해당 기물을 지금 선택된 캔버스 카드의
+    /// 정답 순서 끝에 추가한다(파라미터 패널 없이). 선택된 캔버스가 없으면 아무 일도 하지 않는다.
+    /// 필터(ColorFilter/RgbFilter)는 같은 기물을 여러 번 통과하는 구성이 가능하도록 중복 추가를
+    /// 허용하고, 그 외 기물은 이미 순서에 있으면 다시 추가하지 않는다.</summary>
+    public void AddFixtureToOrder(int fixtureId)
+    {
+        var order = SelectedOrder;
+        if (order == null) return; // 캔버스 카드를 먼저 선택해야 함
+
+        var fixture = data.fixtures.Find(f => f.id == fixtureId);
+        bool allowDuplicate = fixture != null && IsFilter(fixture.type);
+
+        if (allowDuplicate || !order.orderFixtureIds.Contains(fixtureId))
+        {
+            order.orderFixtureIds.Add(fixtureId);
+            RefreshOrderListUI();
+        }
+    }
+
+    void LateUpdate()
+    {
+        if (mode != EditorMode.ValueEdit && mode != EditorMode.AddToOrder) return;
+        var cam = Camera.main;
+        if (cam == null) return;
+
+        foreach (var (worldTransform, marker) in marks)
+        {
+            if (worldTransform == null || marker == null) continue;
+            Vector3 screenPos = cam.WorldToScreenPoint(worldTransform.position);
+            bool visible = screenPos.z > 0f
+                && screenPos.x >= 0f && screenPos.x <= Screen.width
+                && screenPos.y >= 0f && screenPos.y <= Screen.height;
+            marker.gameObject.SetActive(visible);
+            if (visible) marker.position = screenPos;
+        }
     }
 
     // --- 파라미터 입력 UI 연결용 ---
@@ -740,26 +938,26 @@ public class MapEditController : MonoBehaviour
     public void SetTitle(string title) => data.title = title;
 
     // 편집 중(editingFixture != null)이면 preset이 아니라 그 기물 필드에 바로 쓰고 즉시 시각 갱신,
-    // 아니면 다음 배치에 쓰일 preset 필드에 쓴다.
+    // 아니면 지금 선택된 기물 종류(currentFixtureType) 전용 preset 필드에 쓴다.
     public void SetPresetR(string value)
     {
         if (!int.TryParse(value, out int v)) return;
         if (editingFixture != null) { editingFixture.paramR = v; RefreshEditingVisual(); }
-        else presetR = v;
+        else if (currentFixtureType.HasValue) GetPreset(currentFixtureType.Value).r = v;
     }
 
     public void SetPresetG(string value)
     {
         if (!int.TryParse(value, out int v)) return;
         if (editingFixture != null) { editingFixture.paramG = v; RefreshEditingVisual(); }
-        else presetG = v;
+        else if (currentFixtureType.HasValue) GetPreset(currentFixtureType.Value).g = v;
     }
 
     public void SetPresetB(string value)
     {
         if (!int.TryParse(value, out int v)) return;
         if (editingFixture != null) { editingFixture.paramB = v; RefreshEditingVisual(); }
-        else presetB = v;
+        else if (currentFixtureType.HasValue) GetPreset(currentFixtureType.Value).b = v;
     }
 
     /// <summary>RGBInput 입력창("RRGGBB" 6자리, 2자리씩 R/G/B)의 OnValueChanged에 연결.</summary>
@@ -771,57 +969,42 @@ public class MapEditController : MonoBehaviour
         SetPresetB(value.Substring(4, 2));
     }
 
-    /// <summary>LightColor 드롭다운(Red=0, Green=1, Blue=2)의 OnValueChanged에 바로 연결.
-    /// 편집 중(editingFixture != null)이면 preset이 아니라 그 기물 필드에 바로 쓴다.</summary>
-    public void SetPresetColorA(int index)
+    /// <summary>RGBSelect의 Red/Green/Blue 버튼(Toggle이 아닌 일반 Button, Confirm 없이 클릭 즉시 반영)
+    /// OnClick에 0/1/2로 연결. 배치 모드·값 수정 모드 공용. 값 수정 모드는 그 기물 필드에 바로 반영하고,
+    /// 배치 모드는 지금 선택된 기물 종류 전용 preset(다른 종류와 절대 안 섞임)에 반영한다. StackChanger는
+    /// 색 2개(A/B)가 필요하므로 최근 클릭한 서로 다른 색 2개가 모여야 반영되고, 그 외(RgbFilter/Bucket)는
+    /// 클릭한 색 1개가 바로 반영된다. 이미 선택된 색을 다시 클릭하면 무시한다(중복 선택 방지).</summary>
+    public void ClickColorButton(int colorIndex)
     {
-        if (editingFixture != null) editingFixture.paramColorA = (LightColor)index;
-        else presetColorA = (LightColor)index;
-    }
+        FixtureType? type = editingFixture != null ? editingFixture.type : currentFixtureType;
+        if (!type.HasValue) return;
 
-    public void SetPresetColorB(int index)
-    {
-        if (editingFixture != null) editingFixture.paramColorB = (LightColor)index;
-        else presetColorB = (LightColor)index;
-    }
-
-    /// <summary>RGBSelect의 Red/Green/Blue 토글 OnValueChanged에 정적 인자(0/1/2)로 연결.
-    /// 실제 A/B 반영은 Confirm 클릭 시(ConfirmColorSelect)에 이뤄진다.</summary>
-    public void SetPendingColor(int index) => pendingColor = (LightColor)index;
-
-    /// <summary>RGBInput의 Confirm 버튼 OnClick에 연결 — 입력은 이미 실시간 반영되므로 편집 중이 아니면
-    /// 패널만 닫고, 편집 중이면 편집 모드까지 함께 종료한다.</summary>
-    public void ConfirmRGBInput()
-    {
-        if (editingFixture != null) EndEdit();
-        else HideParamPanels();
-    }
-
-    /// <summary>RGBSelect의 Confirm 버튼 OnClick에 연결. StackChanger는 3개 중 정확히 2개가 선택돼
-    /// 있어야(배열 순서상 앞쪽이 A, 뒤쪽이 B) 한 번에 확정되고, 그 외(RgbFilter/Bucket)는 정확히
-    /// 1개가 선택돼 있어야 확정된다. 조건이 안 맞으면 패널이 닫히지 않는다.</summary>
-    public void ConfirmColorSelect()
-    {
-        var on = new List<int>();
-        for (int i = 0; i < rgbSelectToggles.Length; i++)
-            if (rgbSelectToggles[i] != null && rgbSelectToggles[i].isOn)
-                on.Add(i);
-
-        FixtureType type = editingFixture != null ? editingFixture.type : currentFixtureType.Value;
-        if (type == FixtureType.StackChanger)
+        if (editingFixture != null)
         {
-            if (on.Count != 2) return; // 정확히 2개 선택돼야 확정 — 아니면 패널 유지
-            SetPresetColorA(on[0]);
-            SetPresetColorB(on[1]);
+            if (!RegisterColorClick(editColorClicks, colorIndex, type.Value)) return;
+
+            if (type.Value == FixtureType.StackChanger)
+            {
+                if (editColorClicks.Count == 2)
+                {
+                    editingFixture.paramColorA = (LightColor)editColorClicks[0];
+                    editingFixture.paramColorB = (LightColor)editColorClicks[1];
+                }
+            }
+            else
+            {
+                editingFixture.paramColorA = (LightColor)colorIndex;
+            }
+
+            UpdateColorButtonHighlight(editColorButtonImages, editColorClicks);
+            RefreshEditingVisual();
         }
         else
         {
-            if (on.Count != 1) return; // 정확히 1개 선택돼야 확정 — 아니면 패널 유지
-            SetPresetColorA(on[0]);
+            var preset = GetPreset(type.Value);
+            if (!RegisterColorClick(preset.colorClicks, colorIndex, type.Value)) return;
+            UpdateColorButtonHighlight(PlacePanelFor(type)?.colorButtonImages, preset.colorClicks);
         }
-
-        if (editingFixture != null) { RefreshEditingVisual(); EndEdit(); }
-        else HideParamPanels();
     }
 
     // --- 캔버스별 정답 순서 패널 연결용 ---

@@ -135,12 +135,15 @@ public class MapEditController : MonoBehaviour
     enum EditorMode { Place, ValueEdit, AddToOrder, OrderView }
     EditorMode mode = EditorMode.Place;
 
-    FixtureEntry editingFixture;          // 값 수정 모드에서 재선택 중인 기물. null이면 편집 대상 없음
-    MapObjectBase editingFixtureInstance; // 위 기물의 실제 인스턴스 — 값 바뀔 때마다 즉시 시각 반영용
+    // 값 수정 모드에서 지금 선택된(편집 대상) 기물들 — 비어있으면 편집 대상 없음. 보통 1개지만, Shift+
+    // 클릭으로 종류·현재 값이 완전히 같은 기물을 추가하면 여러 개를 한 번에 수정할 수 있다.
+    // editingFixtures[i]와 editingFixtureInstances[i]는 인덱스로 1:1 대응.
+    readonly List<FixtureEntry> editingFixtures = new();
+    readonly List<MapObjectBase> editingFixtureInstances = new();
 
     // 값 수정 모드 전용 RGBSelect 최근 클릭 기록(Toggle이 아닌 일반 Button, Confirm 없이 클릭 즉시
-    // 반영). 한 번에 기물 하나만 편집하므로 공유 필드 하나로 충분하다 — 배치 모드는 기물 종류별로
-    // 완전히 분리된 PresetValues.colorClicks를 쓴다(값이 서로 새지 않도록).
+    // 반영). 선택된 기물들이 전부 같은 값을 공유하는 상태에서 시작하므로 공유 필드 하나로 충분하다 —
+    // 배치 모드는 기물 종류별로 완전히 분리된 PresetValues.colorClicks를 쓴다(값이 서로 새지 않도록).
     readonly List<int> editColorClicks = new();
 
     class PlacedCell
@@ -211,7 +214,7 @@ public class MapEditController : MonoBehaviour
 
         // 스페이스바 = 지금 편집 중인 기물의 값 수정을 마친다. 패널엔 Confirm 버튼이 없고(클릭/입력
         // 즉시 반영) 값은 이미 다 반영된 상태이므로, 그냥 편집 모드만 종료하면 된다.
-        if (editingFixture != null && InputManager.Instance.ReadConfirm()) EndEdit();
+        if (editingFixtures.Count > 0 && InputManager.Instance.ReadConfirm()) EndEdit();
 
         // 팔레트/입력창 등 UI를 클릭한 것까지 월드 배치로 새지 않게 막는다.
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -260,10 +263,13 @@ public class MapEditController : MonoBehaviour
 
     // ColorChanger 등 파라미터 없는 기물은 값 수정 모드의 마크 대상에서 애초에 제외되므로(RefreshMarks의
     // 필터 조건) 여기 fixture.type은 항상 UsesRgbInput 여부로 RGBInput/RGBSelect 중 하나가 정해진다.
+    // 기존 선택을 전부 지우고 이 기물 하나만으로 새로 시작한다(Shift 없이 클릭했을 때의 동작).
     void BeginEditFixture(FixtureEntry fixture, GameObject go)
     {
-        editingFixture = fixture;
-        editingFixtureInstance = go.GetComponent<MapObjectBase>();
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
+        editingFixtures.Add(fixture);
+        editingFixtureInstances.Add(go.GetComponent<MapObjectBase>());
 
         bool usesInput = UsesRgbInput(fixture.type);
         SetPanelActive(editRgbInputPanel, usesInput);
@@ -279,22 +285,55 @@ public class MapEditController : MonoBehaviour
             editColorClicks.Clear();
             UpdateColorButtonHighlight(editColorButtonImages, editColorClicks); // 클릭 전엔 셋 다 연하게(미선택)
         }
+
+        UpdateMarkHighlight();
+    }
+
+    // Shift+클릭으로 다중 선택에 추가 — 지금 선택된 기물들과 종류·현재 파라미터 값이 완전히 같을 때만
+    // 허용한다(다르면 조용히 무시). 이미 같은 값이므로 패널 표시 상태는 새로 세팅할 필요 없다.
+    void AddToEditSelection(FixtureEntry fixture, GameObject go)
+    {
+        if (editingFixtures.Any(f => f.id == fixture.id)) return; // 이미 선택돼 있으면 무시
+        if (!MatchesEditingSelection(fixture)) return;
+
+        editingFixtures.Add(fixture);
+        editingFixtureInstances.Add(go.GetComponent<MapObjectBase>());
+        UpdateMarkHighlight();
+    }
+
+    // fixture가 지금 편집 중인 그룹(editingFixtures[0] 기준)과 종류·현재 파라미터 값이 완전히 같은지.
+    bool MatchesEditingSelection(FixtureEntry fixture)
+    {
+        if (editingFixtures.Count == 0) return true;
+        var reference = editingFixtures[0];
+        if (fixture.type != reference.type) return false;
+
+        if (UsesRgbInput(fixture.type))
+            return fixture.paramR == reference.paramR && fixture.paramG == reference.paramG && fixture.paramB == reference.paramB;
+
+        if (fixture.type == FixtureType.StackChanger)
+            return fixture.paramColorA == reference.paramColorA && fixture.paramColorB == reference.paramColorB;
+
+        return fixture.paramColorA == reference.paramColorA; // RgbFilter, Bucket
     }
 
     void RefreshEditingVisual()
     {
-        if (editingFixtureInstance == null) return;
-        CustomStageLoader.ApplyParams(editingFixtureInstance, editingFixture);
+        for (int i = 0; i < editingFixtureInstances.Count; i++)
+            if (editingFixtureInstances[i] != null)
+                CustomStageLoader.ApplyParams(editingFixtureInstances[i], editingFixtures[i]);
+
         // 필터(ColorFilter/RgbFilter)는 같은 색끼리 묶인 병합 메시로 그려지고, 그 외형은 병합 그룹이
         // 다시 만들어질 때만 반영된다(FilterBlockBase.Configure 주석 참고) — 배치/제거 때와 동일하게 호출.
-        if (IsFilter(editingFixture.type)) FilterBlockBase.RebuildAll();
+        if (editingFixtures.Count > 0 && IsFilter(editingFixtures[0].type)) FilterBlockBase.RebuildAll();
     }
 
     void EndEdit()
     {
-        editingFixture = null;
-        editingFixtureInstance = null;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
         HideParamPanels();
+        UpdateMarkHighlight();
     }
 
     // 마우스가 가리키는 기존 배치물의 칸. 실제 모양과 무관하게 항상 블록 크기로 판정한다
@@ -659,8 +698,8 @@ public class MapEditController : MonoBehaviour
     public void SelectBlockTool()
     {
         mode = EditorMode.Place;
-        editingFixture = null;
-        editingFixtureInstance = null;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
         currentFixtureType = null;
         HideParamPanels();
         ClearMarks();
@@ -686,8 +725,8 @@ public class MapEditController : MonoBehaviour
     {
         mode = EditorMode.AddToOrder;
         currentFixtureType = null;
-        editingFixture = null;
-        editingFixtureInstance = null;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
         HideParamPanels();
         RefreshMarks(type => true, AddFixtureToOrder);
     }
@@ -713,8 +752,8 @@ public class MapEditController : MonoBehaviour
     public void ShowOrderTab()
     {
         mode = EditorMode.OrderView;
-        editingFixture = null;
-        editingFixtureInstance = null;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
         HideParamPanels();
         ClearMarks();
         SetActivePanel(mode3Panel);
@@ -742,8 +781,8 @@ public class MapEditController : MonoBehaviour
     public void SelectFixtureTool(int type)
     {
         mode = EditorMode.Place;
-        editingFixture = null;
-        editingFixtureInstance = null;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
         var fixtureType = (FixtureType)type;
         bool reselecting = currentFixtureType.HasValue && currentFixtureType.Value == fixtureType;
         currentFixtureType = fixtureType;
@@ -856,7 +895,10 @@ public class MapEditController : MonoBehaviour
     // 있는 동안 배치된 기물 목록은 안 바뀌므로(두 모드 다 설치·제거가 막혀 있음) 모드 진입 시 한 번만
     // 만들면 된다.
 
-    readonly List<(Transform worldTransform, RectTransform marker)> marks = new();
+    readonly List<(Transform worldTransform, RectTransform marker, int fixtureId)> marks = new();
+
+    [SerializeField] Color markNormalColor = new(1f, 0.85f, 0.1f, 0.9f);  // 기존 마크 기본색
+    [SerializeField] Color markSelectedColor = new(0.2f, 1f, 0.4f, 1f);   // 값 수정 대상으로 선택된 마크
 
     // 모드 진입 시(SelectEditTool/EnterAddToOrderMode) 호출 — include(기물 타입)가 true인 기물마다
     // 클릭 가능한 화면 마크를 하나씩 만들고, 클릭하면 onClick(기물 id)을 호출한다.
@@ -873,26 +915,102 @@ public class MapEditController : MonoBehaviour
             marker.gameObject.SetActive(true);
             int id = placed.Fixture.id;
             marker.onClick.AddListener(() => onClick(id));
-            marks.Add((placed.GameObject.transform, marker.GetComponent<RectTransform>()));
+            marks.Add((placed.GameObject.transform, marker.GetComponent<RectTransform>(), id));
         }
+
+        UpdateMarkHighlight();
     }
 
     void ClearMarks()
     {
-        foreach (var (_, marker) in marks)
+        foreach (var (_, marker, _) in marks)
             if (marker != null) Object.Destroy(marker.gameObject);
         marks.Clear();
     }
 
-    /// <summary>값 수정 모드의 화면 마크 클릭 시 호출 — 해당 기물을 재선택해서 파라미터 편집 패널을 연다.</summary>
+    // 값 수정 모드에서 지금 편집 중인(editingFixtures) 기물들의 마크만 다른 색으로 구분해서 보여준다.
+    void UpdateMarkHighlight()
+    {
+        foreach (var (_, marker, fixtureId) in marks)
+        {
+            if (marker == null) continue;
+            var img = marker.GetComponent<Image>();
+            if (img == null) continue;
+            img.color = editingFixtures.Any(f => f.id == fixtureId) ? markSelectedColor : markNormalColor;
+        }
+    }
+
+    // 상하좌우전후 6방향(대각선 제외) 이웃 칸을 도는 오프셋 — Ctrl+클릭의 연쇄 선택에 사용.
+    static readonly Vector3Int[] SixDirections =
+    {
+        Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right,
+        new Vector3Int(0, 0, 1), new Vector3Int(0, 0, -1),
+    };
+
+    /// <summary>값 수정 모드의 화면 마크 클릭 시 호출.
+    /// - 아무 키 없이 클릭: 그 기물 하나로 선택을 새로 시작.
+    /// - Shift+클릭(이미 선택된 기물이 있을 때): 종류·현재 값이 완전히 같은 경우에만 그 기물 하나만
+    ///   다중 선택에 추가(다르면 무시).
+    /// - Ctrl+클릭: Shift와 같은 종류·값 일치 조건으로, 클릭한 기물과 상하좌우전후로 맞닿은 채 그
+    ///   조건을 만족하는 기물들을 이웃의 이웃까지 연쇄적으로 전부 선택에 추가(BFS). 선택된 기물이
+    ///   없는 상태에서 Ctrl+클릭하면 그 기물을 기준으로 새로 선택을 시작한 뒤 연쇄 확장한다.</summary>
     public void SelectFixtureForEdit(int fixtureId)
     {
-        foreach (var placed in cells.Values)
-            if (placed.Fixture != null && placed.Fixture.id == fixtureId)
+        foreach (var kv in cells)
+        {
+            if (kv.Value.Fixture == null || kv.Value.Fixture.id != fixtureId) continue;
+
+            bool ctrlHeld = InputManager.Instance.ReadRemoveModifierHeld();
+            bool shiftHeld = InputManager.Instance.ReadRangeModifierHeld();
+            bool hasSelection = editingFixtures.Count > 0;
+
+            if (ctrlHeld)
             {
-                BeginEditFixture(placed.Fixture, placed.GameObject);
-                return;
+                if (!hasSelection) BeginEditFixture(kv.Value.Fixture, kv.Value.GameObject);
+                else if (!MatchesEditingSelection(kv.Value.Fixture)) return;
+                else AddToEditSelection(kv.Value.Fixture, kv.Value.GameObject);
+
+                ExpandEditSelectionFrom(kv.Key);
             }
+            else if (hasSelection && shiftHeld)
+            {
+                AddToEditSelection(kv.Value.Fixture, kv.Value.GameObject);
+            }
+            else
+            {
+                BeginEditFixture(kv.Value.Fixture, kv.Value.GameObject);
+            }
+            return;
+        }
+    }
+
+    // startCell에서 시작해 상하좌우전후로 맞닿은 칸을 타고 나가며(BFS), 지금 선택 그룹과 종류·값이
+    // 같은 기물(MatchesEditingSelection)을 만나는 대로 전부 선택에 추가한다 — 안 맞는 기물에서는
+    // 그 방향으로 더 이상 퍼지지 않는다.
+    void ExpandEditSelectionFrom(Vector3Int startCell)
+    {
+        var visited = new HashSet<Vector3Int> { startCell };
+        var queue = new Queue<Vector3Int>();
+        queue.Enqueue(startCell);
+
+        while (queue.Count > 0)
+        {
+            var cell = queue.Dequeue();
+            foreach (var dir in SixDirections)
+            {
+                var next = cell + dir;
+                if (!visited.Add(next)) continue;
+                if (!cells.TryGetValue(next, out var placed) || placed.Fixture == null) continue;
+                if (!MatchesEditingSelection(placed.Fixture)) continue;
+                if (editingFixtures.Any(f => f.id == placed.Fixture.id)) continue;
+
+                editingFixtures.Add(placed.Fixture);
+                editingFixtureInstances.Add(placed.GameObject.GetComponent<MapObjectBase>());
+                queue.Enqueue(next);
+            }
+        }
+
+        UpdateMarkHighlight();
     }
 
     /// <summary>정답 순서 추가 모드의 화면 마크 클릭 시 호출 — 해당 기물을 지금 선택된 캔버스 카드의
@@ -920,7 +1038,7 @@ public class MapEditController : MonoBehaviour
         var cam = Camera.main;
         if (cam == null) return;
 
-        foreach (var (worldTransform, marker) in marks)
+        foreach (var (worldTransform, marker, _) in marks)
         {
             if (worldTransform == null || marker == null) continue;
             Vector3 screenPos = cam.WorldToScreenPoint(worldTransform.position);
@@ -937,26 +1055,26 @@ public class MapEditController : MonoBehaviour
     /// <summary>맵 제목을 지정한다.</summary>
     public void SetTitle(string title) => data.title = title;
 
-    // 편집 중(editingFixture != null)이면 preset이 아니라 그 기물 필드에 바로 쓰고 즉시 시각 갱신,
-    // 아니면 지금 선택된 기물 종류(currentFixtureType) 전용 preset 필드에 쓴다.
+    // 편집 중(editingFixtures가 비어있지 않음)이면 preset이 아니라 선택된 기물들 전부에 바로 쓰고 즉시
+    // 시각 갱신, 아니면 지금 선택된 기물 종류(currentFixtureType) 전용 preset 필드에 쓴다.
     public void SetPresetR(string value)
     {
         if (!int.TryParse(value, out int v)) return;
-        if (editingFixture != null) { editingFixture.paramR = v; RefreshEditingVisual(); }
+        if (editingFixtures.Count > 0) { foreach (var f in editingFixtures) f.paramR = v; RefreshEditingVisual(); }
         else if (currentFixtureType.HasValue) GetPreset(currentFixtureType.Value).r = v;
     }
 
     public void SetPresetG(string value)
     {
         if (!int.TryParse(value, out int v)) return;
-        if (editingFixture != null) { editingFixture.paramG = v; RefreshEditingVisual(); }
+        if (editingFixtures.Count > 0) { foreach (var f in editingFixtures) f.paramG = v; RefreshEditingVisual(); }
         else if (currentFixtureType.HasValue) GetPreset(currentFixtureType.Value).g = v;
     }
 
     public void SetPresetB(string value)
     {
         if (!int.TryParse(value, out int v)) return;
-        if (editingFixture != null) { editingFixture.paramB = v; RefreshEditingVisual(); }
+        if (editingFixtures.Count > 0) { foreach (var f in editingFixtures) f.paramB = v; RefreshEditingVisual(); }
         else if (currentFixtureType.HasValue) GetPreset(currentFixtureType.Value).b = v;
     }
 
@@ -976,10 +1094,10 @@ public class MapEditController : MonoBehaviour
     /// 클릭한 색 1개가 바로 반영된다. 이미 선택된 색을 다시 클릭하면 무시한다(중복 선택 방지).</summary>
     public void ClickColorButton(int colorIndex)
     {
-        FixtureType? type = editingFixture != null ? editingFixture.type : currentFixtureType;
+        FixtureType? type = editingFixtures.Count > 0 ? editingFixtures[0].type : currentFixtureType;
         if (!type.HasValue) return;
 
-        if (editingFixture != null)
+        if (editingFixtures.Count > 0)
         {
             if (!RegisterColorClick(editColorClicks, colorIndex, type.Value)) return;
 
@@ -987,13 +1105,16 @@ public class MapEditController : MonoBehaviour
             {
                 if (editColorClicks.Count == 2)
                 {
-                    editingFixture.paramColorA = (LightColor)editColorClicks[0];
-                    editingFixture.paramColorB = (LightColor)editColorClicks[1];
+                    foreach (var f in editingFixtures)
+                    {
+                        f.paramColorA = (LightColor)editColorClicks[0];
+                        f.paramColorB = (LightColor)editColorClicks[1];
+                    }
                 }
             }
             else
             {
-                editingFixture.paramColorA = (LightColor)colorIndex;
+                foreach (var f in editingFixtures) f.paramColorA = (LightColor)colorIndex;
             }
 
             UpdateColorButtonHighlight(editColorButtonImages, editColorClicks);

@@ -79,14 +79,17 @@ public class InputManager : MonoSingleton<InputManager>
         return mouse != null ? mouse.scroll.ReadValue().y : 0f;
     }
 
-    /// <summary>Shift를 누르고 있는지 — 인게임 맵 에디터의 직사각형 범위 설치/제거 시작 조건.</summary>
+    /// <summary>Shift를 누르고 있는지 — 인게임 맵 에디터의 직사각형 범위 설치/제거 시작 조건, 값 수정
+    /// 모드에서 마크를 다중 선택으로 추가할 때도 재사용.</summary>
     public bool ReadRangeModifierHeld()
     {
         var kb = Keyboard.current;
         return kb != null && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
     }
 
-    /// <summary>Ctrl을 누르고 있는지 — 좌클릭과 함께면 제거, Shift+드래그와 함께면 범위 제거.</summary>
+    /// <summary>Ctrl을 누르고 있는지 — 좌클릭과 함께면 제거, Shift+드래그와 함께면 범위 제거, 값 수정
+    /// 모드에서 마크를 클릭할 때는 상하좌우전후로 맞닿은 같은 종류·값의 기물을 연쇄 선택하는 조건으로도
+    /// 재사용.</summary>
     public bool ReadRemoveModifierHeld()
     {
         var kb = Keyboard.current;

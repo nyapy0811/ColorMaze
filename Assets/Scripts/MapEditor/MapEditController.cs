@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Framework.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -65,7 +67,7 @@ public class MapEditController : MonoBehaviour
     [SerializeField] Color tabNormalColor = Color.white;
     [SerializeField] Color tabSelectedColor = Color.yellow;
 
-    [SerializeField] GameObject mode1Panel, mode2Panel, mode3Panel;
+    [SerializeField] GameObject mode1Panel, mode2Panel, mode3Panel, mode4Panel;
     [SerializeField] Image[] modeTabImages;      // Mode1, Mode2, Mode3 순서
     [SerializeField] Image[] objectButtonImages; // ObjectButton, (1)..(7) 순서 — 기물 팔레트 하이라이트용
 
@@ -132,7 +134,7 @@ public class MapEditController : MonoBehaviour
     // 중첩되지 않고 항상 정확히 1개만 활성화된다 — 이후 모드가 늘어나도 이 enum에 추가하는 방식으로
     // 원칙을 유지한다. OrderView는 Mode3 탭 진입 시의 상태로, 카메라 이동만 가능하고 안쪽 "기물 추가"
     // 버튼을 눌러야 AddToOrder로 전환된다.
-    enum EditorMode { Place, ValueEdit, AddToOrder, OrderView }
+    enum EditorMode { Place, ValueEdit, AddToOrder, OrderView, SaveLoad }
     EditorMode mode = EditorMode.Place;
 
     // 값 수정 모드에서 지금 선택된(편집 대상) 기물들 — 비어있으면 편집 대상 없음. 보통 1개지만, Shift+
@@ -228,6 +230,7 @@ public class MapEditController : MonoBehaviour
             case EditorMode.ValueEdit:
             case EditorMode.OrderView:
             case EditorMode.AddToOrder:
+            case EditorMode.SaveLoad:
                 HideHoverPreview(); // 카메라 이동만, 월드 좌클릭으로 하는 일 없음(대상은 전부 화면 마크로 지정)
                 return; // 설치·제거·드래그 범위는 전부 비활성
         }
@@ -760,11 +763,24 @@ public class MapEditController : MonoBehaviour
         UpdateModeTabHighlight(2);
     }
 
+    /// <summary>Mode4 버튼 OnClick — 카메라 이동만 가능한 저장/불러오기 탭을 보여준다.</summary>
+    public void ShowSaveLoadTab()
+    {
+        mode = EditorMode.SaveLoad;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
+        HideParamPanels();
+        ClearMarks();
+        SetActivePanel(mode4Panel);
+        UpdateModeTabHighlight(3);
+    }
+
     void SetActivePanel(GameObject panel)
     {
         if (mode1Panel != null) mode1Panel.SetActive(panel == mode1Panel);
         if (mode2Panel != null) mode2Panel.SetActive(panel == mode2Panel);
         if (mode3Panel != null) mode3Panel.SetActive(panel == mode3Panel);
+        if (mode4Panel != null) mode4Panel.SetActive(panel == mode4Panel);
     }
 
     void UpdateModeTabHighlight(int index)
@@ -1214,5 +1230,154 @@ public class MapEditController : MonoBehaviour
 
         // "기물 추가" 버튼은 항목이 몇 개든 항상 목록 가장 아래칸에 있어야 한다.
         if (addToOrderButton != null) addToOrderButton.transform.SetAsLastSibling();
+    }
+
+    // --- 저장/불러오기 UI 연결용 ---
+
+    [SerializeField] GameObject saveNamePopup;
+    [SerializeField] TMP_InputField saveNameInputField;
+    [SerializeField] GameObject loadListPopup;
+    [SerializeField] Transform loadListContent;
+    [SerializeField] MyMapCardUI myMapCardTemplate;
+
+    readonly List<MyMapCardUI> myMapCardInstances = new();
+    bool pendingSaveAsNew;
+    const string SaveFilePrefix = "CustomMap_";
+    static string SaveFileName(string id) => $"{SaveFilePrefix}{id}.json";
+
+    /// <summary>SaveButton OnClick. 이미 이름이 있는(=처음 저장이 아닌) 맵이면 팝업 없이 바로 지금
+    /// 파일에 덮어쓴다. 아직 이름이 없으면(첫 저장) 이름을 받아야 하니 팝업을 띄운다.</summary>
+    public void OpenSavePopup()
+    {
+        if (!string.IsNullOrEmpty(data.title)) { SaveCurrentMap(); return; }
+        pendingSaveAsNew = false;
+        OpenSaveNamePopup();
+    }
+
+    /// <summary>SaveAsButton OnClick. 이미 이름이 있어도 새 이름을 받아야 하므로 항상 팝업을 띄운다.</summary>
+    public void OpenSaveAsPopup()
+    {
+        pendingSaveAsNew = true;
+        OpenSaveNamePopup();
+    }
+
+    void OpenSaveNamePopup()
+    {
+        if (saveNameInputField != null) saveNameInputField.text = data.title;
+        if (saveNamePopup != null) saveNamePopup.SetActive(true);
+    }
+
+    /// <summary>SaveNamePopup의 확인 버튼 OnClick.</summary>
+    public void ConfirmSaveName()
+    {
+        string title = saveNameInputField != null ? saveNameInputField.text.Trim() : "";
+        if (string.IsNullOrEmpty(title)) return; // 빈 제목이면 저장하지 않고 팝업 유지
+
+        SetTitle(title);
+        if (pendingSaveAsNew) data.id = System.Guid.NewGuid().ToString();
+
+        SaveCurrentMap();
+        CancelSavePopup();
+    }
+
+    void SaveCurrentMap() => SaveManager.Instance.SaveJson(SaveFileName(data.id), data);
+
+    /// <summary>SaveNamePopup의 취소 버튼 OnClick.</summary>
+    public void CancelSavePopup()
+    {
+        if (saveNamePopup != null) saveNamePopup.SetActive(false);
+    }
+
+    /// <summary>LoadButton OnClick — 저장된 맵 목록 팝업을 연다.</summary>
+    public void OpenLoadPopup()
+    {
+        RefreshLoadList();
+        if (loadListPopup != null) loadListPopup.SetActive(true);
+    }
+
+    /// <summary>LoadListPopup의 닫기 버튼 OnClick.</summary>
+    public void CloseLoadPopup()
+    {
+        if (loadListPopup != null) loadListPopup.SetActive(false);
+    }
+
+    // CanvasList/OrderList와 동일한 "숨긴 템플릿 복제" 패턴 — persistentDataPath에서 CustomMap_*.json을
+    // 전부 열거해 카드로 보여준다. 별도 인덱스 파일 없이 매번 직접 읽는다(맵 개수가 많지 않을 전제).
+    void RefreshLoadList()
+    {
+        if (loadListContent == null || myMapCardTemplate == null) return;
+
+        foreach (var c in myMapCardInstances) Object.Destroy(c.gameObject);
+        myMapCardInstances.Clear();
+
+        foreach (var path in Directory.GetFiles(Application.persistentDataPath, $"{SaveFilePrefix}*.json"))
+        {
+            var loaded = SaveManager.Instance.LoadJson<CustomStageData>(Path.GetFileName(path));
+            if (string.IsNullOrEmpty(loaded.id)) continue; // 손상된 파일 방어(LoadJson 실패 시 new CustomStageData())
+
+            var card = Object.Instantiate(myMapCardTemplate, loadListContent);
+            card.gameObject.SetActive(true);
+            card.TitleText.text = string.IsNullOrEmpty(loaded.title) ? "(제목 없음)" : loaded.title;
+            card.SelectButton.onClick.AddListener(() => LoadMap(loaded));
+            myMapCardInstances.Add(card);
+        }
+    }
+
+    // 선택한 저장 데이터로 현재 편집 상태를 완전히 교체한다. data는 같은 인스턴스를 유지한 채
+    // 내용만 갈아끼운다 — Data 프로퍼티로 이 인스턴스를 들고 있을 수 있는 외부 코드가 있어도 참조가
+    // 깨지지 않는다.
+    void LoadMap(CustomStageData loaded)
+    {
+        foreach (var placed in cells.Values) Object.Destroy(placed.GameObject);
+        cells.Clear();
+
+        data.blocks.Clear();
+        data.fixtures.Clear();
+        data.canvasOrders.Clear();
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
+        selectedCanvasFixtureId = -1;
+
+        data.id = loaded.id;
+        data.title = loaded.title;
+
+        foreach (var block in loaded.blocks)
+        {
+            var entry = new BlockEntry { x = block.x, y = block.y, z = block.z };
+            var go = CustomStageLoader.PlaceBlock(entry, prefabs, mazeRoot);
+            Register(new Vector3Int(entry.x, entry.y, entry.z), go, entry, null);
+            data.blocks.Add(entry);
+        }
+
+        int maxFixtureId = 0;
+        foreach (var fixture in loaded.fixtures)
+        {
+            var entry = new FixtureEntry
+            {
+                id = fixture.id, type = fixture.type, x = fixture.x, y = fixture.y, z = fixture.z,
+                paramR = fixture.paramR, paramG = fixture.paramG, paramB = fixture.paramB,
+                paramColorA = fixture.paramColorA, paramColorB = fixture.paramColorB,
+            };
+            var instance = CustomStageLoader.PlaceFixture(entry, prefabs, mapObjectsRoot);
+            if (instance == null) continue; // 팔레트 프리팹 누락 시 조용히 무시(PlaceFixtureAt과 동일)
+            Register(new Vector3Int(entry.x, entry.y, entry.z), instance.gameObject, null, entry);
+            data.fixtures.Add(entry);
+            maxFixtureId = Mathf.Max(maxFixtureId, entry.id);
+        }
+        nextFixtureId = maxFixtureId + 1;
+
+        foreach (var order in loaded.canvasOrders)
+            data.canvasOrders.Add(new CanvasOrderEntry
+            {
+                canvasFixtureId = order.canvasFixtureId,
+                orderFixtureIds = new List<int>(order.orderFixtureIds), // 별칭 방지용 깊은 복사
+            });
+
+        FilterBlockBase.RebuildAll(); // CustomStageLoader.Load()도 무조건 호출 — 필터 0개여도 안전
+
+        RefreshCanvasList();
+        RefreshOrderListUI();
+        CloseLoadPopup();
+        ShowPlaceTab();
     }
 }

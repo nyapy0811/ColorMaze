@@ -1,8 +1,9 @@
 # 인게임 맵 에디터 설계 (초안)
 
 작성일: 2026-09-09
-최종 갱신: 2026-09-13
-상태: 1~4단계 전부 완료, **실제 Play 모드 사용자 테스트까지 통과**.
+최종 갱신: 2026-09-16
+상태: 1~4단계 전부 완료, **실제 Play 모드 사용자 테스트까지 통과**. 4단계 완료 이후에도 값 수정
+모드 UI를 계속 다듬는 중 — § "4-4. 값 입력 UI 통합 + 다중 선택 편집" 참고.
 `MapEditor.unity` 씬에서 숫자 1~8 키로 핫바 슬롯을 선택하고, 카메라 조작은 유니티 Scene 뷰와
 동일하게 마우스로(우클릭 회전/휠클릭 Pan/스크롤 Dolly) 하며, 좌클릭 설치·Ctrl+좌클릭 제거·
 Shift+드래그 범위 설치/제거까지 지원한다. 파라미터가 필요한 기물을 선택하면 RGBInput/RGBSelect
@@ -514,3 +515,64 @@ FilterBlockBase 초기화가 전부 기존 로직 그대로 자동으로 맞물�
 - `ColorCanvas`가 `LateUpdate()`에서 Y축만 기준으로 플레이어 쪽을 바라보도록 회전.
 - 기존 Chapter1~7 모든 씬의 캔버스 27개 인스턴스의 Y축 회전을 0으로 일괄 정리(스크립트로 처리,
   자식 오브젝트 회전은 건드리지 않음).
+
+### 4-4. 값 입력 UI 통합 + 다중 선택 편집 (2026-09-14~16)
+
+4단계 완료 이후 사용자가 배치 모드·값 수정 모드의 색 입력 UI를 직접 다시 만들면서, 그에 맞춰
+배선을 다시 잡고 몇 가지 버그·기능을 추가로 정리했다.
+
+**버튼 높이 토글 + Valueinput 프리팹 통합**
+- 배치 모드의 기물 팔레트 버튼은 비활성 상태에선 높이 80(입력 패널 비활성), 그 기물이 선택된
+  상태에선 높이 160(입력 패널 활성)으로 `VerticalLayoutGroup`이 자동 재배치하도록 변경
+  (`ApplyPlacePanelStates`/`SetButtonExpanded`, `MapEditController.cs`) — 이전에 있던 "패널이
+  다른 버튼에 가려 안 보임" 레이아웃 겹침 문제가 이 구조 변경으로 근본적으로 해결됨(패널 재배치
+  꼼수 불필요).
+- 배치 모드 6개 버튼 + 값 수정 모드(mode2Panel) 전부 색 입력 UI를 `Valueinput` 프리팹
+  (`Assets/Prefebs/Valueinput.prefab`) 하나로 통일 — 안에 `RGBInput`(6자리 텍스트 입력)과
+  `RGBSelect`(Red/Green/Blue 버튼)를 자식으로 두고, 기물 종류에 맞는 쪽만
+  `SetPanelActive`로 켠다(`UsesRgbInput(FixtureType)`로 판정).
+- **프리팹 원본 버그**: `Valueinput.prefab`의 `RGBSelect` 버튼들이 리네임 전 옛 메서드 이름
+  `ClickPlaceColor`를 계속 가리켜 클릭이 씹혔다. 씬 인스턴스에만 `AddPersistentListener`로
+  재배선했더니 `m_Target`만 오버라이드로 추적되고 `m_MethodName`은 추적 안 돼 프리팹 원본의 낡은
+  값으로 계속 되돌아가는 게 원인 — `PrefabUtility.LoadPrefabContents`로 프리팹 원본 자체를 열어
+  고치는 방식으로 확실히 해결(7개 인스턴스·21개 버튼 전부 자동 반영).
+
+**색 선택 버튼 하이라이트(연하게 표시)**
+- RGBSelect·StackChanger의 2색 선택 모두, 선택 안 된 색 버튼은 `Color.Lerp(base, Color.white, 0.5f)`로
+  연하게 표시해 클릭 반영 여부를 시각적으로 보여준다(`UpdateColorButtonHighlight`). **기본 상태는
+  항상 전부 연하게**(미선택) — 기존 기물을 값 수정 모드로 열어도 현재 값을 미리 하이라이트하지
+  않고, 클릭해야만 그 색이 표시된다(사용자가 명시적으로 요청한 동작).
+
+**RGBSelect/프리셋 관련 버그 3건 수정**
+- 같은 색을 두 번 클릭하면 중복 선택되던 버그 → `RegisterColorClick`이 이미 선택된 색은 무시.
+- 기물 종류를 바꿔도 이전 종류에서 고른 색 값이 그대로 이어지던 버그 → 전역 preset 필드를
+  `Dictionary<FixtureType, PresetValues>`(`GetPreset(type)`)로 교체해 종류별로 완전히 분리.
+- 필요한 색 개수를 다 고르지 않아도 재선택 시 기본값(빨강 등)으로 설치되던 버그 →
+  `IsPlaceReady(FixtureType?)`가 `TryPlace`/`CommitDragRect`를 가드해서, 조건을 못 채우면 설치
+  자체가 안 되도록 막음.
+
+**값 수정 대상 마크 구분**
+- 값 수정 모드에서 화면에 뜨는 마크 중 지금 편집 중인 기물의 마크만 다른 색
+  (`markSelectedColor`, 기본 초록)으로 구분 표시(`UpdateMarkHighlight`). 나머지는 기존
+  `markNormalColor`(기본 노랑) 그대로.
+
+**다중 선택 편집(Shift/Ctrl)**
+- 값 수정 모드에서 여러 기물을 한 번에 편집할 수 있게 `editingFixture`(단일) →
+  `editingFixtures`/`editingFixtureInstances`(리스트)로 전환.
+- **Shift+클릭**: 이미 선택된 기물이 있을 때, 클릭한 기물의 종류·현재 파라미터 값이 선택 그룹과
+  완전히 같으면(`MatchesEditingSelection`) 그 기물 하나를 선택에 추가. 다르면 무시.
+- **Ctrl+클릭**: Shift와 같은 종류·값 일치 조건으로, 클릭한 기물을 기준 삼아 상하좌우전후로
+  맞닿은 채 조건을 만족하는 기물들을 이웃의 이웃까지 BFS로 연쇄 확장하며 한 번에 선택
+  (`ExpandEditSelectionFrom`). 선택된 기물이 없는 상태에서 Ctrl+클릭하면 그 기물을 기준으로 새로
+  시작한 뒤 바로 연쇄 확장한다.
+- 선택된 기물 전체에 값 입력(RGBInput 텍스트, RGBSelect 클릭 — StackChanger의 2색 선택 포함)이
+  동시에 반영되고(`SetPresetR/G/B`, `ClickColorButton`), 필터류(ColorFilter/RgbFilter)는
+  `FilterBlockBase.RebuildAll()`도 그룹당 한 번만 호출.
+- 사용자가 Play 모드에서 위 항목 전부(RGBSelect 클릭 반영, 색 하이라이트 기본/클릭 후 상태, 3가지
+  버그 재현 안 됨, 마크 구분, Shift 다중 선택, Ctrl 연쇄 선택) 정상 동작 확인 완료.
+
+**변경 파일**: `Assets/Scripts/MapEditor/MapEditController.cs`(대부분의 변경),
+`Assets/Scripts/Player/InputManager.cs`(`ReadRangeModifierHeld`/`ReadRemoveModifierHeld` 문서 주석에
+값 수정 모드 재사용 용도 추가), `Assets/Prefebs/Valueinput.prefab`(신규), `Assets/Scenes/MapEditor.unity`
+(버튼 높이 기본값, `fixtureValuePanels`/`editRgbInputPanel`/`editRgbSelectPanel`/`editColorButtonImages`
+등 배선).

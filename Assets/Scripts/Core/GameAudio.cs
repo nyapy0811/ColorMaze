@@ -34,6 +34,10 @@ public class GameAudio : MonoSingleton<GameAudio>
     [SerializeField] AudioMixerGroup bgmGroup;
     [SerializeField] AudioMixerGroup sfxGroup;
 
+    // OnAwake()가 AudioManager.Instance(AudioSource 생성)를 곧바로 쓰므로, 그보다 먼저 초기화돼
+    // 있어야 한다 — Framework.Core의 MonoSingleton.Dependencies 경고 장치용 선언.
+    protected override System.Type[] Dependencies => new[] { typeof(AudioManager) };
+
     protected override void OnAwake()
     {
         AudioManager.Instance.PlayBGM(bgm);

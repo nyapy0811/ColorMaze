@@ -950,6 +950,11 @@ MarkStageCleared("MapEditor")`로 호출되고 즉시 `Save()`까지 실행됐�
 고쳐도 저장되지 않는다. 사용자 결정에 따라 이번 세션은 패키지를 건드리지 않고,
 `Docs/FrameworkCoreFixRequest.md`에 "프레임워크 담당" 세션으로 전달할 구체적 요청서만 작성했다.
 
+**후속(같은 날)**: 사용자가 FrameWorkCore 저장소에 실제로 패치를 적용, `unity command
+package_resolve`로 재해석 후 세 가지 수정 사항(SaveManager try/catch화, EventBus 구독자별 예외
+격리, MonoSingleton의 `Dependencies` 선언 + 초기화 순서 경고 장치) 전부 반영된 것을 직접 확인했다
+(자세한 내용은 `Docs/FrameworkCoreFixRequest.md` 상단 확인 기록 참고). 컴파일 정상.
+
 ### 검증
 
 - `unity command recompile` 정상 확인(Stage A/B/D 전체 반영 후, FilterBlockBase 재구현 후에도 재확인).

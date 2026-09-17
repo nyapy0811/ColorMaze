@@ -1,5 +1,20 @@
 # Framework.Core 안정성 수정 요청서 (2026-09-17)
 
+> **적용 완료 확인 (2026-09-17)**: 사용자가 FrameWorkCore 저장소에 패치를 적용했다고 알려와,
+> `unity command package_resolve`로 재해석 후 `Library/PackageCache/
+> com.nyapy.framework-core@c50c781fb4a4/`에서 아래 3건 모두 직접 확인했다 — `SaveManager.SaveJson/
+> LoadJson/DeleteJson`이 전부 try/catch + bool 반환으로 바뀜, `EventBus.Publish`가
+> `GetInvocationList()`로 구독자별 개별 try/catch 호출로 바뀜, `MonoSingleton<T>`에
+> `protected virtual Type[] Dependencies` 오버라이드 + `MonoSingletonRegistry`로 의존 싱글톤이
+> 아직 Awake 안 됐으면 경고 로그를 남기는 장치가 추가됨. 컴파일 정상. ColorMaze 쪽에서 실제로
+> 다른 싱글톤을 Awake 시점에 참조하는 두 곳에 `Dependencies`를 오버라이드해 적용 완료:
+> `GameAudio`(`AudioManager` 의존, `OnAwake()`에서 `AudioManager.Instance.PlayBGM` 호출)와
+> `ProgressManager`(`SaveManager` 의존, `OnAwake()`→`LoadAttemptCounts()`에서
+> `SaveManager.Instance.LoadJson` 호출). 나머지 ColorMaze 싱글톤(`GameManager`, `InputManager`,
+> `LevelManager`, `StageGuideController`, `UIManager`, `FPSCounter`)은 Awake 시점에 다른 싱글톤을
+> 참조하지 않아 선언할 게 없음. `Bootstrap.cs`의 기존 초기화 순서가 이미 두 의존성을 전부 만족하므로
+> 지금 당장 경고가 뜨진 않지만, 앞으로 순서가 잘못 바뀌면 바로 경고로 잡힌다.
+
 ## 배경
 
 ColorMaze 프로젝트의 전체 시스템 안정성 리팩토링(§ `Docs/MapEditorDesign.md`의 "전체 시스템

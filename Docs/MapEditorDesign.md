@@ -8,6 +8,9 @@
 `MapEditController.cs` 한 파일에 배치·값 수정·정답 순서·저장불러오기·플레이 테스트까지 전부
 누적되며 파일이 많이 커졌다 — 플레이 테스트 관련 로직(`StartPlayTest`/`StopPlayTest`/이벤트
 핸들러 3개/`RestoreConsumedFixtures`/`MarkEdited`)을 별도 클래스로 분리하는 것을 고려할 것.
+추가로 §"맵 에디터 진입 흐름 개편" — 이제 씬 진입 시 편집 화면 대신 맵 선택 화면이 먼저 뜨고,
+5단계에서 설명한 `SaveLoadModePanel`/`SaveLoadMode`/"Load 버튼" 관련 서술은 stale함(현재는
+`SaveModePanel`, Load 버튼 없음 — 최신 내용은 새 섹션 참고).
 `MapEditor.unity` 씬에서 숫자 1~8 키로 핫바 슬롯을 선택하고, 카메라 조작은 유니티 Scene 뷰와
 동일하게 마우스로(우클릭 회전/휠클릭 Pan/스크롤 Dolly) 하며, 좌클릭 설치·Ctrl+좌클릭 제거·
 Shift+드래그 범위 설치/제거까지 지원한다. 파라미터가 필요한 기물을 선택하면 RGBInput/RGBSelect
@@ -746,3 +749,100 @@ onClick target/method 문자열 직접 확인. 사용자가 Play 모드에서 �
    이미 클리어된 것처럼 보이지 않고 정상적으로 다시 플레이 가능한지.
 10. (참고, 이번엔 손 안 댐) 테스트 중 ESC로 일시정지 메뉴를 열고 "다시하기"/"메인메뉴"를 누르면
     저장 안 한 편집 내용이 사라질 수 있음 — 중요한 맵은 테스트 전에 저장 권장.
+
+## 맵 에디터 진입 흐름 개편: 맵 선택 화면 먼저 보여주기 (2026-09-17)
+
+지금까지는 맵 에디터에 들어가면 바로 빈 편집 화면(Place 탭)이 떴고, 저장/불러오기는 편집 중
+"Save Load" 탭에서만 가능했다. 사용자가 씬 UI를 먼저 스스로 손봤다: `SaveLoadModePanel` →
+**`SaveModePanel`**로 개명하고 `LoadButton`을 완전히 삭제(이제 편집 중엔 저장만 가능, 불러오기는
+없음), 기존 `LoadListPopup`의 `Content`에 **`NewMap`** 카드를 하나 더 만들어 목록 맨 앞에 항상
+보이도록 배치해뒀다(클릭 동작은 아직 안 붙어 있었음). 이걸 이어받아 `LoadListPopup`을 "저장된 맵
+불러오기 팝업"에서 "맵 에디터 진입 시 맨 처음 뜨는 맵 선택 화면"으로 승격시켰다.
+
+**동작 규칙**:
+- `MapEditController.Awake()`가 더 이상 `ShowPlaceTab()`을 바로 부르지 않는다 — 대신
+  `selectionPanel`(편집 UI 전체)을 비활성화하고 `OpenLoadPopup()`으로 맵 선택 화면(저장된 맵
+  목록 + `NewMap` 카드)을 먼저 띄운다.
+- **저장된 맵 카드 클릭**: 기존 `LoadMap()` 로직 그대로(변경 없음), 마지막에
+  `CloseLoadPopup(); ShowPlaceTab();`이었던 걸 새 헬퍼 `ShowEditorUI()`(`selectionPanel` 활성화 +
+  `ShowPlaceTab()`)로 교체해 편집 화면을 확실히 보여주게 했다.
+- **`NewMap` 카드 클릭(`OnNewMapButtonSelected`)**: 기존 `SaveNamePopup`(이름 입력 팝업)을 그대로
+  재사용해 이름을 받는다. 확인을 누르면(`ConfirmSaveName`에 새로 추가한 분기) **그 자리에서
+  파일을 저장하지 않고** `data.title`만 세팅한 채 바로 `ShowEditorUI()`로 편집 화면에 들어간다 —
+  사용자가 명시적으로 확인한 사항("저장은 나중에"). `data`는 `Awake()`가 이미 `new
+  CustomStageData()` 기본 상태 + 새 GUID로 준비해뒀으므로 "새 맵 만들기"는 사실상 이름만 정하는
+  일이다. 이후 편집 중 "저장"을 처음 누르면(이미 제목이 있으므로) 팝업 없이 그 이름으로 파일이
+  그때 처음 생긴다(`OpenSavePopup`의 기존 "제목 있으면 팝업 없이 저장" 로직이 그대로 적용됨,
+  코드 추가 불필요).
+  - `ConfirmSaveName()`이 이제 세 가지 경우(그냥 저장/다른 이름으로 저장/새 맵 만들기)를 구분해야
+    해서 `pendingSaveAsNew` 옆에 `pendingNewMap` 플래그를 추가했다. 취소 후 다른 경로로 재진입해도
+    플래그가 새지 않도록, 세 진입점(`OpenSavePopup`/`OpenSaveAsPopup`/`OnNewMapButtonSelected`)이
+    전부 두 플래그 값을 매번 명시적으로 세팅한다.
+- **맵 선택 화면의 `BackButton`**: 기존엔 `CloseLoadPopup`(팝업만 닫고 편집으로 복귀)이었는데,
+  이제 애초에 아직 편집할 맵을 고르지 않은 상태이므로 "취소"가 아니라 "나가기"가 맞다 — 새 메서드
+  `OnMapSelectBackButton()`으로 재배선했다. 로직은 `ClearScreenController.OnMainMenuButton`/
+  `PauseMenuController.OnQuitButton`과 동일한 표준 패턴
+  (`GameAudio.PlayButtonClick → Time.timeScale=1f → GameManager.ChangeState(MainMenu) →
+  SceneLoader.Load("MainMenu")`).
+- 씬의 기본 활성 상태도 런타임과 일치하도록 `SelectionPanel`을 기본 비활성, `LoadListPopup`을
+  기본 활성으로 저장해뒀다(이전엔 `LoadListPopup`이 편집 중 실수로 켜진 채 저장돼 있었음).
+
+**변경 파일**: `Assets/Scripts/MapEditor/MapEditController.cs`(`Awake()`, `pendingNewMap`,
+`OnNewMapButtonSelected`, `ConfirmSaveName`의 새 맵 분기, `ShowEditorUI()`,
+`OnMapSelectBackButton()`), `Assets/Scenes/MapEditor.unity`(`LoadListPopup/Panel/BackButton`,
+`.../NewMap`의 onClick 재배선, `SelectionPanel`/`LoadListPopup` 기본 활성 상태).
+
+**참고**: 4번째 탭 GameObject는 `SaveMode`로 개명됐지만 그 onClick은 여전히 `ShowSaveLoadTab`
+(이름 불일치, 동작엔 문제없어 이번엔 안 건드림 — 나중에 손대면 같이 정리).
+
+**검증**: 컴파일 정상. `BackButton`/`NewMap.SelectButton`의 onClick target/method 문자열,
+`SelectionPanel`/`LoadListPopup` 기본 활성 상태 직접 확인, 씬 저장 완료.
+
+**Play 모드 체크리스트(사용자 직접 확인 필요)**:
+1. 맵 에디터 씬 진입 시 편집 화면이 아니라 맵 선택 리스트가 먼저 뜨는지.
+2. "New Map" 클릭 → 이름 입력 → 확인 → 그 즉시 파일이 생기지 않고 바로 Place 탭 편집 화면으로
+   들어가는지.
+3. 그 상태에서 뭔가 배치하고 "Save"를 처음 누르면(이미 이름이 있으므로) 팝업 없이 바로 저장되고,
+   실제로 `CustomMap_{id}.json` 파일이 그때 처음 생기는지.
+4. 저장된 맵 카드를 클릭하면 정상적으로 불러와 편집 화면으로 들어가는지(기존 동작 그대로).
+5. 맵 선택 화면에서 "Back"을 누르면 편집으로 안 돌아가고 메인메뉴로 나가는지.
+6. 메인메뉴에서 다시 맵 에디터로 들어가면, 방금 저장한 맵이 목록에 보이고 "New Map" 카드는
+   여전히 하나만 맨 앞에 남아있는지(중복 생성 없음).
+
+### 추가 수정 3건(사용자가 Play 모드에서 발견/요청, 2026-09-17)
+
+1. **New Map 확인 후에도 맵 리스트가 안 사라짐**: `OnNewMapButtonSelected()`가 이름 입력 팝업
+   (`SaveNamePopup`)만 열고 `LoadListPopup`은 그대로 켜둔 채였다 — 이름 입력 팝업이 다이얼로그
+   형태로 그 위에 뜨는 것뿐이라 뒤의 맵 리스트가 계속 보였다. `OnNewMapButtonSelected()`에서
+   `OpenSaveNamePopup()` 전에 `CloseLoadPopup()`을 먼저 호출하도록 고쳤다. 이름 입력을 취소하면
+   다시 맵 리스트로 돌아가야 하므로, `CancelSavePopup()`에 `pendingNewMap`이 켜져 있으면
+   `OpenLoadPopup()`을 다시 호출하는 분기를 추가했다.
+2. **맵 에디터에서 일시정지 메뉴가 뜨던 것을 제거**: `PauseMenuController.Update()`의 ESC 처리
+   조건에서 `GameState.MapEditor`를 뺐다 — 이제 맵을 편집하는 동안 ESC를 눌러도 아무 일도 안
+   일어난다(플레이 테스트 중의 ESC 처리는 `MapEditController.Update()`가 별도로 직접 담당하므로
+   영향 없음).
+3. **맵 에디터에서 나가는 유일한 경로 = Save 탭의 "Save And Exit" 버튼**: 일시정지 메뉴를 거쳐
+   나가던 길이 막혔으므로, 사용자가 미리 만들어 둔(자리표시자로 `OpenSavePopup`에 연결돼 있던)
+   `SaveModePanel`의 `SaveAndExitButton`을 실제 기능에 연결했다. 새 메서드
+   `OnSaveAndExitButton()`: 이미 이름이 있으면 즉시 저장 후 메인메뉴로 나가고, 아직 이름이 없으면
+   (첫 저장) 이름 입력 팝업을 띄운 뒤 확인 시점에 저장하고 나간다 — 이를 위해 `pendingExitAfterSave`
+   플래그를 추가하고, 기존 세 진입점(`OpenSavePopup`/`OpenSaveAsPopup`/`OnNewMapButtonSelected`)도
+   전부 이 플래그를 명시적으로 `false`로 리셋하도록 맞춰서 이전 시도의 상태가 새지 않게 했다.
+   메인메뉴 이동 로직은 `OnMapSelectBackButton`과 완전히 같아서 공용 `ExitToMainMenu()` 헬퍼로
+   묶었다.
+
+**변경 파일**: `Assets/Scripts/MapEditor/MapEditController.cs`(`pendingExitAfterSave`,
+`OnSaveAndExitButton`, `ExitToMainMenu`, `OnNewMapButtonSelected`/`CancelSavePopup`/`ConfirmSaveName`
+수정), `Assets/Scripts/UI/PauseMenuController.cs`(`Update()`에서 `MapEditor` 조건 제거),
+`Assets/Scenes/MapEditor.unity`(`SaveAndExitButton` onClick을 `OnSaveAndExitButton`으로 재배선 —
+버튼 자체는 사용자가 이미 만들어둔 것).
+
+**검증**: 컴파일 정상. `SaveButton`/`SaveAsButton`/`SaveAndExitButton`/`BackButton`/
+`NewMap.SelectButton`의 onClick target/method 문자열 전부 재확인, 씬 저장 완료.
+
+**Play 모드 재확인 필요**:
+1. New Map 클릭 → 이름 입력 화면만 보이고 맵 리스트는 안 보이는지, 취소하면 맵 리스트로
+   돌아가는지.
+2. 맵을 편집하는 중(플레이 테스트 아님) ESC를 눌러도 아무 반응이 없는지.
+3. Save 탭의 "Save And Exit" 클릭 → (이름이 이미 있으면) 바로 저장되고 메인메뉴로 나가는지,
+   (이름이 없으면) 이름 입력 후 확인하면 저장되고 메인메뉴로 나가는지.

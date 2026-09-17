@@ -180,7 +180,11 @@ public class MapEditController : MonoBehaviour
 
         if (addToOrderButton != null) addToOrderButton.onClick.AddListener(EnterAddToOrderMode);
 
-        ShowPlaceTab(); // 기본 상태: Mode1 탭 + 배치 모드
+        // 편집 화면 대신 맵 선택 화면(LoadListPopup)을 맨 처음에 띄운다 — 기존 맵을 고르거나
+        // New Map으로 새로 만들어야 비로소 편집 화면(ShowEditorUI)으로 넘어간다.
+        if (selectionPanel != null) selectionPanel.SetActive(false);
+        OpenLoadPopup();
+
         RefreshCanvasList();
         RefreshOrderListUI();
     }
@@ -1273,6 +1277,8 @@ public class MapEditController : MonoBehaviour
 
     readonly List<MyMapCardUI> myMapCardInstances = new();
     bool pendingSaveAsNew;
+    bool pendingNewMap;
+    bool pendingExitAfterSave;
     const string SaveFilePrefix = "CustomMap_";
     static string SaveFileName(string id) => $"{SaveFilePrefix}{id}.json";
 
@@ -1280,8 +1286,10 @@ public class MapEditController : MonoBehaviour
     /// 파일에 덮어쓴다. 아직 이름이 없으면(첫 저장) 이름을 받아야 하니 팝업을 띄운다.</summary>
     public void OpenSavePopup()
     {
-        if (!string.IsNullOrEmpty(data.title)) { SaveCurrentMap(); return; }
         pendingSaveAsNew = false;
+        pendingNewMap = false;
+        pendingExitAfterSave = false;
+        if (!string.IsNullOrEmpty(data.title)) { SaveCurrentMap(); return; }
         OpenSaveNamePopup();
     }
 
@@ -1289,6 +1297,37 @@ public class MapEditController : MonoBehaviour
     public void OpenSaveAsPopup()
     {
         pendingSaveAsNew = true;
+        pendingNewMap = false;
+        pendingExitAfterSave = false;
+        OpenSaveNamePopup();
+    }
+
+    /// <summary>SaveAndExitButton OnClick. 저장한 뒤(이름이 없으면 먼저 이름을 받고) 메인메뉴로
+    /// 나간다 — 맵 에디터에서 나가는 유일한 경로(일시정지 메뉴는 더 이상 뜨지 않음).</summary>
+    public void OnSaveAndExitButton()
+    {
+        pendingSaveAsNew = false;
+        pendingNewMap = false;
+        pendingExitAfterSave = true;
+        if (!string.IsNullOrEmpty(data.title))
+        {
+            SaveCurrentMap();
+            pendingExitAfterSave = false;
+            ExitToMainMenu();
+            return;
+        }
+        OpenSaveNamePopup();
+    }
+
+    /// <summary>맵 선택 화면의 NewMap 카드 OnClick — 새 맵 이름을 입력받는다. 확인해도 그 자리에서
+    /// 파일을 저장하지 않고 이름만 기억한 채 편집 화면으로 들어간다(저장은 사용자가 나중에 직접
+    /// "저장"을 눌러야 이뤄진다).</summary>
+    public void OnNewMapButtonSelected()
+    {
+        pendingSaveAsNew = false;
+        pendingNewMap = true;
+        pendingExitAfterSave = false;
+        CloseLoadPopup(); // 이름 입력 화면으로 넘어가는 동안 맵 선택 화면은 보이지 않게 한다
         OpenSaveNamePopup();
     }
 
@@ -1305,10 +1344,25 @@ public class MapEditController : MonoBehaviour
         if (string.IsNullOrEmpty(title)) return; // 빈 제목이면 저장하지 않고 팝업 유지
 
         SetTitle(title);
+
+        if (pendingNewMap)
+        {
+            pendingNewMap = false;
+            CancelSavePopup();
+            ShowEditorUI();
+            return;
+        }
+
         if (pendingSaveAsNew) data.id = System.Guid.NewGuid().ToString();
 
         SaveCurrentMap();
         CancelSavePopup();
+
+        if (pendingExitAfterSave)
+        {
+            pendingExitAfterSave = false;
+            ExitToMainMenu();
+        }
     }
 
     void SaveCurrentMap() => SaveManager.Instance.SaveJson(SaveFileName(data.id), data);
@@ -1317,9 +1371,17 @@ public class MapEditController : MonoBehaviour
     public void CancelSavePopup()
     {
         if (saveNamePopup != null) saveNamePopup.SetActive(false);
+
+        // New Map 이름 입력을 취소한 경우, 맵 선택 화면을 닫아둔 채였으므로 다시 열어준다.
+        if (pendingNewMap)
+        {
+            pendingNewMap = false;
+            OpenLoadPopup();
+        }
+        pendingExitAfterSave = false;
     }
 
-    /// <summary>LoadButton OnClick — 저장된 맵 목록 팝업을 연다.</summary>
+    /// <summary>맵 선택 화면(저장된 맵 목록 + New Map)을 연다 — 씬 진입 시 Awake에서 호출된다.</summary>
     public void OpenLoadPopup()
     {
         RefreshLoadList();
@@ -1410,7 +1472,27 @@ public class MapEditController : MonoBehaviour
         RefreshCanvasList();
         RefreshOrderListUI();
         CloseLoadPopup();
+        ShowEditorUI();
+    }
+
+    /// <summary>맵 선택 화면(LoadListPopup)을 닫고 편집 화면을 보여준다 — 기존 맵을 불러왔을 때와
+    /// New Map으로 새 맵을 만들었을 때 둘 다 이 지점으로 합류한다.</summary>
+    void ShowEditorUI()
+    {
+        if (selectionPanel != null) selectionPanel.SetActive(true);
         ShowPlaceTab();
+    }
+
+    /// <summary>맵 선택 화면(LoadListPopup)의 Back 버튼 OnClick — 편집으로 안 들어가고 메인메뉴로
+    /// 나간다(아직 편집할 맵을 고르지 않은 상태이므로 "취소"가 아니라 "나가기"가 맞다).</summary>
+    public void OnMapSelectBackButton() => ExitToMainMenu();
+
+    void ExitToMainMenu()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        Time.timeScale = 1f;
+        GameManager.Instance.ChangeState(GameState.MainMenu);
+        SceneLoader.Instance.Load("MainMenu");
     }
 
     // --- 플레이 테스트 UI 연결용 ---

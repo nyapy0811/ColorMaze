@@ -63,6 +63,18 @@ public class FirstPersonController : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
+    // enabled를 다시 켤 때(맵 에디터 플레이 테스트 등) 꺼져있던 동안 쌓인 낙하/이동 속도가 남아있으면
+    // 재활성 첫 프레임에 갑자기 튀거나 떨어질 수 있다. 지금은 항상 Teleport()가 먼저 속도를 리셋한
+    // 뒤에 enabled = true를 하므로 실제로 발생하진 않지만, 앞으로 다른 경로가 Teleport() 없이
+    // enabled만 토글해도 안전하도록 구조적으로 방어해둔다.
+    void OnEnable()
+    {
+        horizontalVelocity = Vector3.zero;
+        verticalVelocity = 0f;
+        pitch = 0f;
+        if (cameraPivot != null) cameraPivot.localRotation = Quaternion.identity;
+    }
+
     /// <summary>즉시 위치/회전을 옮긴다. CharacterController를 잠깐 꺼서 안전하게 텔레포트하고,
     /// 남아있던 낙하/이동 속도와 시점 pitch도 초기화한다(맵 에디터 플레이 테스트 시작 시 사용 —
     /// 그냥 transform.position만 바꾸면 CharacterController가 같은 프레임에 남은 속도로 다시

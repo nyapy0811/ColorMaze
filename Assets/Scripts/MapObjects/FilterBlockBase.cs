@@ -38,6 +38,14 @@ public abstract class FilterBlockBase : MapObjectBase
     static int playerFilterDepth;
     static Vector3Int playerEntryFace;
 
+    /// <summary>플레이어가 지금 필터 하나 이상의 콜라이더 안에 있는지. 필터 안에 있는 동안 색이
+    /// 바뀌면(상호작용으로 색 스택이 바뀌면) 그 필터의 통과 조건이 깨지면서 콜라이더가 트리거→
+    /// 솔리드로 바뀌는데, 이때는 Unity가 OnTriggerExit를 다시는 안 불러 이 카운터가 영구 고착된다
+    /// (겹친 채로 isTrigger가 꺼지면 트리거 관계 자체가 끊겨서 이탈 이벤트가 안 생김). 그래서 아예
+    /// 필터 안에 있는 동안은 상호작용 자체를 막아(InteractionController 참고) 스택이 못 바뀌게
+    /// 해서 문제 상황이 생기지 않도록 한다.</summary>
+    public static bool PlayerInsideFilter => playerFilterDepth > 0;
+
     MeshRenderer fillRenderer; // 이 블록이 속한 그룹의 채움(fill) 메시 렌더러(테두리 제외, 그룹 전체가 공유)
     float builtFillAlpha; // 통과 불가능할 때 되돌아갈 원래 채움 투명도
 

@@ -3,14 +3,14 @@
 작성일: 2026-09-09
 최종 갱신: 2026-09-17
 상태: 1~6단계 전부 완료, 사용자가 Play 모드에서 체크리스트 검증까지 마침 — § "구현 순서" 참고.
-**단, 6단계(`MapEditController.cs`의 플레이 테스트 부분)는 리팩토링 필요**: 버그를 고쳐나가는
-과정에서 시행착오가 여러 번 있었고(§ "6단계" 안의 "시행착오"/"추가 버그 수정" 기록 참고),
-`MapEditController.cs` 한 파일에 배치·값 수정·정답 순서·저장불러오기·플레이 테스트까지 전부
-누적되며 파일이 많이 커졌다 — 플레이 테스트 관련 로직(`StartPlayTest`/`StopPlayTest`/이벤트
-핸들러 3개/`RestoreConsumedFixtures`/`MarkEdited`)을 별도 클래스로 분리하는 것을 고려할 것.
 추가로 §"맵 에디터 진입 흐름 개편" — 이제 씬 진입 시 편집 화면 대신 맵 선택 화면이 먼저 뜨고,
 5단계에서 설명한 `SaveLoadModePanel`/`SaveLoadMode`/"Load 버튼" 관련 서술은 stale함(현재는
 `SaveModePanel`, Load 버튼 없음 — 최신 내용은 새 섹션 참고).
+**전체 시스템 안정성·유지보수성 리팩토링(2026-09-17, § "전체 시스템 리팩토링" 참고) 완료·검증
+완료**: `ProgressManager`의 세이브 오염 버그·`FilterBlockBase`의 필터 고착 버그 등 실제 버그를
+고쳤고, 사용자가 Play 모드 체크리스트 전항목 검증까지 마쳤다. `MapEditController.cs`의 8책임 분리
+(플레이 테스트 로직을 `MapEditPlayTester`로 분리하는 것부터)는 회귀 위험 때문에 이번엔 보류 —
+다음 리팩토링 세션에서 우선 검토할 것.
 `MapEditor.unity` 씬에서 숫자 1~8 키로 핫바 슬롯을 선택하고, 카메라 조작은 유니티 Scene 뷰와
 동일하게 마우스로(우클릭 회전/휠클릭 Pan/스크롤 Dolly) 하며, 좌클릭 설치·Ctrl+좌클릭 제거·
 Shift+드래그 범위 설치/제거까지 지원한다. 파라미터가 필요한 기물을 선택하면 RGBInput/RGBSelect
@@ -586,6 +586,10 @@ FilterBlockBase 초기화가 전부 기존 로직 그대로 자동으로 맞물�
 
 ## 5단계: 맵 저장/불러오기(로컬 JSON) (2026-09-16)
 
+> **stale 안내**: 아래 UI 서술(`SaveLoadModePanel`/`SaveLoadMode` 탭/Load 버튼)은 이 시점 기준
+> 기록이다. 이후 § "맵 에디터 진입 흐름 개편"에서 `SaveLoadModePanel`→`SaveModePanel`로 개명되고
+> Load 버튼은 삭제됐다(맵 선택 화면이 그 역할을 대신함) — 현재 UI 구조는 그 섹션을 참고할 것.
+
 `CustomStageData`(§ "데이터 구조" 참고)는 처음부터 `JsonUtility` 직렬화가 되도록 설계돼 있었지만,
 지금까지 실제로 파일에 쓰거나 읽는 코드는 없었다. 프레임워크의 범용 `SaveManager.Instance.
 SaveJson<T>/LoadJson<T>(fileName)`(`JsonUtility` 기반, `Application.persistentDataPath`에 저장)를
@@ -846,3 +850,122 @@ onClick target/method 문자열 직접 확인. 사용자가 Play 모드에서 �
 2. 맵을 편집하는 중(플레이 테스트 아님) ESC를 눌러도 아무 반응이 없는지.
 3. Save 탭의 "Save And Exit" 클릭 → (이름이 이미 있으면) 바로 저장되고 메인메뉴로 나가는지,
    (이름이 없으면) 이름 입력 후 확인하면 저장되고 메인메뉴로 나가는지.
+
+## 전체 시스템 리팩토링: 안정성·유지보수성 (2026-09-17)
+
+### 배경
+
+"전체 시스템 스캔해서 리팩토링 하자, 중점은 안정성과 유지 보수의 편리성" 요청에 따라 Core/Framework
+연동·Level/UI·MapEditor·Player/MapObjects 전 영역을 조사했다(Explore 에이전트 3개 병렬 조사 → Plan
+에이전트 설계 → 핵심 파일 직접 재검증). 위 상태줄의 "6단계 리팩토링 필요" 메모가 계기 중 하나였다.
+동작을 바꾸지 않는 선에서 격리된 버그 수정과 구조 정리 위주로 진행했다(Stage A/B/D). `MapEditController`
+8책임 분리(Stage C)는 회귀 위험 때문에 이번엔 보류.
+
+### 최우선 발견 — ProgressManager 세이브 오염 버그
+
+재검증 과정에서 문서화되지 않았던 실제 버그를 새로 찾았다. `ProgressManager.OnStageCleared`가
+`GameManager.State`를 확인하지 않고 `StageCleared` 이벤트만 구독하고 있어서, **맵 에디터 플레이
+테스트로 클리어할 때마다** 활성 씬 이름("MapEditor")이 그대로 `SaveManager.Instance.Current.
+MarkStageCleared("MapEditor")`로 호출되고 즉시 `Save()`까지 실행됐다. 즉 진짜 세이브 파일의
+`clearedStages`에 `"MapEditor"`라는 가짜 항목이 이미 쌓였을 가능성이 있다(6단계 작업 중 플레이
+테스트 클리어를 여러 번 확인했으므로). `ClearScreenController.OnStageCleared`는 6단계 작업 때 이미
+`GameManager.State != Playing` 가드를 넣어 화면 표시는 막았지만, `ProgressManager`는 별도 구독자라
+그 가드의 보호를 못 받고 있었다 — 화면만 안 뜰 뿐 세이브는 계속 오염되고 있었던 것.
+**수정**: `ProgressManager.OnStageCleared` 맨 앞에 동일한 가드 추가.
+**부수 확인 필요**: 세이브 파일(`Application.persistentDataPath` 하위 JSON)의 `clearedStages`에
+`"MapEditor"`가 이미 들어있는지 직접 확인 권장 — 있다면 수동으로 지워야 한다.
+
+### Stage A — 안전하고 격리된 버그 수정 (적용 완료)
+
+- **ProgressManager 세이브 오염 가드**(위 항목).
+- **StageGuideController 가이드 상태 누수**: `OnSceneLoaded`에 `GameManager.State != Playing`이면
+  건너뛰는 가드 추가. `Deactivate()`는 `SceneRestarter`를 거친 재시작에서만 호출되므로, 가이드를
+  켠 채로 메인메뉴를 거쳐 맵 에디터에 들어가면(SceneRestarter를 안 거침) `GuideActive`가 켜진 채로
+  남아 맵 에디터/플레이 테스트의 `SceneLoadCompleted`에도 반응해 엉뚱한(또는 빈) `MazeGenerator`를
+  추적할 수 있었다. (참고: `SceneLoadCompleted`는 map-editor 관련 두 곳 말고도 Framework.Core의
+  `SceneLoader.LoadAsync`가 모든 씬 전환마다 발행한다 — 처음엔 이걸 놓쳐서 "실제 스테이지에서도 가이드가
+  전혀 안 될 것"이라고 오판했었다.)
+- **FilterBlockBase 필터 고착 버그**: `Refresh()`가 `Col.isTrigger`를 true→false로 내리는 순간
+  플레이어가 그 콜라이더에 물리적으로 겹쳐 있으면 Unity가 `OnTriggerExit`를 다시는 안 불러서, 모든
+  필터가 공유하는 `playerFilterDepth` 정적 카운터가 영구 고착되고 이후 **다른 모든 필터**의 통과
+  판정까지 막히는 버그를 확인했다.
+  **시행착오**: 처음엔 인스턴스별 `playerCounted` 플래그 + `Refresh()`에서 `Col.bounds.Contains()`로
+  겹침을 확인해 카운터를 미리 정리하는 방식으로 고쳤다. Play 모드로 재현·검증하는 과정에서(필터에
+  걸친 채로 색을 얻으면 필터가 단단해지며 밀려나는 것까지 확인) 정상 작동을 확인했지만, 사용자가 더
+  근본적인 방식을 제안: **애초에 필터 안에 있는 동안은 상호작용 자체를 막아서 색이 못 바뀌게 하면
+  이 상황 자체가 생기지 않는다.** 이 편이 "겹침을 감지해 뒷수습하는" 것보다 원인을 원천 차단하는
+  더 단순한 해결책이라 판단해 채택 — `playerCounted`/`Refresh()`의 겹침 정리 로직은 전부 되돌리고,
+  대신 `FilterBlockBase`에 `public static bool PlayerInsideFilter => playerFilterDepth > 0;`를
+  추가해 [InteractionController.cs](Assets/Scripts/Player/InteractionController.cs)의
+  `TryInteract()` 호출 직전에 이 값을 확인해 필터 안에 있으면 상호작용 자체를 막도록 변경했다.
+  (색 변경형 기물은 전부 `ConsumableObjectBase`의 조준+클릭 상호작용으로만 발동하고 걸어서 닿는
+  것으로는 발동하지 않으므로, 이 한 지점만 막으면 근본 원인이 완전히 차단된다.)
+- **MapEditController 배열 경계 체크**: `PlacePanelFor`/`UpdateObjectButtonHighlight`/
+  `UpdateModeTabHighlight`에 인덱스·null 가드 추가.
+- **ConsumableObjectBase**: `GameAudio.Instance` null-조건부 접근으로 방어(Bootstrap 매니저 초기화
+  실패 시나리오와 연동).
+- **FirstPersonController.OnEnable() 속도 리셋**: `enabled`를 다시 켤 때 남은 낙하/이동 속도·pitch를
+  리셋하는 방어 로직 추가(현재 유일한 호출부인 `StartPlayTest()`는 이미 `Teleport()`를 먼저 불러
+  실제로는 무해하지만, 앞으로 다른 경로가 생겨도 안전하도록).
+- **Bootstrap try/catch + 실행 순서**: `Awake()`의 싱글톤 초기화를 각각 try/catch로 감싸 하나가
+  예외를 던져도 나머지는 계속 초기화되게 했고, `[DefaultExecutionOrder(-1000)]`을 추가했다.
+- **CustomStageLoader 데이터 유실 경고**: `PlaceFixture`가 프리팹 누락으로 `null`을 반환하는 경로에
+  `Debug.LogWarning` 추가.
+
+### Stage B — 구조적 정리 (적용 완료, 동작 변경 없음)
+
+- `pendingSaveAsNew`/`pendingNewMap`/`pendingExitAfterSave` 3개 bool을 `enum SaveIntent { None,
+  SaveAsNew, NewMap, ExitAfterSave }` 하나로 통합 — 상호 배타성을 타입으로 보장.
+- `editingFixtures.Clear(); editingFixtureInstances.Clear();` 반복 패턴(10곳)을
+  `ResetEditingSelection()` 헬퍼로 통합.
+- 드래그 배치/제거 중 필터가 섞여 있으면 칸마다 `FilterBlockBase.RebuildAll()`(씬 전체 필터 메시
+  재생성)이 반복 호출되던 것을, `PlaceFixtureAt`/`RemoveCell`에 `suppressFilterRebuild` 옵션을 추가해
+  드래그가 끝난 뒤 한 번만 호출하도록 지연.
+- 기물 등록 공통 헬퍼 추출·메인메뉴 종료 패턴(`ClearScreenController`/`PauseMenuController`/
+  `MapEditController` 3곳 중복) 통합은 검토 결과 깔끔한 추출이 어렵거나 여러 클래스에 걸친 변경이라
+  이번 "안전한 격리 수정" 범위에서는 보류했다(억지 추상화 방지).
+
+### Stage C — MapEditController 책임 분리 → 보류
+
+`MapEditController.cs`는 약 1700줄, 8가지 책임(배치/제거, 팔레트·파라미터 UI, 값 수정, 정답 순서
+편집, 탭 전환, 저장/불러오기+맵 선택, 플레이테스트, 부트스트래핑)이 섞여 있다. 지금 정상 동작 중이고
+이번 세션에서 만든 저장 포맷/씬 배선과의 회귀 위험이 커서 이번엔 손대지 않았다. **다음 리팩토링
+세션 제안**: 플레이테스트 로직(`StartPlayTest`/`StopPlayTest`/`OnMapObjectUsedDuringPlayTest`/
+`OnCanvasCompletedDuringPlayTest`/`OnStageClearedDuringPlayTest`/`RestoreConsumedFixtures`/
+`MarkEdited`)을 `MapEditPlayTester`라는 별도 컴포넌트로 분리하는 것부터 시작 — 기존 씬의 UnityEvent
+배선(`PlayButton`→`StartPlayTest` 등)은 `MapEditController`에 한 줄짜리 forwarder 메서드를 남겨두면
+씬을 다시 배선할 필요가 없다.
+
+### Stage D — 죽은 코드/문서 정리 (적용 완료)
+
+- `AcquireObjectBase`(획득형 기물 베이스, 실제 상속/사용처 없음 확인) — 프로젝트 규칙에 따라 삭제
+  대신 `!!!!AcquireObjectBase.cs`로 이름 변경(내용 그대로 보존, 필요 시 git 히스토리에서도 복원 가능).
+- § "5단계" 앞에 `SaveLoadModePanel`/Load 버튼 서술이 stale하다는 안내 인용구 추가.
+
+### Framework.Core 패키지 이슈 — 핸드오프만, 이번 세션에서 수정 안 함
+
+`SaveManager`(로드/저장 try/catch 없음)·`EventBus`(구독자 하나가 예외를 던지면 그 뒤 구독자 전부
+스킵)·`MonoSingleton`(Awake 순서 미보장) 세 가지 안정성 이슈를 확인했지만, 전부 외부 Git 패키지
+(`Packages/manifest.json`의 `FrameWorkCore` 저장소, `Library/PackageCache` 하위)에 있어 이 저장소에서
+고쳐도 저장되지 않는다. 사용자 결정에 따라 이번 세션은 패키지를 건드리지 않고,
+`Docs/FrameworkCoreFixRequest.md`에 "프레임워크 담당" 세션으로 전달할 구체적 요청서만 작성했다.
+
+### 검증
+
+- `unity command recompile` 정상 확인(Stage A/B/D 전체 반영 후, FilterBlockBase 재구현 후에도 재확인).
+
+**Play 모드 체크리스트 — 사용자 확인 완료(2026-09-17, 전부 정상 작동)**:
+1. ~~맵 에디터에서 플레이 테스트로 클리어 → 에디터 복귀는 기존과 동일하게 동작하는지, 그리고 실제
+   세이브 파일에 `"MapEditor"`가 `clearedStages`로 더 이상 추가되지 않는지 확인.~~ **확인 완료.**
+   실제로 세이브 파일(`C:\Users\<유저>\AppData\LocalLow\ColorMaze\ColorMaze\save.json` — companyName이
+   `nyapy`로 바뀌기 전 값으로 계속 저장되고 있었음, 에디터 재시작 후에도 동일)에 `"MapEditor"`가
+   이미 오염돼 있던 걸 실제로 확인·제거했다. 단, 이미 켜져 있던 Play 세션이 그 파일을 메모리에 들고
+   있어서 파일만 지워도 다음 저장 때 되살아나는 걸 한 번 더 겪었다 — `SaveManager.Instance.Current`
+   에서도 같이 지워야 했다(Play 모드를 완전히 정지했다 다시 켜면 자동으로 해결됨).
+2. ~~필터 안에 플레이어가 겹쳐 있는 상태에서 트리거 상태가 바뀌어도 이후 다른 필터들이 고착 없이
+   정상적으로 반응하는지.~~ **확인 완료.** 단, 수정 방식이 바뀌었다 — 위 "FilterBlockBase 필터
+   고착 버그" 항목의 시행착오 참고(겹침 감지 방식 → 상호작용 차단 방식).
+3. ~~6단계·진입 흐름 개편 기존 기능 회귀 여부(맵 선택→New Map→편집→저장→플레이 테스트→저장 및
+   나가기).~~ **확인 완료.**
+4. ~~필터가 섞인 범위 Shift+드래그 설치/제거 시 메시 정상 갱신(성능 최적화 확인).~~ **확인 완료.**
+5. ~~게임을 새로 켰을 때 정상적으로 메인메뉴로 부팅되는지(Bootstrap 변경 확인).~~ **확인 완료.**

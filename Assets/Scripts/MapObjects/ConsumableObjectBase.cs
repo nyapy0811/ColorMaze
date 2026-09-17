@@ -27,7 +27,7 @@ public abstract class ConsumableObjectBase : MapObjectBase, IInteractable
         Apply();
         if (ShouldConsume())
         {
-            GameAudio.Instance.PlayInteract();
+            GameAudio.Instance?.PlayInteract(); // Bootstrap 매니저 초기화가 실패했을 수 있으므로 방어
             Consume();
         }
     }

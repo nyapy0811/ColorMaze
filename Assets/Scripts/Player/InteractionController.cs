@@ -35,7 +35,11 @@ public class InteractionController : MonoBehaviour
 
         UpdateTarget();
 
-        if (currentTarget != null && InputManager.Instance.ReadInteract())
+        // 필터 안에 있는 동안 상호작용으로 색이 바뀌면 그 필터의 통과 조건이 깨지면서 콜라이더가
+        // 트리거→솔리드로 바뀌는데, 겹친 채로 그렇게 되면 Unity가 OnTriggerExit를 다시는 안 불러
+        // 필터들이 공유하는 통과 카운터가 영구 고착된다(FilterBlockBase.PlayerInsideFilter 참고).
+        // 그 상황 자체가 생기지 않도록 필터 안에서는 상호작용을 막는다.
+        if (currentTarget != null && !FilterBlockBase.PlayerInsideFilter && InputManager.Instance.ReadInteract())
         {
             (currentTarget as IInteractable)?.TryInteract();
         }

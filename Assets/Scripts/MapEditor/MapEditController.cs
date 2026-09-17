@@ -285,8 +285,7 @@ public class MapEditController : MonoBehaviour
     // 기존 선택을 전부 지우고 이 기물 하나만으로 새로 시작한다(Shift 없이 클릭했을 때의 동작).
     void BeginEditFixture(FixtureEntry fixture, GameObject go)
     {
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         editingFixtures.Add(fixture);
         editingFixtureInstances.Add(go.GetComponent<MapObjectBase>());
 
@@ -351,10 +350,17 @@ public class MapEditController : MonoBehaviour
 
     void EndEdit()
     {
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         HideParamPanels();
         UpdateMarkHighlight();
+    }
+
+    // 값 수정 대상 선택을 비운다. editingFixtures와 editingFixtureInstances는 인덱스로 1:1 대응하므로
+    // 항상 같이 지워야 한다 — 모드 전환·선택 시작 등 여러 곳에서 반복되던 2줄짜리 패턴을 모았다.
+    void ResetEditingSelection()
+    {
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
     }
 
     // 마우스가 가리키는 기존 배치물의 칸. 실제 모양과 무관하게 항상 블록 크기로 판정한다
@@ -422,7 +428,7 @@ public class MapEditController : MonoBehaviour
     // 마커 한도에 맞춰 최대 7개까지만 배치할 수 있다.
     int CanvasCount => data.fixtures.Count(f => f.type == FixtureType.Canvas);
 
-    void PlaceFixtureAt(Vector3Int cell, FixtureType type)
+    void PlaceFixtureAt(Vector3Int cell, FixtureType type, bool suppressFilterRebuild = false)
     {
         if (type == FixtureType.Canvas && CanvasCount >= 7) return;
 
@@ -450,7 +456,7 @@ public class MapEditController : MonoBehaviour
             RefreshCanvasList();
         }
 
-        if (IsFilter(type)) FilterBlockBase.RebuildAll();
+        if (IsFilter(type) && !suppressFilterRebuild) FilterBlockBase.RebuildAll();
     }
 
     void Register(Vector3Int cell, GameObject go, BlockEntry block, FixtureEntry fixture)
@@ -458,7 +464,7 @@ public class MapEditController : MonoBehaviour
         cells[cell] = new PlacedCell { GameObject = go, Block = block, Fixture = fixture };
     }
 
-    void RemoveCell(Vector3Int cell)
+    void RemoveCell(Vector3Int cell, bool suppressFilterRebuild = false)
     {
         if (!cells.TryGetValue(cell, out var placed)) return;
         cells.Remove(cell);
@@ -482,7 +488,7 @@ public class MapEditController : MonoBehaviour
 
         Object.Destroy(placed.GameObject);
 
-        if (wasFilter) FilterBlockBase.RebuildAll();
+        if (wasFilter && !suppressFilterRebuild) FilterBlockBase.RebuildAll();
         if (placed.Fixture != null) RefreshOrderListUI(); // 지운 기물이 순서 목록에 있었을 수도 있음
         MarkEdited();
     }
@@ -663,19 +669,33 @@ public class MapEditController : MonoBehaviour
     void CommitDragRect()
     {
         bool placeReady = IsPlaceReady(currentFixtureType); // RGBSelect류인데 색 선택이 안 끝났으면 드래그 설치도 안 함
+
+        // 드래그 범위가 필터일 때 칸마다 FilterBlockBase.RebuildAll()(씬 전체 필터 메시 재생성)을
+        // 부르면 칸 수만큼 반복 비용이 든다 — 개별 호출은 억제하고 드래그가 끝난 뒤 한 번만 부른다.
+        bool touchedFilter = false;
         foreach (var center in GetDragCenters())
         {
             Vector3Int cell = ToCell(center);
             if (dragRemove)
             {
-                if (cells.ContainsKey(cell)) RemoveCell(cell);
+                if (cells.TryGetValue(cell, out var placed))
+                {
+                    if (placed.Fixture != null && IsFilter(placed.Fixture.type)) touchedFilter = true;
+                    RemoveCell(cell, suppressFilterRebuild: true);
+                }
             }
             else if (placeReady && !cells.ContainsKey(cell))
             {
                 if (currentFixtureType == null) PlaceBlockAt(cell);
-                else PlaceFixtureAt(cell, currentFixtureType.Value);
+                else
+                {
+                    if (IsFilter(currentFixtureType.Value)) touchedFilter = true;
+                    PlaceFixtureAt(cell, currentFixtureType.Value, suppressFilterRebuild: true);
+                }
             }
         }
+
+        if (touchedFilter) FilterBlockBase.RebuildAll();
     }
 
     void ShowDragPreview()
@@ -722,8 +742,7 @@ public class MapEditController : MonoBehaviour
     public void SelectBlockTool()
     {
         mode = EditorMode.Place;
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         currentFixtureType = null;
         HideParamPanels();
         ClearMarks();
@@ -749,8 +768,7 @@ public class MapEditController : MonoBehaviour
     {
         mode = EditorMode.AddToOrder;
         currentFixtureType = null;
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         HideParamPanels();
         RefreshMarks(type => true, AddFixtureToOrder);
     }
@@ -776,8 +794,7 @@ public class MapEditController : MonoBehaviour
     public void ShowOrderTab()
     {
         mode = EditorMode.OrderView;
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         HideParamPanels();
         ClearMarks();
         SetActivePanel(mode3Panel);
@@ -788,8 +805,7 @@ public class MapEditController : MonoBehaviour
     public void ShowSaveLoadTab()
     {
         mode = EditorMode.SaveLoad;
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         HideParamPanels();
         ClearMarks();
         SetActivePanel(mode4Panel);
@@ -801,8 +817,7 @@ public class MapEditController : MonoBehaviour
     public void ShowPlayTab()
     {
         mode = EditorMode.PlayView;
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         HideParamPanels();
         ClearMarks();
         SetActivePanel(mode5Panel);
@@ -820,6 +835,7 @@ public class MapEditController : MonoBehaviour
 
     void UpdateModeTabHighlight(int index)
     {
+        if (modeTabImages == null) return;
         for (int i = 0; i < modeTabImages.Length; i++)
             if (modeTabImages[i] != null)
                 modeTabImages[i].color = (i == index) ? tabSelectedColor : tabNormalColor;
@@ -832,8 +848,7 @@ public class MapEditController : MonoBehaviour
     public void SelectFixtureTool(int type)
     {
         mode = EditorMode.Place;
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         var fixtureType = (FixtureType)type;
         bool reselecting = currentFixtureType.HasValue && currentFixtureType.Value == fixtureType;
         currentFixtureType = fixtureType;
@@ -846,8 +861,12 @@ public class MapEditController : MonoBehaviour
 
     // ObjectButton(0=Block)~(7=StackChanger)과 동일한 인덱스로 그 기물의 인라인 값 입력 패널을 찾는다.
     // 파라미터가 필요 없는 기물(Block, ColorChanger)은 null.
-    FixtureValuePanel PlacePanelFor(FixtureType? type) =>
-        type.HasValue && fixtureValuePanels != null ? fixtureValuePanels[(int)type.Value + 1] : null;
+    FixtureValuePanel PlacePanelFor(FixtureType? type)
+    {
+        if (!type.HasValue || fixtureValuePanels == null) return null;
+        int index = (int)type.Value + 1;
+        return index >= 0 && index < fixtureValuePanels.Length ? fixtureValuePanels[index] : null;
+    }
 
     // active로 지정한 기물의 버튼만 높이 160 + 패널 활성으로 펼치고, 나머지는 전부 높이 80 + 패널
     // 비활성으로 접는다. VerticalLayoutGroup이 각 버튼의 현재 높이로 다른 버튼들의 위치를 자동 재배치
@@ -936,6 +955,7 @@ public class MapEditController : MonoBehaviour
 
     void UpdateObjectButtonHighlight(int index)
     {
+        if (objectButtonImages == null) return;
         for (int i = 0; i < objectButtonImages.Length; i++)
             if (objectButtonImages[i] != null)
                 objectButtonImages[i].color = (i == index) ? tabSelectedColor : tabNormalColor;
@@ -1276,9 +1296,13 @@ public class MapEditController : MonoBehaviour
     [SerializeField] MyMapCardUI myMapCardTemplate;
 
     readonly List<MyMapCardUI> myMapCardInstances = new();
-    bool pendingSaveAsNew;
-    bool pendingNewMap;
-    bool pendingExitAfterSave;
+
+    // 저장 이름 팝업(SaveNamePopup)을 확인/취소했을 때 어떤 흐름으로 온 것인지 — 예전엔 bool 3개
+    // (pendingSaveAsNew/pendingNewMap/pendingExitAfterSave)를 따로 두고 매번 서로를 false로 리셋해야
+    // 했는데, 그중 하나를 리셋하는 걸 빠뜨리면 두 흐름이 동시에 true가 되는 상태가 가능했다.
+    // enum 하나로 합쳐 항상 정확히 하나의 의도만 갖도록 타입으로 보장한다.
+    enum SaveIntent { None, SaveAsNew, NewMap, ExitAfterSave }
+    SaveIntent saveIntent = SaveIntent.None;
     const string SaveFilePrefix = "CustomMap_";
     static string SaveFileName(string id) => $"{SaveFilePrefix}{id}.json";
 
@@ -1286,9 +1310,7 @@ public class MapEditController : MonoBehaviour
     /// 파일에 덮어쓴다. 아직 이름이 없으면(첫 저장) 이름을 받아야 하니 팝업을 띄운다.</summary>
     public void OpenSavePopup()
     {
-        pendingSaveAsNew = false;
-        pendingNewMap = false;
-        pendingExitAfterSave = false;
+        saveIntent = SaveIntent.None;
         if (!string.IsNullOrEmpty(data.title)) { SaveCurrentMap(); return; }
         OpenSaveNamePopup();
     }
@@ -1296,9 +1318,7 @@ public class MapEditController : MonoBehaviour
     /// <summary>SaveAsButton OnClick. 이미 이름이 있어도 새 이름을 받아야 하므로 항상 팝업을 띄운다.</summary>
     public void OpenSaveAsPopup()
     {
-        pendingSaveAsNew = true;
-        pendingNewMap = false;
-        pendingExitAfterSave = false;
+        saveIntent = SaveIntent.SaveAsNew;
         OpenSaveNamePopup();
     }
 
@@ -1306,13 +1326,11 @@ public class MapEditController : MonoBehaviour
     /// 나간다 — 맵 에디터에서 나가는 유일한 경로(일시정지 메뉴는 더 이상 뜨지 않음).</summary>
     public void OnSaveAndExitButton()
     {
-        pendingSaveAsNew = false;
-        pendingNewMap = false;
-        pendingExitAfterSave = true;
+        saveIntent = SaveIntent.ExitAfterSave;
         if (!string.IsNullOrEmpty(data.title))
         {
             SaveCurrentMap();
-            pendingExitAfterSave = false;
+            saveIntent = SaveIntent.None;
             ExitToMainMenu();
             return;
         }
@@ -1324,9 +1342,7 @@ public class MapEditController : MonoBehaviour
     /// "저장"을 눌러야 이뤄진다).</summary>
     public void OnNewMapButtonSelected()
     {
-        pendingSaveAsNew = false;
-        pendingNewMap = true;
-        pendingExitAfterSave = false;
+        saveIntent = SaveIntent.NewMap;
         CloseLoadPopup(); // 이름 입력 화면으로 넘어가는 동안 맵 선택 화면은 보이지 않게 한다
         OpenSaveNamePopup();
     }
@@ -1345,24 +1361,21 @@ public class MapEditController : MonoBehaviour
 
         SetTitle(title);
 
-        if (pendingNewMap)
+        if (saveIntent == SaveIntent.NewMap)
         {
-            pendingNewMap = false;
+            saveIntent = SaveIntent.None;
             CancelSavePopup();
             ShowEditorUI();
             return;
         }
 
-        if (pendingSaveAsNew) data.id = System.Guid.NewGuid().ToString();
+        if (saveIntent == SaveIntent.SaveAsNew) data.id = System.Guid.NewGuid().ToString();
+        bool exitAfterSave = saveIntent == SaveIntent.ExitAfterSave;
 
         SaveCurrentMap();
         CancelSavePopup();
 
-        if (pendingExitAfterSave)
-        {
-            pendingExitAfterSave = false;
-            ExitToMainMenu();
-        }
+        if (exitAfterSave) ExitToMainMenu();
     }
 
     void SaveCurrentMap() => SaveManager.Instance.SaveJson(SaveFileName(data.id), data);
@@ -1373,12 +1386,8 @@ public class MapEditController : MonoBehaviour
         if (saveNamePopup != null) saveNamePopup.SetActive(false);
 
         // New Map 이름 입력을 취소한 경우, 맵 선택 화면을 닫아둔 채였으므로 다시 열어준다.
-        if (pendingNewMap)
-        {
-            pendingNewMap = false;
-            OpenLoadPopup();
-        }
-        pendingExitAfterSave = false;
+        if (saveIntent == SaveIntent.NewMap) OpenLoadPopup();
+        saveIntent = SaveIntent.None;
     }
 
     /// <summary>맵 선택 화면(저장된 맵 목록 + New Map)을 연다 — 씬 진입 시 Awake에서 호출된다.</summary>
@@ -1427,8 +1436,7 @@ public class MapEditController : MonoBehaviour
         data.blocks.Clear();
         data.fixtures.Clear();
         data.canvasOrders.Clear();
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         selectedCanvasFixtureId = -1;
 
         data.id = loaded.id;
@@ -1531,8 +1539,7 @@ public class MapEditController : MonoBehaviour
 
         Time.timeScale = 1f; // 직전 클리어 화면 등으로 멈춰 있었을 수 있으니 항상 명시적으로 복구.
 
-        editingFixtures.Clear();
-        editingFixtureInstances.Clear();
+        ResetEditingSelection();
         HideParamPanels();
         ClearMarks();
         HideHoverPreview();

@@ -76,7 +76,13 @@ public static class CustomStageLoader
     public static MapObjectBase PlaceFixture(FixtureEntry fixture, CustomStagePrefabs prefabs, Transform parent)
     {
         var prefab = prefabs.PrefabFor(fixture.type);
-        if (prefab == null) return null;
+        if (prefab == null)
+        {
+            // 프리팹 참조가 비어있으면 이 기물은 조용히 사라진다(데이터는 그대로 남아있지만 화면에는
+            // 아무것도 안 생김) — 원인 파악이 어려우므로 최소한 로그는 남긴다.
+            Debug.LogWarning($"[CustomStageLoader] '{fixture.type}' 타입의 프리팹이 CustomStagePrefabs에 연결돼 있지 않아 기물(id={fixture.id})을 생성하지 못함.");
+            return null;
+        }
 
         Vector3 pos = new Vector3(fixture.x, fixture.y + 0.5f, fixture.z);
         if (fixture.type == FixtureType.Bucket) pos += new Vector3(0f, -0.5f, 0f);

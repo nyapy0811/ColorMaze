@@ -85,6 +85,10 @@ public class ProgressManager : MonoSingleton<ProgressManager>
 
     void OnStageCleared(StageCleared e)
     {
+        // 맵 에디터 플레이 테스트 중에는 GameManager.State가 MapEditorPlayTest이므로 여기서 걸러진다.
+        // 이 가드가 없으면 활성 씬 이름("MapEditor")이 그대로 클리어 스테이지로 저장돼 세이브가 오염된다.
+        if (GameManager.Instance.State != GameState.Playing) return;
+
         string sceneName = SceneManager.GetActiveScene().name;
 
         SaveManager.Instance.Current.MarkStageCleared(sceneName);

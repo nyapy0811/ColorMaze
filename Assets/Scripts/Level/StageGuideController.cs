@@ -56,6 +56,11 @@ public class StageGuideController : MonoSingleton<StageGuideController>
     void OnSceneLoaded(SceneLoadCompleted e)
     {
         if (!GuideActive) return;
+        // 가이드는 실제 스테이지 플레이(Playing) 전용이다. Deactivate()는 SceneRestarter를 거친
+        // 재시작에서만 호출되므로, 메인메뉴를 거쳐 맵 에디터로 들어가는 등 SceneRestarter를 거치지
+        // 않는 경로로는 GuideActive가 켜진 채로 남을 수 있다 — 그 상태로 맵 에디터 씬이 로드되거나
+        // 플레이 테스트가 시작되면 엉뚱한(또는 비어있는) MazeGenerator를 추적하게 되므로 걸러낸다.
+        if (GameManager.Instance.State != GameState.Playing) return;
 
         var maze = FindFirstObjectByType<MazeGenerator>();
         lists = maze != null && maze.correctOrders.Count > 0

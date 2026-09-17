@@ -1,17 +1,20 @@
 # 인게임 맵 에디터 설계 (초안)
 
 작성일: 2026-09-09
-최종 갱신: 2026-09-16
-상태: 1~4단계 전부 완료, **실제 Play 모드 사용자 테스트까지 통과**. 4단계 완료 이후에도 값 수정
-모드 UI를 계속 다듬는 중 — § "4-4. 값 입력 UI 통합 + 다중 선택 편집" 참고.
+최종 갱신: 2026-09-17
+상태: 1~6단계 전부 완료, 사용자가 Play 모드에서 체크리스트 검증까지 마침 — § "구현 순서" 참고.
+**단, 6단계(`MapEditController.cs`의 플레이 테스트 부분)는 리팩토링 필요**: 버그를 고쳐나가는
+과정에서 시행착오가 여러 번 있었고(§ "6단계" 안의 "시행착오"/"추가 버그 수정" 기록 참고),
+`MapEditController.cs` 한 파일에 배치·값 수정·정답 순서·저장불러오기·플레이 테스트까지 전부
+누적되며 파일이 많이 커졌다 — 플레이 테스트 관련 로직(`StartPlayTest`/`StopPlayTest`/이벤트
+핸들러 3개/`RestoreConsumedFixtures`/`MarkEdited`)을 별도 클래스로 분리하는 것을 고려할 것.
 `MapEditor.unity` 씬에서 숫자 1~8 키로 핫바 슬롯을 선택하고, 카메라 조작은 유니티 Scene 뷰와
 동일하게 마우스로(우클릭 회전/휠클릭 Pan/스크롤 Dolly) 하며, 좌클릭 설치·Ctrl+좌클릭 제거·
 Shift+드래그 범위 설치/제거까지 지원한다. 파라미터가 필요한 기물을 선택하면 RGBInput/RGBSelect
 패널이 뜨며, Confirm으로 값을 확정한다. 배치된 기물을 재선택해 값 수정("0"키 모드)도 가능하고,
 정답 순서는 고정 2개(빨강/파랑)가 아니라 **캔버스(Canvas 기물)를 배치할 때마다 하나씩 자동으로
 생기는 순서 목록**(최대 7개, 무지개 7색 마커) 방식으로 확장됐다 — 상세는 § "4단계: 기물 값 수정
-모드 + 캔버스별 정답 순서 시스템 (2026-09-13)" 참고. 남은 건 5~6단계(저장/불러오기, 플레이 테스트
-버튼)뿐 — § "구현 순서" 참고.
+모드 + 캔버스별 정답 순서 시스템 (2026-09-13)" 참고.
 
 ## 목적 / 대상
 
@@ -119,8 +122,9 @@ public class FixtureEntry
    Player 프리팹도 씬에 배치돼 있고 `InteractionController.enabled = false`로 이미 비활성화 확인됨.
 4. ✅ 배치된 기물 재선택 → 파라미터 수정 + 캔버스별 정답 순서 추가·편집 UI — 완료(2026-09-13,
    § "4단계" 참고).
-5. ⬜ 저장/불러오기(로컬 JSON) + "내 맵" 목록 UI
-6. ⬜ 플레이 테스트 버튼(로더 재사용)
+5. ✅ 저장/불러오기(로컬 JSON) + "내 맵" 목록 UI — 완료(2026-09-16, § "5단계" 참고).
+6. ✅ 플레이 테스트 버튼(로더 재사용 대신 이미 배치된 오브젝트 재사용) — 완료(2026-09-17, § "6단계"
+   참고). **단, 리팩토링 필요**(`MapEditController.cs` 비대화 — § "6단계" 도입부 참고).
 
 각 단계는 순서대로 구현하고 중간중간 확인받으며 진행.
 
@@ -576,3 +580,169 @@ FilterBlockBase 초기화가 전부 기존 로직 그대로 자동으로 맞물�
 값 수정 모드 재사용 용도 추가), `Assets/Prefebs/Valueinput.prefab`(신규), `Assets/Scenes/MapEditor.unity`
 (버튼 높이 기본값, `fixtureValuePanels`/`editRgbInputPanel`/`editRgbSelectPanel`/`editColorButtonImages`
 등 배선).
+
+## 5단계: 맵 저장/불러오기(로컬 JSON) (2026-09-16)
+
+`CustomStageData`(§ "데이터 구조" 참고)는 처음부터 `JsonUtility` 직렬화가 되도록 설계돼 있었지만,
+지금까지 실제로 파일에 쓰거나 읽는 코드는 없었다. 프레임워크의 범용 `SaveManager.Instance.
+SaveJson<T>/LoadJson<T>(fileName)`(`JsonUtility` 기반, `Application.persistentDataPath`에 저장)를
+그대로 재사용해서 연결했다.
+
+**UI**: 사용자가 만들어 둔 `SaveLoadModePanel`(Save/Save As/Load 버튼)과 `ModeButtonList`의 4번째
+탭 `SaveLoadMode`에, 새로 만든 두 팝업(`UICanvas` 바로 밑, 어느 탭이든 항상 뜰 수 있게)을 연결했다:
+- `SaveNamePopup` — 맵 제목 입력(확인/취소).
+- `LoadListPopup` — 저장된 맵 목록(`CanvasList`/`OrderList`와 동일한 "숨긴 템플릿 복제" 패턴,
+  `MyMapCardUI` 신설)을 스크롤로 보여주고 클릭하면 그 맵을 불러온다.
+
+**동작 규칙**:
+- 파일명은 `CustomMap_{data.id}.json`(GUID 기반, 충돌 없음). 목록은 `Directory.GetFiles`로
+  `CustomMap_*.json`을 열거해 각각 제목만 읽어 카드로 표시(별도 인덱스 파일 없음).
+- **"저장"**: 이미 이름이 있는(=처음 저장이 아닌) 맵이면 팝업 없이 바로 그 파일에 덮어쓴다. 아직
+  이름이 없으면(첫 저장) 이름을 받아야 하므로 팝업이 뜬다.
+- **"다른 이름으로 저장"**: 이미 이름이 있어도 항상 팝업이 뜨고, 확인하면 `data.id`를 새 GUID로
+  바꿔 별도 파일로 저장한다 — 이후 "저장"은 그 새 파일을 대상으로 하고 원본은 건드리지 않는다.
+- **"불러오기"**: 선택한 맵으로 현재 편집 상태(배치된 오브젝트, `cells`, `data`의 blocks/fixtures/
+  canvasOrders, 편집 중 선택 등)를 완전히 교체한다(`LoadMap`). `data` 인스턴스 자체는 유지한 채
+  내용만 갈아끼워서 `Data` 프로퍼티 참조가 깨지지 않게 했고, `nextFixtureId`는 불러온 기물 id
+  최댓값+1로 재계산, `FilterBlockBase.RebuildAll()`은 필터 유무와 무관하게 항상 호출(기존
+  `CustomStageLoader.Load()`와 동일 원칙).
+- 값 수정/정답 순서 모드와 동일하게 `EditorMode.SaveLoad`를 추가해 이 탭에서는 카메라 이동만
+  가능하고 월드 클릭(설치/제거/드래그)은 막힌다.
+
+**버그 수정**: 새로 만든 `LoadListPopup`의 `Viewport` Image를 `OrderList/Viewport`와 동일한
+`sprite=UIMask`로 맞췄지만 `Image.Type`을 `Sliced`로 지정하지 않아, 마스크용 스프라이트가 원래
+모양(둥근 말풍선 형태)대로 늘어나 보이는 버그가 있었다(사용자가 Play 모드에서 발견 후 직접 수정).
+
+**새 파일**: `Assets/Scripts/MapEditor/MyMapCardUI.cs`(`CanvasCardUI`와 동일한 패턴).
+
+**검증**: 컴파일 정상, 새 필드(`mode4Panel`/`saveNamePopup`/`saveNameInputField`/`loadListPopup`/
+`loadListContent`/`myMapCardTemplate`) 전부 배선 확인, 4개 버튼(Save/SaveAs/Load/SaveLoadMode 탭)의
+onClick target/method 문자열 직접 확인. 사용자가 Play 모드에서 저장→재시작→불러오기 왕복까지
+정상 동작 확인 완료.
+
+## 6단계: 플레이 테스트 버튼 (2026-09-17)
+
+**핵심 통찰**: 맵 에디터는 배치할 때마다 `CustomStageLoader.PlaceBlock`/`PlaceFixture`로 이미
+**진짜 컴포넌트를 그 자리에 Instantiate**해서 `mazeRoot`/`mapObjectsRoot` 밑에 들고 있다(`cells`
+딕셔너리로 추적). 그래서 플레이 테스트는 `CustomStageLoader.Load()`를 다시 불러 씬을 통째로 새로
+만드는 게 아니라 — **이미 살아있는 그 오브젝트들을 그대로 플레이 가능한 상태로 전환**하기만 하면
+된다(중복 생성·중복 콜라이더 걱정 없음). 부족했던 두 가지만 채우면 됐다: `MazeGenerator`
+컴포넌트(정답 순서를 담는 데이터 홀더, 지연 `AddComponent`로 최초 1회만 부착) + 챕터 스테이지
+로드 때와 동일하게 `LevelManager`/`StageGuideController`/필터 병합을 초기화하는 계기인
+`SceneLoadCompleted` 이벤트 발행.
+
+**UI**: 사용자가 이미 만들어 둔 5번째 탭 `PlayMode`(`ModeButtonList`) → `PlayModePanel`의
+`PlayButton`(자리표시자 메서드로 연결돼 있던 것을 실제 메서드로 재배선)에 새로 만든
+`PlayTestOverlay`(`UICanvas` 바로 밑, `BackToEditorButton` 하나만 있는 작은 배너, 기존
+`PlayButton`을 복제해 스타일 통일, 기본 비활성)를 연결했다.
+
+**동작 규칙**:
+- **시작(`StartPlayTest`)**: `Time.timeScale = 1f`부터 명시적으로 복구(직전에 클리어 화면 등으로
+  멈춰 있었을 가능성 방지)한 뒤, 선택/마크/미리보기 정리 후 `selectionPanel` 숨김 +
+  `playTestOverlay` 표시. `FirstPersonController.Instance`(씬에 하나뿐인 Player 싱글톤) 기준으로
+  `EditorFlyCamera` 비활성 + `FirstPersonController`/`InteractionController` 활성 + 커서 잠금,
+  스폰 위치를 고정 좌표로 리셋. `ColorStacks.ResetAll()`로 색 스택 초기화. `cells`에 이미 배치된
+  기물들로 `MazeGenerator.correctOrders`를 `data.canvasOrders` 기준으로 채우고(id→인스턴스 역참조
+  딕셔너리 경유), 매 테스트마다 모든 `ClearObjectBase.ResetCompletion()`을 호출해 이전 테스트의
+  완료 상태가 새 테스트에 남지 않게 한다. `FilterBlockBase.RebuildAll()` + `SceneLoadCompleted`
+  발행 후 `GameManager.ChangeState(Playing)`.
+  - **스폰 위치 이동 신뢰성**: 처음엔 `fpc.transform.SetPositionAndRotation(...)`으로 직접
+    Transform만 옮겼는데, `CharacterController`가 붙어있는 오브젝트라 직전 테스트에서 남아있던
+    낙하/이동 속도·지면 판정 상태와 부딪혀 순간이동이 씹히거나 튀는 문제가 있었다(사용자가 "플레이
+    버튼 누르면 캐릭터를 시작지점으로 이동시키고 시작하게 해달라"고 요청해 발견). `FirstPersonController.
+    Teleport(position, rotation)`를 새로 추가해 `CharacterController`를 잠깐 꺼서 옮긴 뒤 다시 켜고,
+    남은 수평/수직 속도와 시점 pitch까지 초기화하도록 고쳤다.
+- **종료(`StopPlayTest`)**: 위 전환을 역순으로 되돌리고(`Time.timeScale`도 복구),
+  `EditorMode.MapEditor`로 상태 복귀. 에디터 자체의 프레임 로직(`Update()`)은 `isPlayTesting`
+  플래그로 테스트 중엔 완전히 건너뛴다 — 플레이어 입력/일시정지는 기존
+  `FirstPersonController`/`PauseMenuController`가 그대로 처리(추가 코드 불필요, HUD/BrushViewmodel도
+  `GameState` 리스너라 자동으로 켜짐/꺼짐).
+- **실제 클리어 감지 시 자동 복귀**: `GameState`에 `MapEditorPlayTest`를 새로 추가해, 플레이
+  테스트 시작 시 `Playing`이 아니라 이 상태로 전환한다(`GameState.cs`). `GameManager.StageClear()`가
+  원래부터 갖고 있던 `"State != Playing이면 무시"` 가드에 자연히 걸려, 플레이 테스트 중엔 실제
+  `GameState.Cleared` 전환 자체가 일어나지 않는다. `ClearScreenController.OnStageCleared`도
+  `GameManager.Instance.State != GameState.Playing`이면 클리어 화면을 아예 안 띄우도록 바꿔서,
+  `MapEditController`를 전혀 몰라도 되게 분리했다. `MapEditController.OnStageClearedDuringPlayTest`는
+  `StopPlayTest()` 호출로 에디터 상태 복구만 담당.
+  - **시행착오**: 처음엔 플레이 테스트도 그냥 `GameState.Playing`을 재사용하고, `MapEditController`에
+    `IsPlayTesting`(static bool)을 둬서 `ClearScreenController`가 그걸 직접 참조해 화면을 취소하는
+    방식으로 구현했었다. 사용자가 Play 모드에서 테스트해보니 여전히 클리어 화면이 떴고("아직 클리어
+    창이 떠"), 사용자가 "그냥 편집 모드 하위의 fsm 상태를 추가하는 게 편할 것 같다"고 제안해 위
+    방식(전용 `GameState` 추가)으로 교체했다 — 서로 다른 클래스가 static 필드로 몰래 상태를
+    주고받는 대신, 이미 있는 FSM에 진짜 상태를 하나 추가해 `GameManager.State`만 보면 판단할 수
+    있게 정리한 것.
+  - 이 상태 추가에 맞춰 `GameManager.Pause()`/`PauseMenuController`(ESC 일시정지 진입 조건, 재개 시
+    커서 잠금 조건)에도 `MapEditorPlayTest`를 `Playing`/`MapEditor`와 동등하게 취급하도록 반영해,
+    플레이 테스트 중 ESC 동작이 기존과 동일하게 유지되게 했다. HUD/BrushViewmodel은 원래
+    `MainMenu`/`MapEditor`일 때만 숨기는 구조라 새 상태는 손댈 필요 없이 그대로 보인다.
+- **정답 순서 자동 기록(수동 입력 시스템을 나중에 없애기 위한 사전 작업)**: 테스트 중
+  `MapObjectUsed`(캔버스 자신의 완료 이벤트는 재료가 아니므로 제외)를 캔버스별 시퀀스에
+  누적하다가, 그 캔버스의 `CanvasCompleted`가 뜨는 순간 지금까지 쌓인 시퀀스를 그 캔버스의
+  `orderFixtureIds`로 덮어쓰고 비운다(다음 캔버스는 그 시점부터 새로 기록). 기존 수동 순서
+  편집 UI(`CanvasList`/`OrderList`/"기물 추가" 모드)는 같은 데이터를 공유하므로 그대로 남겨뒀다
+  — 자동 기록 후 수동 미세조정도 가능.
+- **`clearVerified` 플래그**: 테스트로 실제 클리어하면 `data.clearVerified = true`. 이후 배치·
+  제거·값 수정(`PlaceBlockAt`/`PlaceFixtureAt`/`RemoveCell`/`RefreshEditingVisual`, 즉
+  `MarkEdited()` 호출 지점) 중 하나라도 일어나면 자동으로 `false`로 리셋 — 예전 클리어 기록이
+  지금 내용과 안 맞을 수 있으므로. `LoadMap()`도 불러온 파일의 값을 그대로 이어받는다. 이번
+  범위는 필드 추가와 세팅/리셋 로직까지만 — UI 표시(불러오기 목록 배지 등)는 나중 과제.
+- 반복 테스트 안전성: 씬을 재로드하지 않고 같은 오브젝트를 재사용하므로, `ClearObjectBase.Completed`
+  가 이전 테스트 결과로 영구히 남지 않도록 `ResetCompletion()`을 새로 추가해 매 `StartPlayTest()`마다
+  호출한다.
+- (범위 밖) 테스트 중 ESC로 일시정지 메뉴를 열고 "다시하기"/"메인메뉴"를 누르면 씬이 재로드/전환
+  되며 저장 안 한 편집 내용이 사라질 수 있음 — 이번엔 손대지 않음.
+
+**변경 파일**: `Assets/Scripts/Core/GameState.cs`(`MapEditorPlayTest` 상태 추가),
+`Assets/Scripts/MapEditor/MapEditController.cs`(대부분의 변경 — `EditorMode.PlayView`,
+`ShowPlayTab`/`StartPlayTest`/`StopPlayTest`/`RestoreConsumedFixtures`/세 이벤트 핸들러/`MarkEdited`,
+`Update()`의 ESC 처리),
+`Assets/Scripts/MapEditor/CustomStageData.cs`(`clearVerified` 필드),
+`Assets/Scripts/MapObjects/ClearObjectBase.cs`(`ResetCompletion()`),
+`Assets/Scripts/UI/ClearScreenController.cs`(`OnStageCleared`가 `GameManager.State`를 직접 확인하도록
+변경), `Assets/Scripts/Player/FirstPersonController.cs`(`Teleport()` — CharacterController를 잠깐
+꺼서 옮겨 안전하게 텔레포트 + 잔여 속도/pitch 초기화), `Assets/Scenes/MapEditor.unity`
+(`PlayTestOverlay` 신설, `PlayMode`/`PlayButton` 재배선, `mode5Panel`/`selectionPanel`/
+`playTestOverlay`/`modeTabImages[4]` 배선, `BackToEditorButton` 문구를 "ESC to Editor"로 수정).
+
+**검증**: 컴파일 정상. `mode5Panel`/`selectionPanel`/`playTestOverlay`/`modeTabImages`(5칸) 전부
+배선 확인, `PlayMode` 탭 → `ShowPlayTab`, `PlayButton` → `StartPlayTest`, `BackToEditorButton` →
+`StopPlayTest` onClick target/method 문자열 직접 확인.
+
+**추가 버그 수정 2건(사용자가 Play 모드에서 발견, 2026-09-17)**
+1. **"Back to Editor" 버튼이 무반응**: 플레이 테스트 중엔 FPS 시점 조작을 위해
+   `Cursor.lockState = Locked`로 마우스 커서를 잠가둔다 — 이 상태에서는 커서가 화면에 보이지도,
+   클릭 가능한 위치로 움직이지도 않으므로 `PlayTestOverlay`의 버튼 자체를 클릭할 방법이 없었다
+   (설계 단계에서 놓친 부분). 일시정지 메뉴를 거치는 방식 대신, `MapEditController.Update()`가
+   플레이 테스트 중 ESC 입력을 직접 감지해 바로 `StopPlayTest()`를 호출하도록 고쳤다(일시정지
+   메뉴는 아예 거치지 않음 — "다시하기"/"메인메뉴" 같은, 편집 중인 맵을 날릴 수 있는 버튼들과
+   섞이지 않게). 버튼 자체는 그대로 두되(혹시 모를 다른 입력 방식 대비), 문구를 "ESC to
+   Editor"로 바꿔 사용법을 안내한다.
+2. **클리어 후 에디터로 복귀 시 사라진 기물이 안 돌아옴**: 버킷/팔레트/컬러 체인저/스택 체인저
+   (`ConsumableObjectBase` 계열)는 실제로 사용되면 `Consume()`이 오브젝트를 `Destroy()`로 완전히
+   파괴한다 — 캔버스처럼 완료 상태만 잠그는 게 아니라 진짜로 사라져서, `ResetCompletion()` 방식으로는
+   되살릴 수 없었다. `data.fixtures`엔 원본 데이터가 그대로 남아있으므로,
+   `StopPlayTest()`에서 `cells`를 훑어 `GameObject`가 파괴된(Fixture는 있는데 GameObject가 null인)
+   칸만 골라 `CustomStageLoader.PlaceFixture`로 다시 만들어 넣는
+   `RestoreConsumedFixtures()`를 추가했다.
+
+**Play 모드 체크리스트(사용자 직접 확인 필요)**:
+1. "테스트" 탭 진입 시 카메라만 움직이고 `PlayModePanel`에 시작 버튼만 보이는지.
+2. 시작 버튼 클릭 → 팔레트 UI가 전부 사라지고 "Playtesting - ESC to Editor" 배너만 뜨는지, 자유
+   시점 카메라가 아니라 실제 1인칭 조작(마우스 커서 잠김)으로 바뀌는지, HUD/브러시 뷰모델이 다시
+   보이는지.
+3. 배치해 둔 필터·캔버스·팔레트 등이 정상적으로 상호작용되는지(색 스택이 빈 상태로 시작하는지).
+   버킷/팔레트/컬러 체인저/스택 체인저처럼 사용하면 사라지는 기물도 정상 동작하는지.
+4. ESC 키 → 팔레트 UI 복귀, 자유 시점 카메라 복귀, 테스트 탭에 그대로 남아있는지. 방금 테스트
+   중 사용해서 사라졌던 소모성 기물(버킷 등)이 원래 자리에 그대로 복원돼 있는지.
+5. 시작→종료→다시 시작을 반복해도 기물이 중복 생성되거나 필터 메시가 깨지지 않는지.
+6. 실제로 정답 순서를 전부 맞춰 클리어 → 자동으로 에디터로 돌아가는지, 시간이 멈춘 채로 남지
+   않는지, 그 과정에서 사용됐던 소모성 기물도 4번과 마찬가지로 복원돼 있는지.
+7. 캔버스가 여러 개인 맵에서 순서대로(또는 뒤섞어) 클리어해보고, "정답 순서" 탭(OrderMode)에서
+   각 캔버스 순서 목록이 실제 상호작용 순서대로 자동으로 채워져 있는지(수동 입력 없이) 확인.
+   캔버스 자신은 그 목록에 들어가지 않는지도 확인.
+8. 클리어 후 저장한 JSON 파일을 텍스트 에디터로 열어 `clearVerified`가 `true`인지, 이후 기물을
+   하나라도 놓거나 지우거나 값을 바꾸면 즉시 `false`로 바뀌는지 확인.
+9. 같은 캔버스를 테스트에서 두 번 연속 클리어(테스트→종료→다시 테스트→다시 클리어)해도 처음부터
+   이미 클리어된 것처럼 보이지 않고 정상적으로 다시 플레이 가능한지.
+10. (참고, 이번엔 손 안 댐) 테스트 중 ESC로 일시정지 메뉴를 열고 "다시하기"/"메인메뉴"를 누르면
+    저장 안 한 편집 내용이 사라질 수 있음 — 중요한 맵은 테스트 전에 저장 권장.

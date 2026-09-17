@@ -16,6 +16,9 @@ public abstract class ClearObjectBase : MapObjectBase, IInteractable
 {
     public bool Completed { get; private set; }
 
+    /// <summary>완료 상태를 초기화한다(맵 에디터 플레이 테스트를 씬 재로드 없이 반복할 때 사용).</summary>
+    public void ResetCompletion() => Completed = false;
+
     /// <summary>클리어 조건 판정. 하위 클래스가 구현한다.</summary>
     protected abstract bool CheckCondition(ColorStacks player);
 

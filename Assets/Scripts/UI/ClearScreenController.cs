@@ -35,6 +35,10 @@ public class ClearScreenController : MonoBehaviour
 
     void OnStageCleared(StageCleared e)
     {
+        // 맵 에디터 플레이 테스트 중엔 State가 Playing이 아니라 MapEditorPlayTest이므로 여기서 자동으로
+        // 걸러진다 — 화면을 안 띄우고, MapEditController가 따로 감지해서 에디터로 돌아간다.
+        if (GameManager.Instance.State != GameState.Playing) return;
+
         nextSceneName = FindNextSceneName();
         if (nextStageButton) nextStageButton.interactable = !string.IsNullOrEmpty(nextSceneName);
 

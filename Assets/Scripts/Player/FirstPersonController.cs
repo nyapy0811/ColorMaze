@@ -63,6 +63,22 @@ public class FirstPersonController : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
+    /// <summary>즉시 위치/회전을 옮긴다. CharacterController를 잠깐 꺼서 안전하게 텔레포트하고,
+    /// 남아있던 낙하/이동 속도와 시점 pitch도 초기화한다(맵 에디터 플레이 테스트 시작 시 사용 —
+    /// 그냥 transform.position만 바꾸면 CharacterController가 같은 프레임에 남은 속도로 다시
+    /// 밀어내거나 지면 판정이 꼬일 수 있다).</summary>
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        cc.enabled = false;
+        transform.SetPositionAndRotation(position, rotation);
+        cc.enabled = true;
+
+        horizontalVelocity = Vector3.zero;
+        verticalVelocity = 0f;
+        pitch = 0f;
+        if (cameraPivot != null) cameraPivot.localRotation = Quaternion.identity;
+    }
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;

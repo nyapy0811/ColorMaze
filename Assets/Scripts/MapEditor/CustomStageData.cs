@@ -65,4 +65,8 @@ public class CustomStageData
     /// 배치 순서대로 쌓이며 최대 7개(무지개 7색 마커 한도) — MapEditController가 캔버스 배치 개수를
     /// 그 한도로 제한한다.</summary>
     public List<CanvasOrderEntry> canvasOrders = new();
+
+    /// <summary>플레이 테스트로 실제 클리어까지 확인됐는지. 맵을 수정하면 자동으로 false로 리셋된다
+    /// (MapEditController.MarkEdited).</summary>
+    public bool clearVerified;
 }

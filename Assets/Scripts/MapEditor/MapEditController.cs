@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -67,7 +68,7 @@ public class MapEditController : MonoBehaviour
     [SerializeField] Color tabNormalColor = Color.white;
     [SerializeField] Color tabSelectedColor = Color.yellow;
 
-    [SerializeField] GameObject mode1Panel, mode2Panel, mode3Panel, mode4Panel;
+    [SerializeField] GameObject mode1Panel, mode2Panel, mode3Panel, mode4Panel, mode5Panel;
     [SerializeField] Image[] modeTabImages;      // Mode1, Mode2, Mode3 순서
     [SerializeField] Image[] objectButtonImages; // ObjectButton, (1)..(7) 순서 — 기물 팔레트 하이라이트용
 
@@ -134,7 +135,7 @@ public class MapEditController : MonoBehaviour
     // 중첩되지 않고 항상 정확히 1개만 활성화된다 — 이후 모드가 늘어나도 이 enum에 추가하는 방식으로
     // 원칙을 유지한다. OrderView는 Mode3 탭 진입 시의 상태로, 카메라 이동만 가능하고 안쪽 "기물 추가"
     // 버튼을 눌러야 AddToOrder로 전환된다.
-    enum EditorMode { Place, ValueEdit, AddToOrder, OrderView, SaveLoad }
+    enum EditorMode { Place, ValueEdit, AddToOrder, OrderView, SaveLoad, PlayView }
     EditorMode mode = EditorMode.Place;
 
     // 값 수정 모드에서 지금 선택된(편집 대상) 기물들 — 비어있으면 편집 대상 없음. 보통 1개지만, Shift+
@@ -208,6 +209,16 @@ public class MapEditController : MonoBehaviour
 
     void Update()
     {
+        // 플레이 테스트 중엔 에디터의 모든 프레임 로직을 완전히 건너뛴다 — 플레이어 조작은
+        // FirstPersonController가 알아서 처리한다. ESC는 일시정지 메뉴를 거치지 않고 곧장
+        // 에디터로 돌아간다(테스트 중엔 마우스 커서가 잠겨 있어 PlayTestOverlay의 버튼을 직접
+        // 클릭할 수 없으므로 — "Back to Editor 버튼이 무반응이다" 버그로 발견됨).
+        if (isPlayTesting)
+        {
+            if (InputManager.Instance.ReadPause()) StopPlayTest();
+            return;
+        }
+
         // 일시정지 중에는 Time.timeScale이 0이어도 Update()는 계속 돌기 때문에, 기물 선택·배치·제거
         // 등 편집 입력을 전부 막고 커서 관리도 PauseMenuController에 맡긴다.
         if (GameManager.Instance.State == GameState.Paused) { HideHoverPreview(); return; }
@@ -231,6 +242,7 @@ public class MapEditController : MonoBehaviour
             case EditorMode.OrderView:
             case EditorMode.AddToOrder:
             case EditorMode.SaveLoad:
+            case EditorMode.PlayView:
                 HideHoverPreview(); // 카메라 이동만, 월드 좌클릭으로 하는 일 없음(대상은 전부 화면 마크로 지정)
                 return; // 설치·제거·드래그 범위는 전부 비활성
         }
@@ -322,6 +334,8 @@ public class MapEditController : MonoBehaviour
 
     void RefreshEditingVisual()
     {
+        MarkEdited();
+
         for (int i = 0; i < editingFixtureInstances.Count; i++)
             if (editingFixtureInstances[i] != null)
                 CustomStageLoader.ApplyParams(editingFixtureInstances[i], editingFixtures[i]);
@@ -397,6 +411,7 @@ public class MapEditController : MonoBehaviour
         var go = CustomStageLoader.PlaceBlock(entry, prefabs, mazeRoot);
         Register(cell, go, entry, null);
         data.blocks.Add(entry);
+        MarkEdited();
     }
 
     // 캔버스(FixtureType.Canvas)는 배치될 때마다 정답 순서가 하나씩 자동으로 생기므로, 무지개 7색
@@ -423,6 +438,7 @@ public class MapEditController : MonoBehaviour
 
         Register(cell, instance.gameObject, null, entry);
         data.fixtures.Add(entry);
+        MarkEdited();
 
         if (type == FixtureType.Canvas)
         {
@@ -464,6 +480,7 @@ public class MapEditController : MonoBehaviour
 
         if (wasFilter) FilterBlockBase.RebuildAll();
         if (placed.Fixture != null) RefreshOrderListUI(); // 지운 기물이 순서 목록에 있었을 수도 있음
+        MarkEdited();
     }
 
     static bool IsFilter(FixtureType type) => type == FixtureType.ColorFilter || type == FixtureType.RgbFilter;
@@ -775,12 +792,26 @@ public class MapEditController : MonoBehaviour
         UpdateModeTabHighlight(3);
     }
 
+    /// <summary>Mode5 버튼 OnClick — 카메라 이동만 가능한 플레이 테스트 탭을 보여준다. 안쪽 시작
+    /// 버튼(StartPlayTest)을 눌러야 비로소 실제 플레이 테스트가 시작된다.</summary>
+    public void ShowPlayTab()
+    {
+        mode = EditorMode.PlayView;
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
+        HideParamPanels();
+        ClearMarks();
+        SetActivePanel(mode5Panel);
+        UpdateModeTabHighlight(4);
+    }
+
     void SetActivePanel(GameObject panel)
     {
         if (mode1Panel != null) mode1Panel.SetActive(panel == mode1Panel);
         if (mode2Panel != null) mode2Panel.SetActive(panel == mode2Panel);
         if (mode3Panel != null) mode3Panel.SetActive(panel == mode3Panel);
         if (mode4Panel != null) mode4Panel.SetActive(panel == mode4Panel);
+        if (mode5Panel != null) mode5Panel.SetActive(panel == mode5Panel);
     }
 
     void UpdateModeTabHighlight(int index)
@@ -1340,6 +1371,7 @@ public class MapEditController : MonoBehaviour
 
         data.id = loaded.id;
         data.title = loaded.title;
+        data.clearVerified = loaded.clearVerified;
 
         foreach (var block in loaded.blocks)
         {
@@ -1380,4 +1412,188 @@ public class MapEditController : MonoBehaviour
         CloseLoadPopup();
         ShowPlaceTab();
     }
+
+    // --- 플레이 테스트 UI 연결용 ---
+
+    [SerializeField] GameObject selectionPanel;   // UICanvas/SelectionPanel 전체 — 테스트 중엔 통째로 숨김
+    [SerializeField] GameObject playTestOverlay;  // UICanvas 바로 밑, 테스트 중에만 보이는 "돌아가기" 배너
+
+    bool isPlayTesting;
+    MazeGenerator playTestMaze; // 첫 테스트 때 한 번만 추가, 이후 재사용
+    static readonly Vector3 PlayerSpawnPosition = new(0f, 0.5f, 0f);
+
+    // 정답 순서 자동 기록용 — 테스트 중 상호작용한 기물 id를 순서대로 쌓다가, 캔버스가 클리어되면
+    // 그때까지 쌓인 걸 그 캔버스 순서로 확정하고 비운다(다음 캔버스는 그 시점부터 새로 기록).
+    readonly List<int> playTestUsedSequence = new();
+    Dictionary<MapObjectBase, int> playTestFixtureIdByInstance;
+
+    void OnEnable()
+    {
+        EventBus.Subscribe<StageCleared>(OnStageClearedDuringPlayTest);
+        EventBus.Subscribe<MapObjectUsed>(OnMapObjectUsedDuringPlayTest);
+        EventBus.Subscribe<CanvasCompleted>(OnCanvasCompletedDuringPlayTest);
+    }
+
+    void OnDisable()
+    {
+        EventBus.Unsubscribe<StageCleared>(OnStageClearedDuringPlayTest);
+        EventBus.Unsubscribe<MapObjectUsed>(OnMapObjectUsedDuringPlayTest);
+        EventBus.Unsubscribe<CanvasCompleted>(OnCanvasCompletedDuringPlayTest);
+    }
+
+    /// <summary>PlayModePanel의 PlayButton OnClick — 지금 편집 중인 맵을 그 자리에서 플레이 테스트한다.
+    /// 새로 Instantiate하지 않고 이미 배치돼 있는 오브젝트를 그대로 재생 가능한 상태로 전환한다.</summary>
+    public void StartPlayTest()
+    {
+        if (isPlayTesting) return;
+
+        Time.timeScale = 1f; // 직전 클리어 화면 등으로 멈춰 있었을 수 있으니 항상 명시적으로 복구.
+
+        editingFixtures.Clear();
+        editingFixtureInstances.Clear();
+        HideParamPanels();
+        ClearMarks();
+        HideHoverPreview();
+        ClearDragPreview();
+        dragging = false;
+
+        if (selectionPanel != null) selectionPanel.SetActive(false);
+        if (playTestOverlay != null) playTestOverlay.SetActive(true);
+
+        var fpc = FirstPersonController.Instance;
+        if (fpc != null)
+        {
+            fpc.Teleport(PlayerSpawnPosition, Quaternion.identity);
+            var flyCam = fpc.GetComponent<EditorFlyCamera>();
+            if (flyCam != null) flyCam.enabled = false;
+            fpc.enabled = true;
+            var interact = fpc.GetComponent<InteractionController>();
+            if (interact != null) interact.enabled = true;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
+        ColorStacks.Instance?.ResetAll();
+
+        if (playTestMaze == null) playTestMaze = gameObject.AddComponent<MazeGenerator>();
+        var byId = new Dictionary<int, MapObjectBase>();
+        playTestFixtureIdByInstance = new Dictionary<MapObjectBase, int>();
+        playTestUsedSequence.Clear();
+        foreach (var placed in cells.Values)
+            if (placed.Fixture != null)
+            {
+                var obj = placed.GameObject.GetComponent<MapObjectBase>();
+                if (obj == null) continue;
+                byId[placed.Fixture.id] = obj;
+                playTestFixtureIdByInstance[obj] = placed.Fixture.id;
+                // 씬을 다시 로드하지 않고 같은 오브젝트를 재사용하므로, 이전 테스트에서 완료된 캔버스가
+                // 이번 테스트에도 이미 완료된 채로 남아있지 않도록 매번 초기화한다.
+                if (obj is ClearObjectBase clearObj) clearObj.ResetCompletion();
+            }
+
+        playTestMaze.correctOrders.Clear();
+        foreach (var order in data.canvasOrders)
+        {
+            var list = new List<MapObjectBase>();
+            foreach (var id in order.orderFixtureIds)
+                if (byId.TryGetValue(id, out var obj)) list.Add(obj);
+            playTestMaze.correctOrders.Add(list);
+        }
+
+        FilterBlockBase.RebuildAll();
+        EventBus.Publish(new SceneLoadCompleted { SceneName = SceneManager.GetActiveScene().name });
+
+        isPlayTesting = true;
+        // 일반 Playing이 아니라 별도 상태를 쓴다 — GameManager.StageClear()의 "Playing일 때만" 가드에
+        // 걸려 실제 클리어(GameState.Cleared) 전환 자체가 막히므로, ClearScreenController 등 클리어에
+        // 반응하는 쪽에서 별도로 플레이 테스트 여부를 확인할 필요가 없다.
+        GameManager.Instance.ChangeState(GameState.MapEditorPlayTest);
+    }
+
+    /// <summary>PlayTestOverlay의 "에디터로 돌아가기" OnClick, 그리고 테스트 중 클리어 감지 시 자동 호출.</summary>
+    public void StopPlayTest()
+    {
+        if (!isPlayTesting) return;
+
+        Time.timeScale = 1f;
+        GameManager.Instance.ChangeState(GameState.MapEditor);
+
+        var fpc = FirstPersonController.Instance;
+        if (fpc != null)
+        {
+            fpc.enabled = false;
+            var interact = fpc.GetComponent<InteractionController>();
+            if (interact != null) interact.enabled = false;
+            var flyCam = fpc.GetComponent<EditorFlyCamera>();
+            if (flyCam != null) flyCam.enabled = true;
+        }
+
+        ColorStacks.Instance?.ResetAll();
+        RestoreConsumedFixtures();
+
+        if (playTestOverlay != null) playTestOverlay.SetActive(false);
+        if (selectionPanel != null) selectionPanel.SetActive(true);
+
+        playTestUsedSequence.Clear();
+        playTestFixtureIdByInstance = null;
+        isPlayTesting = false;
+    }
+
+    // 버킷/팔레트/컬러 체인저/스택 체인저 같은 소모성 기물은 실제로 사용되면
+    // ConsumableObjectBase.Consume()이 오브젝트를 완전히 Destroy()해버린다(캔버스처럼 완료 상태만
+    // 잠그는 게 아니라 진짜로 사라짐). data.fixtures엔 그대로 남아있으니, 에디터로 돌아올 때 파괴된
+    // 인스턴스만 골라 CustomStageLoader.PlaceFixture로 다시 만들어 원상 복구한다 — 저장 안 한 편집
+    // 내용이 플레이 테스트 한 번으로 사라지면 안 되기 때문("클리어 후 에디터로 복귀시 사라진 기물이
+    // 안 돌아온다" 버그로 발견됨).
+    void RestoreConsumedFixtures()
+    {
+        foreach (var placed in cells.Values)
+        {
+            if (placed.Fixture == null || placed.GameObject != null) continue;
+            var instance = CustomStageLoader.PlaceFixture(placed.Fixture, prefabs, mapObjectsRoot);
+            if (instance != null) placed.GameObject = instance.gameObject;
+        }
+    }
+
+    // 테스트 중 기물을 상호작용할 때마다 호출(필터 통과, 획득, 소모, 캔버스 완료 등 전부 포함).
+    // 캔버스 자신의 완료는 "재료"가 아니라 목표이므로 순서 기록에서 제외한다.
+    void OnMapObjectUsedDuringPlayTest(MapObjectUsed e)
+    {
+        if (!isPlayTesting || e.Source is ClearObjectBase) return;
+        if (playTestFixtureIdByInstance != null && playTestFixtureIdByInstance.TryGetValue(e.Source, out int id))
+            playTestUsedSequence.Add(id);
+    }
+
+    // 캔버스 하나가 클리어되면 그때까지 쌓인 상호작용 순서를 그 캔버스의 정답 순서로 확정(덮어쓰기)하고
+    // 다음 캔버스를 위해 비운다 — 이렇게 실제 플레이로 검증된 순서가 수동 입력 없이 자동으로 저장된다.
+    void OnCanvasCompletedDuringPlayTest(CanvasCompleted e)
+    {
+        if (!isPlayTesting) return;
+        if (playTestFixtureIdByInstance == null || !playTestFixtureIdByInstance.TryGetValue(e.Source, out int canvasId)) return;
+
+        var order = data.canvasOrders.Find(o => o.canvasFixtureId == canvasId);
+        if (order != null)
+        {
+            order.orderFixtureIds.Clear();
+            order.orderFixtureIds.AddRange(playTestUsedSequence);
+        }
+        playTestUsedSequence.Clear();
+
+        RefreshOrderListUI(); // 지금 이 캔버스가 OrderList에 선택돼 있으면 자동 기록 결과가 바로 보이게
+    }
+
+    // 테스트 중 실제로 정답 순서를 전부 맞춰 클리어하면(LevelManager가 StageCleared를 발행하고 곧이어
+    // GameManager.StageClear()를 호출), 진짜 클리어 화면 대신 자동으로 에디터로 돌아간다.
+    // 플레이 테스트는 Playing이 아니라 MapEditorPlayTest 상태라 StageClear()의 가드에 걸려 실제
+    // GameState.Cleared 전환 자체가 안 일어나고, ClearScreenController도 State로 판단해 클리어
+    // 화면을 안 띄우므로, 여기서는 상태 복구만 하면 된다. 클리어까지 확인됐다는 표시로
+    // data.clearVerified도 true로 세팅.
+    void OnStageClearedDuringPlayTest(StageCleared e)
+    {
+        if (!isPlayTesting) return;
+        data.clearVerified = true;
+        StopPlayTest();
+    }
+
+    void MarkEdited() => data.clearVerified = false;
 }

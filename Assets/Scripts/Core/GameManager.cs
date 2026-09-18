@@ -58,4 +58,15 @@ public class GameManager : GameManagerBase<GameManager, GameState>
         ChangeState(GameState.Quitting);
         Application.Quit();
     }
+
+    /// <summary>클리어 화면/일시정지 메뉴/맵 에디터 등 여러 곳에서 "게임을 종료하지 않고 메인
+    /// 화면으로 돌아간다"는 동일한 절차(효과음 → 일시정지 시간 복구 → 상태 전환 → 씬 로드)를
+    /// 반복하던 걸 모았다.</summary>
+    public void ExitToMainMenu()
+    {
+        GameAudio.Instance.PlayButtonClick();
+        Time.timeScale = 1f;
+        ChangeState(GameState.MainMenu);
+        SceneLoader.Instance.Load("MainMenu");
+    }
 }

@@ -101,11 +101,5 @@ public class PauseMenuController : GameStateListener
     }
 
     /// <summary>게임을 종료하지 않고 메인 화면으로 돌아간다.</summary>
-    public void OnQuitButton()
-    {
-        GameAudio.Instance.PlayButtonClick();
-        Time.timeScale = 1f; // 일시정지 중 멈춰뒀던 시간을 되돌린다.
-        GameManager.Instance.ChangeState(GameState.MainMenu);
-        SceneLoader.Instance.Load("MainMenu");
-    }
+    public void OnQuitButton() => GameManager.Instance.ExitToMainMenu();
 }

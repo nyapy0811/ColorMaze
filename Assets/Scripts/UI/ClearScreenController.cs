@@ -65,13 +65,7 @@ public class ClearScreenController : MonoBehaviour
 
     // --- 버튼 OnClick 연결용 ---
 
-    public void OnMainMenuButton()
-    {
-        GameAudio.Instance.PlayButtonClick();
-        Time.timeScale = 1f;
-        GameManager.Instance.ChangeState(GameState.MainMenu);
-        SceneLoader.Instance.Load("MainMenu");
-    }
+    public void OnMainMenuButton() => GameManager.Instance.ExitToMainMenu();
 
     public void OnRetryButton()
     {

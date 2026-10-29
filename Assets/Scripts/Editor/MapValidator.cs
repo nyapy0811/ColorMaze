@@ -51,6 +51,52 @@ namespace ColorMaze
                 problems++;
             }
 
+            problems += CheckNodeGraph(scene);
+
+            return problems;
+        }
+
+        /// <summary>노드 그래프 1개, 같은 자리 노드, 없는 노드를 가리키는 벽, 높이가 다른 벽, 끼울 수 없는 문 위치.</summary>
+        static int CheckNodeGraph(Scene scene)
+        {
+            var graphs = Roots(scene).SelectMany(root => root.GetComponentsInChildren<NodeGraph>(true)).ToList();
+            if (graphs.Count != 1)
+            {
+                Debug.LogError($"[맵 검사] 노드 그래프가 {graphs.Count}개다(1개여야 함). ColorMaze/노드 편집 창에서 만든다.");
+                return 1;
+            }
+
+            int problems = 0;
+            var graph = graphs[0];
+            var data = graph.Data;
+            foreach (var group in data.nodes.GroupBy(node => node.position).Where(g => g.Count() > 1))
+            {
+                Debug.LogError($"[맵 검사] 같은 자리 {group.Key}에 노드가 {group.Count()}개다. 노드 편집 창의 '다시 만들기'가 합친다.", graph);
+                problems++;
+            }
+
+            var config = NodeGraphEditing.FindConfig();
+            foreach (var wall in data.walls)
+            {
+                var start = NodeGraphRules.FindNode(data, wall.startNodeId);
+                var end = NodeGraphRules.FindNode(data, wall.endNodeId);
+                if (start == null || end == null)
+                {
+                    Debug.LogError($"[맵 검사] 벽 #{wall.id}이 없는 노드를 가리킨다.", graph);
+                    problems++;
+                }
+                else if (start.position.y != end.position.y)
+                {
+                    Debug.LogError($"[맵 검사] 벽 #{wall.id}의 두 노드 높이가 다르다(벽은 y가 같은 노드끼리만 잇는다).", graph);
+                    problems++;
+                }
+                else if (wall.kind == WallKind.Normal && wall.hasDoor && config != null
+                         && !NodeGraphRules.CanPlaceDoor(NodeGraphRules.SegmentLength(start.position, end.position), config.doorWidth, wall.door.offsetModules))
+                {
+                    Debug.LogError($"[맵 검사] 벽 #{wall.id}의 문을 끼울 수 없는 위치다(구간이 짧거나 문이 끝에 붙음). 노드 편집 창에서 문 위치를 고친다.", graph);
+                    problems++;
+                }
+            }
             return problems;
         }
 

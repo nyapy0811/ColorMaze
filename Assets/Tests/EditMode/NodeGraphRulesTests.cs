@@ -71,6 +71,97 @@ namespace ColorMaze
         }
 
         [Test]
+        public void Merge_KeepsOnlyFirstWallWhenTwoWallsJoinSameNodes()
+        {
+            // a–b와 c–b가 있을 때 c를 a 자리로 옮기면 두 벽이 같은 두 노드를 잇게 된다.
+            var data = new NodeGraphData();
+            var a = Node(data, 0, 0);
+            var b = Node(data, 2, 0);
+            var c = Node(data, 0, 0);
+            var ab = Wall(data, a, b);
+            Wall(data, c, b);
+
+            NodeGraphRules.MergeNodesAtSamePosition(data);
+
+            Assert.AreEqual(1, data.walls.Count);
+            Assert.AreSame(ab, data.walls[0]);
+        }
+
+        [Test]
+        public void AddNode_ReturnsExistingNodeAtSamePosition()
+        {
+            var data = new NodeGraphData();
+            var first = NodeGraphRules.AddNode(data, new Vector3Int(1, 0, 2));
+            var again = NodeGraphRules.AddNode(data, new Vector3Int(1, 0, 2));
+            var other = NodeGraphRules.AddNode(data, new Vector3Int(2, 0, 2));
+
+            Assert.AreSame(first, again);
+            Assert.AreNotEqual(first.id, other.id);
+            Assert.AreEqual(2, data.nodes.Count);
+        }
+
+        [Test]
+        public void RemoveNode_AlsoRemovesAttachedWalls()
+        {
+            var data = new NodeGraphData();
+            var a = Node(data, 0, 0);
+            var b = Node(data, 2, 0);
+            var c = Node(data, 2, 2);
+            Wall(data, a, b);
+            var bc = Wall(data, b, c);
+
+            NodeGraphRules.RemoveNode(data, a.id);
+
+            Assert.AreEqual(2, data.nodes.Count);
+            Assert.AreEqual(1, data.walls.Count);
+            Assert.AreSame(bc, data.walls[0]);
+        }
+
+        [Test]
+        public void Connect_AddsWallWithNewId()
+        {
+            var data = new NodeGraphData();
+            var a = Node(data, 0, 0);
+            var b = Node(data, 3, 0);
+
+            var wall = NodeGraphRules.Connect(data, a.id, b.id);
+
+            Assert.IsNotNull(wall);
+            Assert.AreEqual(3, wall.id);
+            Assert.AreEqual(WallKind.Normal, wall.kind);
+            Assert.AreSame(wall, NodeGraphRules.FindWall(data, wall.id));
+        }
+
+        [Test]
+        public void Connect_RejectsSameNodeDifferentHeightAndExistingWall()
+        {
+            var data = new NodeGraphData();
+            var a = Node(data, 0, 0);
+            var b = Node(data, 3, 0);
+            var upper = NodeGraphRules.AddNode(data, new Vector3Int(3, 3, 0));
+            NodeGraphRules.Connect(data, a.id, b.id);
+
+            Assert.IsNull(NodeGraphRules.Connect(data, a.id, a.id));
+            Assert.IsNull(NodeGraphRules.Connect(data, a.id, upper.id));
+            Assert.IsNull(NodeGraphRules.Connect(data, b.id, a.id));
+            Assert.AreEqual(1, data.walls.Count);
+        }
+
+        [Test]
+        public void RemoveWall_KeepsNodes()
+        {
+            var data = new NodeGraphData();
+            var a = Node(data, 0, 0);
+            var b = Node(data, 3, 0);
+            var wall = Wall(data, a, b);
+
+            NodeGraphRules.RemoveWall(data, wall.id);
+
+            Assert.AreEqual(0, data.walls.Count);
+            Assert.AreEqual(2, data.nodes.Count);
+        }
+
+        [Test]
         public void ModuleCount_FillsWithQuarterModulesAndLeavesShortRemainder()
         {
             Assert.AreEqual(8, NodeGraphRules.ModuleCount(2f));
@@ -92,6 +183,79 @@ namespace ColorMaze
             Assert.IsFalse(NodeGraphRules.CanPlaceDoor(1.75f, 1f, 2));
             Assert.IsTrue(NodeGraphRules.CanPlaceDoor(4f, 1f, 10));
             Assert.IsFalse(NodeGraphRules.CanPlaceDoor(4f, 1f, 11));
+        }
+
+        [Test]
+        public void DoorOffsetRange_GivesPlaceableOffsets()
+        {
+            Assert.IsTrue(NodeGraphRules.DoorOffsetRange(4f, 1f, out int min, out int max));
+            Assert.AreEqual(2, min);
+            Assert.AreEqual(10, max);
+            Assert.IsFalse(NodeGraphRules.DoorOffsetRange(1.75f, 1f, out _, out _));
+        }
+
+        [Test]
+        public void FirstModuleStart_SplitsRemainderBetweenBothEnds()
+        {
+            Assert.AreEqual(0f, NodeGraphRules.FirstModuleStart(2f), 1e-5f);
+            // 2.1유닛: 모듈 8개(2유닛), 남는 0.1을 양 끝에 0.05씩
+            Assert.AreEqual(0.05f, NodeGraphRules.FirstModuleStart(2.1f), 1e-5f);
+        }
+
+        [Test]
+        public void SolidSpans_WithoutDoor_CoversNodeToNode()
+        {
+            var spans = NodeGraphRules.SolidSpans(3f, false, 1f, 0);
+            Assert.AreEqual(1, spans.Count);
+            Assert.AreEqual(0f, spans[0].from, 1e-5f);
+            Assert.AreEqual(3f, spans[0].to, 1e-5f);
+        }
+
+        [Test]
+        public void SolidSpans_WithDoor_LeavesDoorGap()
+        {
+            // 4유닛 구간, 문 폭 1, 위치 6모듈: 문은 1.5에서 2.5까지
+            var spans = NodeGraphRules.SolidSpans(4f, true, 1f, 6);
+            Assert.AreEqual(2, spans.Count);
+            Assert.AreEqual(0f, spans[0].from, 1e-5f);
+            Assert.AreEqual(1.5f, spans[0].to, 1e-5f);
+            Assert.AreEqual(2.5f, spans[1].from, 1e-5f);
+            Assert.AreEqual(4f, spans[1].to, 1e-5f);
+        }
+
+        [Test]
+        public void PlateCells_FillNodeBoundsWithFloorAndCeiling()
+        {
+            var data = new NodeGraphData();
+            Node(data, 0, 0);
+            Node(data, 2, 1);
+
+            var cells = NodeGraphRules.PlateCells(data, 3);
+
+            // 2×1칸 × (바닥 + 천장)
+            Assert.AreEqual(4, cells.Count);
+            Assert.AreEqual(new Vector3Int(0, 0, 0), cells[0]);
+            Assert.AreEqual(new Vector3Int(1, 0, 0), cells[1]);
+            Assert.AreEqual(new Vector3Int(0, 3, 0), cells[2]);
+            Assert.AreEqual(new Vector3Int(1, 3, 0), cells[3]);
+        }
+
+        [Test]
+        public void PlateCells_LowerCeilingAndUpperFloorAreOnePlate()
+        {
+            var data = new NodeGraphData();
+            Node(data, 0, 0);
+            Node(data, 1, 1);
+            NodeGraphRules.AddNode(data, new Vector3Int(0, 3, 0));
+            NodeGraphRules.AddNode(data, new Vector3Int(2, 3, 1));
+
+            var cells = NodeGraphRules.PlateCells(data, 3);
+
+            // 높이 0: 1칸, 높이 3: 아래층 천장 1칸과 위층 바닥 2칸이 합쳐져 2칸, 높이 6: 2칸
+            Assert.AreEqual(5, cells.Count);
+            Assert.AreEqual(1, cells.FindAll(c => c.y == 0).Count);
+            Assert.AreEqual(2, cells.FindAll(c => c.y == 3).Count);
+            Assert.AreEqual(2, cells.FindAll(c => c.y == 6).Count);
         }
     }
 }

@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기물 분류 편집기</title>
+<style>
+:root{--bg:#fff;--fg:#1f1f1d;--muted:#6b6a65;--line:#d3d1c7;--line2:#888780;--card:#f8f7f3;--input:#fff;--accent:#185FA5;--accent-bg:#E6F1FB;--danger:#A32D2D;--ok:#3B6D11;
+--p0f:#E1F5EE;--p0s:#0F6E56;--p0t:#085041;--p1f:#EEEDFE;--p1s:#534AB7;--p1t:#3C3489;--p2f:#E6F1FB;--p2s:#185FA5;--p2t:#0C447C;
+--p3f:#FAEEDA;--p3s:#854F0B;--p3t:#633806;--p4f:#FAECE7;--p4s:#993C1D;--p4t:#712B13;--p5f:#FBEAF0;--p5s:#993556;--p5t:#72243E;
+--gf:#F1EFE8;--gs:#5F5E5A;--gt:#444441;--gt2:#5F5E5A;--bf:#fff;--bs:#B4B2A9}
+@media (prefers-color-scheme: dark){:root{--bg:#1e1e1c;--fg:#ecebe6;--muted:#a8a69e;--line:#444441;--line2:#888780;--card:#262624;--input:#2c2c2a;--accent:#85B7EB;--accent-bg:#0C447C;--danger:#F09595;--ok:#97C459;
+--p0f:#085041;--p0s:#5DCAA5;--p0t:#9FE1CB;--p1f:#3C3489;--p1s:#AFA9EC;--p1t:#CECBF6;--p2f:#0C447C;--p2s:#85B7EB;--p2t:#B5D4F4;
+--p3f:#633806;--p3s:#EF9F27;--p3t:#FAC775;--p4f:#712B13;--p4s:#F0997B;--p4t:#F5C4B3;--p5f:#72243E;--p5s:#ED93B1;--p5t:#F4C0D1;
+--gf:#444441;--gs:#B4B2A9;--gt:#D3D1C7;--gt2:#B4B2A9;--bf:#2c2c2a;--bs:#5F5E5A}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 "Segoe UI","Malgun Gothic",sans-serif}
+header{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+header h1{font-size:16px;font-weight:600;margin:0 8px 0 0}
+#status{font-size:13px;color:var(--muted)}
+#status.err{color:var(--danger)}
+#dirty{font-size:12px;padding:2px 8px;border-radius:10px;border:1px solid var(--line)}
+#dirty.on{color:var(--danger);border-color:var(--danger)}
+#dirty.off{color:var(--ok);border-color:var(--ok)}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+#left{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto}
+@media (max-width:1000px){main{grid-template-columns:1fr}#left{position:static;max-height:none}}
+button,input,select,textarea{font:inherit;font-size:13px;color:var(--fg)}
+button{padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:transparent;cursor:pointer}
+button:hover{border-color:var(--line2)}
+button.primary{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}
+input,select,textarea{padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--input);min-width:0}
+.card{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 10px;background:var(--card)}
+.frow,.trow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0}
+.trow{margin-left:18px}
+.frow input,.trow input{flex:1 1 90px}
+.btns{display:flex;gap:6px;flex:none}
+.sw{width:14px;height:14px;border-radius:3px;background:var(--f);border:1px solid var(--s);flex:none}
+.lbl{font-size:12px;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin:0 0 10px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:inherit}
+svg .th{font-size:14px;font-weight:600}
+svg .ts{font-size:12px}
+.pc0{--f:var(--p0f);--s:var(--p0s);--t:var(--p0t)}.pc1{--f:var(--p1f);--s:var(--p1s);--t:var(--p1t)}.pc2{--f:var(--p2f);--s:var(--p2s);--t:var(--p2t)}
+.pc3{--f:var(--p3f);--s:var(--p3s);--t:var(--p3t)}.pc4{--f:var(--p4f);--s:var(--p4s);--t:var(--p4t)}.pc5{--f:var(--p5f);--s:var(--p5s);--t:var(--p5t)}
+.pc rect{fill:var(--f);stroke:var(--s)}.pc .th{fill:var(--t)}.pc .ts{fill:var(--s)}
+.g-none rect{fill:var(--gf);stroke:var(--gs)}.g-none .th{fill:var(--gt)}.g-none .ts{fill:var(--gt2)}
+.g-box rect{fill:var(--bf);stroke:var(--bs)}.g-box .th{fill:var(--fg)}.g-box .ts{fill:var(--muted)}
+.plain{fill:var(--muted)}
+.wire{fill:none;stroke:var(--line2);stroke-width:1}
+.dash{fill:none;stroke:var(--line2);stroke-width:1;stroke-dasharray:4 3}
+.click{cursor:pointer}.click:hover rect{opacity:.75}
+</style>
+</head>
+<body>
+<header>
+<h1>기물 분류 편집기</h1>
+<button id="bOpen">파일 열기</button>
+<button id="bReopen" hidden></button>
+<button id="bSave" class="primary">저장 (Ctrl+S)</button>
+<button id="bDown">내려받기</button>
+<span id="dirty"></span>
+<span id="status"></span>
+<input id="fileInput" type="file" accept=".json,application/json" hidden>
+</header>
+<main>
+<section id="left"><svg id="dg" viewBox="0 0 680 120" role="img" aria-label="기물 계열과 종류 관계도"></svg></section>
+<section id="right">
+<p class="hint">데이터 파일: Docs/v2 기물 분류 데이터.json. 처음이면 '파일 열기'로 이 파일을 고르세요. 고친 내용은 '저장'을 눌러야 파일에 들어갑니다(그전까지는 이 브라우저에만 임시 저장). 그림의 박스를 누르면 그 항목의 입력 칸으로 이동합니다. '거치는 기반'에 같은 이름을 적은 종류는 점선 상자로 묶입니다.</p>
+<div class="card"><div class="frow"><span class="lbl">기물 공통 기반</span><input id="rk" data-r="ko" placeholder="한글 이름"><input id="rc" data-r="code" placeholder="코드 이름"></div></div>
+<div class="card"><div class="frow"><span class="lbl">배치 방식 · '미정'은 늘 있습니다. 쓰이는 방식을 지우면 그 계열은 '미정'이 됩니다.</span></div><div id="places"></div><div class="frow"><button id="bAddPlace">배치 방식 추가</button></div></div>
+<div id="fams"></div>
+<div class="frow" style="margin-bottom:10px"><button id="bAddFam">계열 추가</button></div>
+<textarea id="memo" rows="3" style="width:100%" placeholder="메모 (선택, 파일에 함께 저장)"></textarea>
+</section>
+</main>
+<script>
+const DEFAULT_DATA = {
+  "about": "Docs/v2 기물 분류 편집기.html로 고치는 작업 파일이다. 기물 분류의 기준 문서는 Docs/v2 기물 분류.md이고, 편집이 끝나면 그 문서에 반영한다.",
+  "version": 1,
+  "updated": "2026-10-28",
+  "root": {
+    "ko": "기물",
+    "code": "FixtureBase"
+  },
+  "families": [
+    {
+      "ko": "문 계열",
+      "code": "Gate",
+      "base": "GateBase",
+      "place": "노드 시스템",
+      "types": [
+        {
+          "ko": "문",
+          "code": "Door",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "레이저 벽",
+          "code": "LaserWall",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "작동기 계열",
+      "code": "Submittable",
+      "base": "SubmittableObjectBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "일회용 작동기",
+          "code": "SingleUseActuator",
+          "mid": "ActuatorBase",
+          "note": ""
+        },
+        {
+          "ko": "반복 작동기",
+          "code": "ReusableActuator",
+          "mid": "ActuatorBase",
+          "note": ""
+        },
+        {
+          "ko": "목적지",
+          "code": "Goal",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "오브 획득 계열",
+      "code": "ColorSource",
+      "base": "",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "추출 오브젝트",
+          "code": "(사물 이름)",
+          "mid": "",
+          "note": "사물마다 그 사물의 이름 (예: 소화기)"
+        }
+      ]
+    },
+    {
+      "ko": "계단 계열",
+      "code": "FloorMove",
+      "base": "FloorMoveBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "계단",
+          "code": "Stair",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "점프패드",
+          "code": "JumpPad",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "낙하구간",
+          "code": "JumpDown",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "출발점 계열",
+      "code": "SpawnPoint",
+      "base": "SpawnPointBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "시작 지점",
+          "code": "StartPoint",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "체크포인트",
+          "code": "Checkpoint",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "편집기 계열",
+      "code": "ColorEditor",
+      "base": "ColorEditorBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "합성기",
+          "code": "ColorMixer",
+          "mid": "ReuseableEditor",
+          "note": ""
+        },
+        {
+          "ko": "필터",
+          "code": "ColorFilter",
+          "mid": "ReuseableEditor",
+          "note": ""
+        },
+        {
+          "ko": "복제기",
+          "code": "ColorCopier",
+          "mid": "SingleUseEditor",
+          "note": ""
+        }
+      ]
+    }
+  ],
+  "memo": ""
+};
+const FILE_NAME = 'v2 기물 분류 데이터.json';
+const DRAFT_KEY = 'colormaze-classification-draft';
+const NONE = '미정';
+const DEFAULT_PLACES = ['노드 시스템', '설치형'];
+const hasFS = 'showOpenFilePicker' in window;
+const $ = id => document.getElementById(id);
+
+let uid = 0;
+const nid = () => ++uid;
+let D, handle = null, dirty = false;
+
+function fromJson(j) {
+  if (!j || !Array.isArray(j.families)) throw new Error('families 목록이 없습니다');
+  const names = Array.isArray(j.places) ? j.places : DEFAULT_PLACES;
+  const places = [...new Set(names.map(s => String(s ?? '').trim()))].filter(s => s && s !== NONE).map(name => ({id: 'p' + nid(), name}));
+  return {
+    about: j.about || '',
+    root: {ko: j.root?.ko ?? '', code: j.root?.code ?? ''},
+    places,
+    memo: j.memo || '',
+    families: j.families.map(f => ({
+      id: nid(), ko: f.ko || '', code: f.code || '', base: f.base || '',
+      place: places.find(p => p.name === f.place)?.id ?? NONE,
+      types: (f.types || []).map(t => ({id: nid(), ko: t.ko || '', code: t.code || '', mid: t.mid || '', note: t.note || ''}))
+    }))
+  };
+}
+function today() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function toJson(stamp) {
+  return {
+    about: D.about,
+    version: 1,
+    updated: stamp ? today() : (D.updated || today()),
+    root: {ko: D.root.ko, code: D.root.code},
+    places: [...D.places.map(p => p.name), NONE],
+    families: D.families.map(f => ({ko: f.ko, code: f.code, base: f.base, place: placeName(f.place),
+      types: f.types.map(t => ({ko: t.ko, code: t.code, mid: t.mid, note: t.note}))})),
+    memo: D.memo
+  };
+}
+const placeName = id => id === NONE ? NONE : (D.places.find(p => p.id === id)?.name ?? NONE);
+const pcls = id => id === NONE ? 'g-none' : `pc pc${D.places.findIndex(p => p.id === id) % 6}`;
+const placeOpts = sel => [...D.places, {id: NONE, name: NONE}].map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${esc(p.name || '(이름 없음)')}</option>`).join('');
+
+// ---------- 저장소 (브라우저 임시 저장, 파일 핸들 기억) ----------
+function saveDraft() {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify({data: toJson(false), dirty})); } catch (e) {}
+}
+function loadDraft() {
+  try { const s = localStorage.getItem(DRAFT_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+const idb = {
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('colormaze-classification', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  },
+  async get(k) {
+    const db = await this.open();
+    return new Promise((res, rej) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  },
+  async set(k, v) {
+    const db = await this.open();
+    return new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = () => res(); t.onerror = () => rej(t.error); });
+  }
+};
+async function rememberHandle() { try { await idb.set('handle', handle); } catch (e) {} showReopen(); }
+function showReopen() {
+  const b = $('bReopen');
+  if (handle) { b.hidden = false; b.textContent = `다시 열기: ${handle.name}`; }
+}
+
+// ---------- 상태 표시 ----------
+function msg(text, err) { const s = $('status'); s.textContent = text; s.className = err ? 'err' : ''; }
+function setDirty(v) {
+  dirty = v;
+  const el = $('dirty');
+  el.textContent = v ? '파일에 저장 안 됨' : '파일과 같음';
+  el.className = v ? 'on' : 'off';
+  saveDraft();
+}
+function changed() { setDirty(true); }
+
+// ---------- 그림 ----------
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const cut = (s, n) => { s = s || ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+const tx = (cls, x, y, s, mid) => `<text class="${cls}" x="${x}" y="${y}"${mid ? ' text-anchor="middle"' : ''} dominant-baseline="central">${esc(s)}</text>`;
+const arrow = (x1, y, x2) => `<line class="wire" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" marker-end="url(#ah)"/>`;
+function typeBox(t, x, y) {
+  return `<g class="g-box click" data-kind="t" data-id="${t.id}"><rect x="${x}" y="${y}" width="240" height="46" rx="8"/>${t.note ? `<title>${esc(t.note)}</title>` : ''}${tx('th', x + 120, y + 15, cut(t.ko, 14), 1)}${tx('ts', x + 120, y + 33, cut(t.code || '코드 이름 없음', 30), 1)}</g>`;
+}
+function draw() {
+  const FX = 80, FW = 200, FH = 64, TX = 320, TW = 240, TH = 46, G = 10;
+  const head = ['<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--line2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>'];
+  head.push(`<g class="g-none"><rect x="40" y="24" width="200" height="48" rx="8"/>${tx('th', 140, 40, cut(D.root.ko, 12), 1)}${tx('ts', 140, 58, cut(D.root.code, 26), 1)}</g>`);
+  let ly = 30;
+  for (const p of [...D.places, {id: NONE, name: NONE}]) {
+    head.push(`<g class="${pcls(p.id)}"><rect x="430" y="${ly - 7}" width="14" height="14" rx="3"/></g>${tx('ts plain', 452, ly, p.name === '노드 시스템' ? '노드 시스템으로 배치' : p.id === NONE ? '배치 미정' : cut(p.name || '(이름 없음)', 18))}`);
+    ly += 20;
+  }
+  const body = [];
+  let y = Math.max(100, ly + 10), last = 72;
+  for (const f of D.families) {
+    const items = [];
+    for (const t of f.types) {
+      const p = items[items.length - 1];
+      if (t.mid && p && p.mid === t.mid) p.ts.push(t);
+      else if (t.mid) items.push({mid: t.mid, ts: [t]});
+      else items.push({t});
+    }
+    const hOf = it => it.mid ? 30 + it.ts.length * (TH + G) - G + 12 : TH;
+    const ch = items.length ? items.reduce((a, it) => a + hOf(it) + G, 0) - G : TH;
+    const bh = Math.max(ch, FH), fc = y + bh / 2;
+    let cy = y + (bh - ch) / 2;
+    const cs = [];
+    if (!items.length) {
+      body.push(`<rect class="dash" x="${TX}" y="${cy}" width="${TW}" height="${TH}" rx="8"/>${tx('ts plain', TX + TW / 2, cy + TH / 2, '종류 없음', 1)}`);
+      cs.push(cy + TH / 2);
+    }
+    for (const it of items) {
+      if (it.t) { body.push(typeBox(it.t, TX, cy)); cs.push(cy + TH / 2); cy += TH + G; }
+      else {
+        const h = hOf(it);
+        body.push(`<rect class="dash" x="${TX}" y="${cy}" width="300" height="${h}" rx="12"/>${tx('ts plain', TX + 15, cy + 16, cut('거치는 기반 · ' + it.mid, 34))}`);
+        it.ts.forEach((t, i) => body.push(typeBox(t, TX + 15, cy + 30 + i * (TH + G))));
+        cs.push(cy + h / 2); cy += h + G;
+      }
+    }
+    body.push(`<g class="${pcls(f.place)} click" data-kind="f" data-id="${f.id}"><rect x="${FX}" y="${fc - FH / 2}" width="${FW}" height="${FH}" rx="8"/>${tx('th', FX + FW / 2, fc - 16, cut(f.ko || '(이름 없음)', 12), 1)}${tx('ts', FX + FW / 2, fc + 2, cut(f.code || '코드 이름 없음', 28), 1)}${f.base ? tx('ts', FX + FW / 2, fc + 18, cut('기반 ' + f.base, 28), 1) : ''}</g>`);
+    body.push(arrow(60, fc, 78));
+    const lo = Math.min(fc, ...cs), hi = Math.max(fc, ...cs);
+    body.push(`<path class="wire" d="M${FX + FW} ${fc} L300 ${fc} M300 ${lo} L300 ${hi}"/>`);
+    cs.forEach(c => body.push(arrow(300, c, TX - 2)));
+    last = fc; y += bh + 28;
+  }
+  head.push(`<path class="wire" d="M60 72 L60 ${last}"/>`);
+  const svg = $('dg');
+  svg.setAttribute('viewBox', `0 0 680 ${Math.max(y, 120)}`);
+  svg.innerHTML = head.concat(body).join('');
+}
+
+// ---------- 편집 칸 ----------
+const inp = (a, v, ph) => `<input ${a} value="${esc(v)}" placeholder="${ph}">`;
+function renderEd() {
+  $('rk').value = D.root.ko; $('rc').value = D.root.code; $('memo').value = D.memo;
+  $('places').innerHTML = D.places.map((p, i) => `<div class="frow" id="pr${p.id}"><span class="sw pc${i % 6}"></span>${inp(`data-p="${p.id}"`, p.name, '배치 방식 이름')}<button data-act="delP" data-id="${p.id}">삭제</button></div>`).join('');
+  $('fams').innerHTML = D.families.map((f, fi) => `<div class="card" id="fc${f.id}">
+<div class="frow">${inp(`data-f="${f.id}" data-k="ko"`, f.ko, '계열 한글 이름')}${inp(`data-f="${f.id}" data-k="code"`, f.code, '코드 이름')}${inp(`data-f="${f.id}" data-k="base"`, f.base, '기반 클래스 (선택)')}
+<select data-f="${f.id}" data-k="place" aria-label="배치 방식">${placeOpts(f.place)}</select>
+<span class="btns"><button data-act="mvF" data-i="${fi}" data-d="-1" aria-label="계열 위로">↑</button><button data-act="mvF" data-i="${fi}" data-d="1" aria-label="계열 아래로">↓</button><button data-act="delF" data-id="${f.id}">계열 삭제</button></span></div>
+${f.types.map(t => `<div class="trow" id="tr${t.id}">${inp(`data-t="${t.id}" data-k="ko"`, t.ko, '종류 한글 이름')}${inp(`data-t="${t.id}" data-k="code"`, t.code, '코드 이름')}${inp(`data-t="${t.id}" data-k="mid"`, t.mid, '거치는 기반 (선택)')}${inp(`data-t="${t.id}" data-k="note"`, t.note, '메모 (선택)')}
+<select data-t="${t.id}" data-k="move" aria-label="다른 계열로 옮기기"><option value="">옮기기…</option>${D.families.filter(g => g !== f).map(g => `<option value="${g.id}">${esc(g.ko || '(이름 없음)')}</option>`).join('')}</select>
+<span class="btns"><button data-act="mvT" data-id="${t.id}" data-d="-1" aria-label="종류 위로">↑</button><button data-act="mvT" data-id="${t.id}" data-d="1" aria-label="종류 아래로">↓</button><button data-act="delT" data-id="${t.id}">삭제</button></span></div>`).join('')}
+<div class="trow"><button data-act="addT" data-id="${f.id}">종류 추가</button></div></div>`).join('');
+}
+function renderAll() { renderEd(); draw(); }
+const famById = id => D.families.find(f => f.id == id);
+function findT(id) {
+  for (const f of D.families) { const i = f.types.findIndex(t => t.id == id); if (i >= 0) return [f, i]; }
+  return [null, -1];
+}
+function focusItem(kind, id) {
+  const el = document.querySelector(kind === 'f' ? `#fc${id} input` : `#tr${id} input`);
+  if (el) { el.scrollIntoView({block: 'center', behavior: 'smooth'}); el.focus({preventScroll: true}); el.select(); }
+}
+
+document.addEventListener('input', e => {
+  const el = e.target, k = el.dataset.k;
+  if (el.id === 'memo') { D.memo = el.value; return changed(); }
+  if (el.dataset.r) { D.root[el.dataset.r] = el.value; changed(); return draw(); }
+  if (el.dataset.p) {
+    D.places.find(p => p.id === el.dataset.p).name = el.value;
+    document.querySelectorAll(`select[data-k="place"] option[value="${el.dataset.p}"]`).forEach(o => o.textContent = el.value || '(이름 없음)');
+    changed(); return draw();
+  }
+  if (!k || k === 'move' || k === 'place') return;
+  if (el.dataset.f) {
+    famById(el.dataset.f)[k] = el.value;
+    if (k === 'ko') document.querySelectorAll(`select[data-k="move"] option[value="${el.dataset.f}"]`).forEach(o => o.textContent = el.value || '(이름 없음)');
+  }
+  else if (el.dataset.t) { const [f, i] = findT(el.dataset.t); f.types[i][k] = el.value; }
+  changed(); draw();
+});
+document.addEventListener('change', e => {
+  const el = e.target, k = el.dataset.k;
+  if (k === 'place') { famById(el.dataset.f).place = el.value; changed(); draw(); }
+  if (k === 'move' && el.value) {
+    const [f, i] = findT(el.dataset.t); const t = f.types.splice(i, 1)[0];
+    famById(el.value).types.push(t); changed(); renderAll();
+  }
+});
+document.addEventListener('click', e => {
+  const g = e.target.closest('.click');
+  if (g) return focusItem(g.dataset.kind, g.dataset.id);
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'addT') { const t = {id: nid(), ko: '새 종류', code: '', mid: '', note: ''}; famById(b.dataset.id).types.push(t); changed(); renderAll(); focusItem('t', t.id); }
+  if (act === 'delT') { const [f, i] = findT(b.dataset.id); f.types.splice(i, 1); changed(); renderAll(); }
+  if (act === 'mvT') { const [f, i] = findT(b.dataset.id), j = i + +b.dataset.d; if (j < 0 || j >= f.types.length) return; [f.types[i], f.types[j]] = [f.types[j], f.types[i]]; changed(); renderAll(); }
+  if (act === 'mvF') { const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= D.families.length) return; [D.families[i], D.families[j]] = [D.families[j], D.families[i]]; changed(); renderAll(); }
+  if (act === 'delF') {
+    const f = famById(b.dataset.id);
+    if (f.types.length) return msg(`'${f.ko}'에 종류가 남아 있습니다. 종류를 먼저 옮기거나 지워 주세요.`, 1);
+    D.families = D.families.filter(x => x !== f); changed(); renderAll();
+  }
+  if (act === 'delP') {
+    const id = b.dataset.id, used = D.families.filter(f => f.place === id);
+    used.forEach(f => f.place = NONE);
+    D.places = D.places.filter(p => p.id !== id); changed(); renderAll();
+    if (used.length) msg(`지운 배치 방식을 쓰던 계열 ${used.length}개를 '미정'으로 바꿨습니다.`);
+  }
+});
+$('bAddFam').onclick = () => {
+  const f = {id: nid(), ko: '새 계열', code: '', base: '', place: D.places.find(p => p.name === '설치형')?.id ?? NONE, types: []};
+  D.families.push(f); changed(); renderAll(); focusItem('f', f.id);
+};
+$('bAddPlace').onclick = () => {
+  const p = {id: 'p' + nid(), name: '새 배치 방식'};
+  D.places.push(p); changed(); renderAll();
+  const el = document.querySelector(`#pr${p.id} input`); el.focus(); el.select();
+};
+
+// ---------- 파일 ----------
+const PICK = {types: [{description: 'JSON', accept: {'application/json': ['.json']}}]};
+function askDiscard() { return !dirty || confirm('파일에 저장하지 않은 변경이 있습니다. 버리고 파일 내용으로 바꿀까요?'); }
+async function loadFromHandle(h) {
+  const j = JSON.parse(await (await h.getFile()).text());
+  D = fromJson(j); D.updated = j.updated;
+  handle = h; await rememberHandle();
+  setDirty(false); renderAll();
+  msg(`'${h.name}'을(를) 열었습니다.`);
+}
+async function ensurePermission(h) {
+  if (await h.queryPermission({mode: 'readwrite'}) === 'granted') return true;
+  return await h.requestPermission({mode: 'readwrite'}) === 'granted';
+}
+$('bOpen').onclick = async () => {
+  if (!askDiscard()) return;
+  if (!hasFS) return $('fileInput').click();
+  try { const [h] = await showOpenFilePicker(PICK); await loadFromHandle(h); }
+  catch (e) { if (e.name !== 'AbortError') msg('열지 못했습니다: ' + e.message, 1); }
+};
+$('bReopen').onclick = async () => {
+  if (!handle || !askDiscard()) return;
+  try { if (!await ensurePermission(handle)) return msg('권한이 없어 열지 못했습니다.', 1); await loadFromHandle(handle); }
+  catch (e) { msg('열지 못했습니다: ' + e.message, 1); }
+};
+$('fileInput').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try { const j = JSON.parse(await file.text()); D = fromJson(j); D.updated = j.updated; setDirty(false); renderAll(); msg(`'${file.name}'을(를) 열었습니다. 이 브라우저는 파일에 바로 저장할 수 없으니 '내려받기'로 받아 Docs에 넣어 주세요.`); }
+  catch (err) { msg('열지 못했습니다: ' + err.message, 1); }
+  e.target.value = '';
+};
+function fileText() { const j = toJson(true); D.updated = j.updated; return JSON.stringify(j, null, 2) + '\n'; }
+function download() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([fileText()], {type: 'application/json'}));
+  a.download = FILE_NAME; a.click(); URL.revokeObjectURL(a.href);
+  msg(`'${FILE_NAME}'을(를) 내려받았습니다. Docs 폴더의 파일을 바꿔 넣어 주세요.`);
+}
+async function save() {
+  if (!hasFS) return download();
+  try {
+    if (!handle) { handle = await showSaveFilePicker({suggestedName: FILE_NAME, ...PICK}); await rememberHandle(); }
+    if (!await ensurePermission(handle)) return msg('저장 권한이 없어 저장하지 못했습니다.', 1);
+    const w = await handle.createWritable(); await w.write(fileText()); await w.close();
+    setDirty(false);
+    msg(`'${handle.name}'에 저장했습니다 (${new Date().toLocaleTimeString()}).`);
+  } catch (e) { if (e.name !== 'AbortError') msg('저장하지 못했습니다: ' + e.message, 1); }
+}
+$('bSave').onclick = save;
+$('bDown').onclick = download;
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---------- 시작 ----------
+(async () => {
+  const draft = loadDraft();
+  try { D = fromJson(draft ? draft.data : DEFAULT_DATA); D.updated = (draft ? draft.data : DEFAULT_DATA).updated; }
+  catch (e) { D = fromJson(DEFAULT_DATA); D.updated = DEFAULT_DATA.updated; }
+  setDirty(draft ? !!draft.dirty : false);
+  renderAll();
+  if (!hasFS) { $('bSave').hidden = true; msg("이 브라우저는 파일에 바로 저장할 수 없습니다. 고친 뒤 '내려받기'로 받아 Docs에 넣어 주세요. (Edge나 Chrome에서는 바로 저장됩니다)"); }
+  else {
+    try { handle = (await idb.get('handle')) || null; } catch (e) {}
+    showReopen();
+    msg(draft ? '브라우저에 임시 저장된 내용을 불러왔습니다.' : "처음이면 '파일 열기'로 Docs/v2 기물 분류 데이터.json을 고르세요.");
+  }
+})();
+</script>
+</body>
+</html>

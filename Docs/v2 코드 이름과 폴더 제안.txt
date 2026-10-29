@@ -1,0 +1,447 @@
+ColorMaze v2 코드 이름과 폴더 제안
+============================================================
+
+작성일: 2026-10-28
+기준 문서: Docs/v2 코드 흐름 설계.md (2026-10-28 동의), Docs/v2 결정 로그.md, Docs/v2 기물 분류.md
+
+이 파일의 범위: 코드 흐름 설계에 동의한 뒤 정하기로 한 코드 이름, 폴더 이름, 매핑 테이블입니다(3차 Q486). 코드 흐름 문서에 한글로 적은 클래스·인터페이스·이벤트·애셋마다 코드 이름을 붙이고, 스크립트·애셋을 둘 폴더를 정합니다.
+이 파일의 질문 수: 11개 (Q505~Q515)
+
+[작성 방법]
+
+  - 각 질문의 "답:" 뒤에 자유롭게 적어 주세요. 선택지는 예시일 뿐이며 선택지에 없는 답도 괜찮습니다.
+  - 이름 목록(Q508~Q512)은 "제안대로"라고 적거나, 바꿀 이름만 "한글 이름: 원하는 이름"으로 적으면 됩니다.
+  - 질문 번호는 코드 흐름 설계의 마지막 선택(Q504)에 이어 Q505부터 붙였습니다. 결정 로그에는 "(코드 이름 Q505)"처럼 인용하겠습니다.
+  - 기획 문서의 한글 이름(문, 작동기, 목적지 등)은 그대로 쓰고, 여기서 정하는 것은 코드에서 쓰는 영어 이름입니다.
+  - 이름 목록은 Q505~Q507의 참고 의견대로 지었습니다. 규칙을 다르게 고르면 목록도 그 규칙에 맞춰 고치겠습니다.
+  - Q509~Q515의 제안은 Q505~Q508의 답에 맞춰 2026-10-28에 고쳤습니다: 설정 애셋은 끝에 Config, v1 코드를 먼저 지우고 v2 코드를 씀(v1 이름도 쓸 수 있음), 어셈블리는 ColorMaze.Assembly, Q508의 계열·종류 이름. 기물의 계열과 종류는 Docs/v2 기물 분류 편집기.html로 고치는 중이라, Q513의 계열 폴더는 그 결과를 따릅니다.
+  - "참고 의견"은 제 추천이고 따르지 않아도 됩니다.
+
+[한눈에 보기]
+
+  A. 이름 규칙
+    Q505  이름을 짓는 규칙
+    Q506  기물 공통 기반의 이름
+    Q507  네임스페이스와 어셈블리 이름
+  B. 이름 목록
+    Q508  기물 계열과 종류 (매핑 테이블에 들어갈 것)
+    Q509  코어 규칙
+    Q510  맵 · 기물 공통 · 플레이어 · 노드 시스템
+    Q511  UI · 에디터 도구 · 설정 애셋
+    Q512  이벤트
+  C. 폴더와 애셋 위치
+    Q513  스크립트 폴더 구조
+    Q514  프리팹 · 설정 애셋 · 씬의 위치와 시험 씬 이름
+    Q515  매핑 테이블의 위치와 모양
+
+============================================================
+ A. 이름 규칙
+============================================================
+
+------------------------------------------------------------
+Q505. [핵심] 이름을 짓는 규칙
+
+[이미 정해진 전제]
+  - v2 새 코드는 ColorMaze 네임스페이스에 둡니다. (3차 Q489)
+  - 이미 정한 코드 이름: OrbValue(오브 값), SubmittableObjectBase(작동기 계열의 공통 기본 클래스). (2차 Q101, Q263)
+  - 지금 코드는 영어 PascalCase 클래스이고 파일 이름이 클래스 이름과 같습니다. 추상 기본 클래스는 Base로 끝나고(MapObjectBase, FilterBlockBase), 이벤트는 '대상 + 일어난 일'(SceneLoadCompleted, ColorStackChanged)이며 Event를 붙이지 않습니다.
+  - 겉모습(문짝 움직임, 강조, 색 표시)은 로직과 나눈 별도 컴포넌트입니다. (코드 흐름 1절)
+
+[빈 곳]
+  v2 코드 전체에 같은 규칙을 쓰려면 규칙을 먼저 정해야 합니다.
+
+  [클래스와 파일]
+    - 영어 PascalCase, 파일 이름 = 클래스 이름 (지금 코드와 같음)
+    - 기타
+  [추상 기본 클래스]
+    - 끝에 Base (지금 코드와 같음: SubmittableObjectBase, GateBase)
+    - 앞에 Abstract (AbstractGate)
+    - 붙이지 않음 (Gate)
+  [인터페이스]
+    - 앞에 I (IInteractTarget)
+    - 기타
+  [이벤트]
+    - '대상 + 일어난 일', Event를 붙이지 않음 (OrbExtracted, GateStateChanged — 지금 코드와 같음)
+    - 끝에 Event (OrbExtractedEvent)
+  [겉모습 컴포넌트]
+    - 끝에 View (DoorView, LinkColorView)
+    - 끝에 Visual (DoorVisual)
+    - 붙이지 않음
+  [설정 애셋 (ScriptableObject)]
+    - 내용을 나타내는 이름 (GameRules, NodeBuildSettings, LinkColorPalette, SoundTable)
+    - 모두 끝에 Config (GameRulesConfig, NodeBuildConfig ...)
+  [v1에 이미 있는 이름]
+    - 피함 (v1 MapObjectBase, IInteractable, InteractionController와 다른 이름을 쓰고, v1을 지운 뒤에도 그대로 둠)
+    - 같은 이름을 씀 (네임스페이스로 나뉘어 컴파일은 됨)
+    - 같이 있는 동안만 피하고, 0.0.1 때 v1을 지우면서 v1 이름으로 바꿈
+
+Base와 I는 지금 코드와 C# 관례에 맞습니다. 이벤트에 Event를 붙이면 이벤트라는 것은 잘 보이지만 지금 코드의 이벤트(SceneLoadCompleted 등)와 모양이 달라집니다. 겉모습 컴포넌트에 View를 붙이면 '이 컴포넌트는 그리기만 한다'가 이름으로 드러나 로직을 넣지 않게 됩니다. v1과 같은 이름은 네임스페이스로 나뉘어 컴파일은 되지만, 같이 있는 동안 검색과 인스펙터의 컴포넌트 목록에서 헷갈립니다. 0.0.1 때 v1 이름으로 바꾸면 이름은 짧아지지만 그때 v2 코드 전체의 이름을 한 번 더 바꿔야 합니다.
+
+[참고 의견]
+  - 영어 PascalCase + 파일 이름 = 클래스 이름 / Base / I / Event를 붙이지 않음 / View / 내용을 나타내는 이름 / v1과 같은 이름은 피함.
+
+답:영어 PascalCase + 파일 이름 = 클래스 이름 / Base / I / Event를 붙이지 않음 / View / Config / v1을 지우면서 코드 생성
+
+------------------------------------------------------------
+Q506. [보통] 기물 공통 기반의 이름
+
+[이미 정해진 전제]
+  - 모든 v2 기물이 상속하는 기반입니다. 맵 안 id, 맵 매니저 등록, 상호작용 강조, 상태 저장 기본 구현을 맡습니다. (코드 흐름 6.1)
+  - v1에는 같은 역할의 MapObjectBase가 있고 0.0.1 때 지웁니다. v1 맵 에디터(UGC)의 데이터는 기물을 Fixture라고 부릅니다(FixtureType, FixtureEntry). (2차 Q414)
+
+[빈 곳]
+  기물이라는 말에 맞는 영어 이름을 정합니다. 이 이름은 맵 안 id(FixtureId), 스냅샷의 기물 상태 항목, 에디터 검사, 나중에 고칠 UGC 데이터 이름에도 이어집니다.
+
+  [이름]
+    - FixtureBase (기물 = Fixture, v1 맵 에디터와 같은 말)
+    - MapElementBase (기물 = Map Element)
+    - PuzzleObjectBase
+    - 기타
+
+Fixture는 '자리에 설치된 장치'라는 뜻이라 문·작동기·합성기 같은 기물에 맞고, UGC 데이터를 v2로 고칠 때 FixtureEntry 같은 이름을 그대로 이어 쓸 수 있습니다. MapElement는 더 넓은 말이라 벽과 노드까지 포함하는 것처럼 읽힙니다. PuzzleObject는 뜻은 분명하지만 길고 v1 MapObjectBase와 모양이 비슷합니다.
+
+[참고 의견]
+  - FixtureBase. 아래 목록(Q508~Q512)은 이 이름으로 적었습니다.
+
+답:FixtureBase
+
+------------------------------------------------------------
+Q507. [보통] 네임스페이스와 어셈블리 이름
+
+[이미 정해진 전제]
+  - v2 새 코드는 ColorMaze 네임스페이스에 둡니다. (3차 Q489)
+  - 코어 규칙만 asmdef 하나로 묶고, EditMode 테스트용 asmdef를 따로 둡니다. 월드와 UI는 기본 어셈블리(Assembly-CSharp)에 둡니다. (3차 Q489, 코드 흐름 2절)
+
+[빈 곳]
+  [네임스페이스]
+    - ColorMaze 하나 (하위 네임스페이스 없음)
+    - 역할별 하위 네임스페이스 (ColorMaze.Rules, ColorMaze.Fixtures, ColorMaze.UI 등)
+    - 기타
+  [에디터 전용 코드]
+    - 같은 ColorMaze 네임스페이스 (Editor 폴더에 있어 빌드에서 빠짐)
+    - ColorMaze.EditorTools
+  [어셈블리 이름]
+    - 코어 규칙 ColorMaze.Rules / 테스트 ColorMaze.Rules.Tests
+    - 코어 규칙 ColorMaze.Core / 테스트 ColorMaze.Core.Tests
+    - 기타
+
+하위 네임스페이스는 큰 프로젝트에서 이름이 부딪치는 것을 막지만 파일마다 using이 늘고, 1인 프로젝트 규모에서는 폴더만으로 충분히 나뉩니다. 에디터 코드에 ColorMaze.Editor라는 네임스페이스를 쓰면 유니티의 Editor 클래스와 이름이 부딪쳐 오류가 나기 쉬우므로, 나누려면 EditorTools처럼 다른 이름이 필요합니다. 어셈블리를 Core라고 부르면 지금의 Assets/Scripts/Core 폴더(GameManager 등, 기본 어셈블리)와 헷갈립니다.
+
+[참고 의견]
+  - ColorMaze 하나 / 에디터 코드도 같은 네임스페이스 / ColorMaze.Rules, ColorMaze.Rules.Tests.
+
+답:ColorMaze 하나 / 에디터 코드도 같은 네임스페이스 / ColorMaze.Assembly, ColorMaze.Assembly.Tests
+
+메모:
+
+============================================================
+ B. 이름 목록
+============================================================
+
+------------------------------------------------------------
+Q508. [핵심] 기물 계열과 종류 (매핑 테이블에 들어갈 것)
+
+[이미 정해진 전제]
+  - 기물의 계열과 종류는 Docs/v2 기물 분류.md가 단일 출처이고, 한글 이름은 임시 용어입니다. 기획 용어와 코드 이름은 매핑 테이블로 잇습니다. (2차 Q265, 3차 Q486)
+  - 작동기 계열의 공통 기본 클래스는 SubmittableObjectBase로 정했습니다. (2차 Q263)
+
+[빈 곳]
+  계열 이름은 폴더 이름(Q513)과 기반 클래스 이름에도 쓰입니다.
+
+  [계열]
+    - 문 계열 → Gate (기반 GateBase)
+    - 작동기 계열 → Submittable (기반 SubmittableObjectBase, 이미 정함)
+    - 오브 획득 계열 → OrbSource
+    - 기타 기믹 계열 → Gimmick
+    - 출발점 계열 → SpawnPoint (기반 SpawnPointBase)
+  [종류]
+    - 문 → Door
+    - 레이저 벽 → LaserWall
+    - 일회용 작동기 → OneShotActuator
+    - 반복 작동기 → ReusableActuator
+    - 목적지 → Goal
+    - 추출 오브젝트 → ExtractableObject
+    - 합성기 → Synthesizer
+    - 시작 지점 → StartPoint
+    - 체크포인트 → Checkpoint
+  [계열 안의 중간 기반]
+    - 작동기 기반 (일회용·반복 작동기의 공통: 작동 대상 1개, 연결색) → ActuatorBase
+
+Gate는 '통로를 막고 여는 것'이라 문과 레이저 벽을 함께 부르기 좋습니다. 작동기 계열에는 목적지도 들어 있어서, 계열 이름은 이미 정한 SubmittableObjectBase(오브를 제출받는 것)에 맞춰 Submittable로 했고, 문 계열을 여닫는 일회용·반복 작동기만 ActuatorBase를 거칩니다. 반복 작동기는 OneShot(한 번)과 짝을 이루는 Reusable(다시 쓸 수 있음)로 했고 Repeatable도 됩니다. 목적지는 오브를 내서 클리어하는 곳이라 Goal로 했고 Exit나 Destination도 됩니다. 출발점 계열은 플레이어가 나타나는 곳이라 SpawnPoint로 했습니다.
+
+[참고 의견]
+  - 제안대로.
+
+답:오브 획득 계열 -> ColorSource ( 색상 오브의 획득처 의미)
+기타 기믹 계열은 추가하라는게 아니라 나중에 다른 계열들을 추가할수 있다는 의미
+계단 계열 -> FloorMove (기반 FloorMoveBase)
+일회용 작동기 -> SingleUseActuator
+추출 오브젝트는 여러 종류의 사물들이 들어올 예정이라 해당 사물의 이름을 사용
+합성기 -> ColorMixer
+
+
+
+
+------------------------------------------------------------
+Q509. [보통] 코어 규칙
+
+[이미 정해진 전제]
+  - 코어 규칙은 순수 C#이고 asmdef 하나로 묶습니다. 오브 값, 오브 규칙, 소지 오브, 합성·제출 세션, 작동기 상태, 팝업 호스트 인터페이스, 스냅샷 데이터, 노드 데이터가 들어갑니다. (코드 흐름 4절)
+
+[빈 곳]
+  [오브]
+    - 오브 값 → OrbValue (이미 정함)
+    - 오브 규칙 (한도, 목표·추출 값 규칙, 색 변환) → OrbRules
+    - 소지 오브 → OrbInventory
+    - 소지 오브 항목 (런타임 번호 + 값) → HeldOrb
+  [세션]
+    - 합성 세션 → SynthesisSession
+    - 제출 세션 → SubmitSession
+    - 작동기 종류 (일회용 / 반복 / 목적지) → SubmitKind { SingleUse, Reusable, Goal }
+    - 제출 결과 → SubmitOutcome
+    - 거부 이유 (값이 다름 / 슬롯이 참 / 소지 오브가 가득 참) → SubmitRejectReason { WrongValue, SlotOccupied, InventoryFull }
+    - 작동기 상태 → ActuatorState
+  [팝업과 ESC]
+    - 팝업 호스트 인터페이스 → IPopupHost
+    - 팝업 정적 접근점 → Popups (기물은 Popups.Open(세션, 닫힐 때 할 일)로 부름)
+    - 뒤로 가기 스택 → BackStack
+  [저장과 노드 데이터]
+    - 맵 스냅샷 → MapSnapshot
+    - 기물 상태 항목 (맵 안 id + JSON 문자열) → FixtureStateEntry
+    - 노드 그래프 데이터 (노드·벽 목록, 다음 id) → NodeGraphData
+    - 노드 / 벽 / 끼운 문 항목 → NodeData / WallData / DoorData
+    - 벽 종류 → WallKind { Normal, Laser }
+    - 노드 계산 (id 발급, 합치기, 모듈 수, 문 끼우기 가능 여부) → NodeGraphRules
+  [테스트]
+    - 테스트 클래스 → 대상 이름 + Tests (OrbValueTests, SubmitSessionTests 등)
+
+세션은 '팝업 한 번 동안의 상태'라 Session으로 했습니다. 소지 오브 항목은 슬롯(칸 수)과 헷갈리지 않게 '들고 있는 오브'라는 뜻의 HeldOrb로 했습니다. 뒤로 가기 스택은 일시정지 메뉴(기본 어셈블리)와 팝업 호스트가 함께 쓰는 순수 C#이라 코어 규칙에 둡니다. 작동기 종류의 값은 Q508의 일회용 작동기 이름(SingleUseActuator)에 맞춰 SingleUse로 했습니다.
+
+[참고 의견]
+  - 제안대로.
+
+답:추천대로 (2026-10-28 채팅). 반영할 때 합성 쪽 이름은 합성기 ColorMixer에 맞춰 MixSession으로 통일(채팅)
+
+------------------------------------------------------------
+Q510. [보통] 맵 · 기물 공통 · 플레이어 · 노드 시스템
+
+[이미 정해진 전제]
+  - 맵 매니저는 맵 씬마다 하나입니다. 기물은 공통 기반과 인터페이스 넷(상호작용, 값 제공, 상태 저장, 작동 대상)을 씁니다. (코드 흐름 3.3, 6.1)
+  - 노드 시스템은 모양(노드 쪽 상속)과 문 계열의 동작(별도 컴포넌트)을 나눕니다. 끼운 문과 레이저 벽은 두 컴포넌트를 같은 오브젝트에 붙입니다. (코드 흐름 11.4)
+
+[빈 곳]
+  [맵]
+    - 맵 매니저 → MapManager
+    - 맵 씬 기본 프리팹 → MapRoot (프리팹)
+    - 맵 안 id (기물의 필드) → FixtureId
+  [기물 공통]
+    - v2 기물 기반 → FixtureBase (Q506)
+    - 상호작용 인터페이스 → IInteractable (v1에서 쓰던 이름) 또는 IInteractTarget
+    - 값 제공 인터페이스 → IValueProvider
+    - 상태 저장 인터페이스 → ISnapshotable
+    - 작동 대상 인터페이스 → IActuatorTarget
+    - 상호작용 강조 (겉모습) → InteractHighlightView
+    - 연결색 표시 (겉모습, 작동기와 문 계열) → LinkColorView
+    - 작동기 안에 든 오브 (겉모습) → StoredOrbView
+    - 문짝 미닫이 (겉모습) → DoorView
+    - 레이저 오르내림 (겉모습) → LaserWallView
+  [플레이어]
+    - v2 플레이어 프리팹 → Player (v1 Player 프리팹을 지운 뒤 새로 만듦)
+    - 이동 → FirstPersonController (그대로)
+    - 조준 컨트롤러 → InteractionController (v1에서 쓰던 이름) 또는 AimController
+    - 소지 오브 컴포넌트 → PlayerInventory
+    - 플레이어 문맥 → PlayerContext
+    - 뷰모델 → OrbViewmodel
+  [노드 시스템]
+    - 노드 그래프 컴포넌트 → NodeGraph
+    - 벽 빌더 → NodeGraphBuilder
+    - 노드 시스템 기물 기반 → NodeObjectBase
+    - 일반 벽 구간 → WallSegment
+    - 끼운 문 (모양 쪽) → DoorPiece
+    - 레이저 벽 구간 (모양 쪽) → LaserSegment
+    - 층간 이동 칸을 알리는 컴포넌트 → FloorOpening
+  [그 밖]
+    - 소리 연결 (컴포넌트) → SoundEventPlayer
+    - 열린 맵에서 바로 시작 (부팅 뒤 씬을 불러오는 쪽, 에디터에서만 동작) → DirectPlayLoader
+
+끼운 문은 DoorPiece(모양)와 Door(동작), 레이저 벽은 LaserSegment(모양)와 LaserWall(동작)이 짝입니다. v1 코드를 먼저 지우기로 해서(Q505) v1과 같은 이름도 쓸 수 있게 됐습니다. 상호작용 인터페이스와 조준 컨트롤러는 v1 이름(IInteractable, InteractionController)과 처음 제안한 이름(IInteractTarget, AimController)을 함께 적었습니다. v1 이름은 익숙하고 v1 코드와 하는 일도 같습니다(조준한 대상과 클릭으로 상호작용). IInteractTarget은 작동 대상(IActuatorTarget)과 모양이 맞고, AimController는 조준해서 대상을 고르는 일을 이름에 드러냅니다. 플레이어 프리팹은 v1 Player를 지운 뒤 새로 만들므로 Player로 했습니다.
+
+[참고 의견]
+  - 상호작용 인터페이스는 IInteractable, 조준 컨트롤러는 InteractionController(v1에서 쓰던 이름이라 익숙함). 나머지는 제안대로.
+
+답:추천대로 (2026-10-28 채팅, IInteractable·InteractionController). FloorOpening은 두지 않고 FloorMoveBase가 자기 칸을 알림(채팅)
+
+------------------------------------------------------------
+Q511. [보통] UI · 에디터 도구 · 설정 애셋
+
+[이미 정해진 전제]
+  - UI는 UIScene에 있고, 팝업 호스트가 세션 종류에 맞는 화면을 띄웁니다. 오브 칸과 값 상자는 여러 화면이 함께 쓰는 부품입니다. (코드 흐름 8절)
+  - 설정 애셋은 넷입니다: 게임 규칙, 기준 치수, 연결색 목록, 소리 연결. (코드 흐름 10.2)
+
+[빈 곳]
+  [UI]
+    - 팝업 호스트 → PopupHost
+    - 합성 화면 → SynthesisPopup
+    - 제출 화면 → SubmitPopup
+    - 오브 칸 (공통 부품) → OrbCellView
+    - 값 상자 'R G B' (공통 부품) → OrbValueLabel
+    - 조준 값 표시 → AimValueLabel
+    - 추가 HUD (Tab) → DetailHud
+    - 임시 클리어 화면 → MapClearScreen
+  [에디터 도구]
+    - 노드 편집 창 → NodeGraphWindow
+    - 씬 뷰 노드 조작 → NodeGraphSceneTool
+    - 에디터 검사 → MapValidator
+    - 맵 안 id 발급 → FixtureIdAssigner
+    - 열린 맵에서 바로 시작 (메뉴) → 지금의 PlayFromMainMenu에 메뉴 항목을 더함
+    - 메뉴 경로 → ColorMaze/ 아래 (예: ColorMaze/맵 검사, ColorMaze/Play: 열린 맵에서 바로 시작)
+  [설정 애셋]
+    - 게임 규칙 → GameRulesConfig
+    - 기준 치수 → NodeBuildConfig
+    - 연결색 목록 → LinkColorConfig
+    - 소리 연결 (애셋) → SoundEventConfig
+
+추가 HUD는 키(Tab)가 아니라 하는 일(자세한 값을 보임)로 DetailHud라고 했습니다. 키는 설정에서 바뀔 수 있기 때문입니다. 메뉴 경로는 지금 코드의 애셋 만들기 메뉴(ColorMaze/Stage Table)와 같은 ColorMaze/ 아래에 둡니다. 설정 애셋은 Q505의 답대로 끝에 Config를 붙였고, 소리 연결 애셋은 그것을 읽는 컴포넌트(SoundEventPlayer)와 이름을 맞췄습니다. v1 코드를 먼저 지우므로(Q505) v1 UI를 숨기는 컴포넌트(LegacyUiHider)와 v2 UI 루트(V2UiRoot)는 뺐습니다.
+
+[참고 의견]
+  - 제안대로.
+
+답:추천대로 (2026-10-28 채팅). 합성 화면은 MixPopup(채팅). 추가 HUD는 인벤토리 창 InventoryPopup으로 바뀜(오브 흡수 채팅)
+
+------------------------------------------------------------
+Q512. [보통] 이벤트
+
+[이미 정해진 전제]
+  - EventBus 이벤트는 받는 곳이 있는 것만 만들고, 이름은 코드 이름과 함께 정합니다. 기물 상태 변화는 전용 이벤트(예: GateStateChanged)로 알립니다. (2차 Q267)
+  - 이벤트 목록은 코드 흐름 9절에 있습니다.
+
+[빈 곳]
+  [이벤트]
+    - 맵 시작 → MapStarted
+    - 소지 오브 바뀜 → InventoryChanged
+    - 조준 대상 바뀜 → AimTargetChanged
+    - 추출함 → OrbExtracted
+    - 흡수 불가 → ExtractRejected
+    - 합성함 → OrbsSynthesized
+    - 제출 결과 → SubmitAttempted
+    - 작동기 바뀜 → ActuatorStateChanged
+    - 문 계열 바뀜 → GateStateChanged
+    - 팝업 열림·닫힘 → PopupStateChanged
+    - 맵 클리어 → MapCleared
+
+흡수 불가는 '추출이 거부됨'이라 제출의 거부와 같은 말(Rejected)을 썼습니다.
+
+[참고 의견]
+  - 제안대로.
+
+답:추천대로 (2026-10-28 채팅). 합성함은 OrbsMixed(채팅)
+
+메모:
+
+============================================================
+ C. 폴더와 애셋 위치
+============================================================
+
+------------------------------------------------------------
+Q513. [핵심] 스크립트 폴더 구조
+
+[이미 정해진 전제]
+  - 지금 체계(Assets/Scripts 아래 Core, Editor, Level, MapEditor, MapObjects, Player, UI)에 v2 폴더를 더합니다. 폴더 이름은 코드 흐름을 설계한 뒤 정합니다. (3차 Q489)
+  - v1 코드(기물 스크립트, v1 플레이어 쪽, 마커·가이드, LevelManager 등)는 v2 코드를 쓰기 전에 먼저 지웁니다. 그래서 v1과 v2 파일이 같이 있는 기간이 없습니다. (Q505 답)
+
+[빈 곳]
+  [방식]
+    - A. 역할별 새 폴더를 더하고, Core·Player·UI·Editor처럼 남는 지금 폴더에는 v2 새 파일을 넣음. v1을 지워 빈 폴더(MapObjects 등)는 지움
+    - B. 지금 폴더 이름을 그대로 쓰고 그 안을 나눔 (기물은 MapObjects 아래 계열별 폴더, 코어 규칙은 Core 아래 등)
+    - 기타
+
+  A를 고르면 이런 모양입니다.
+
+    Assets/Scripts/
+      Rules/              코어 규칙 (ColorMaze.Assembly.asmdef)
+        Orbs/             OrbValue, OrbRules, OrbInventory, HeldOrb
+        Sessions/         SynthesisSession, SubmitSession, SubmitKind, SubmitOutcome, ActuatorState
+        Popups/           IPopupHost, Popups, BackStack
+        Data/             MapSnapshot, FixtureStateEntry, NodeGraphData, NodeData, WallData, DoorData, WallKind, NodeGraphRules
+      Map/                MapManager, GameRulesConfig, LinkColorConfig, SoundEventConfig, SoundEventPlayer, DirectPlayLoader
+      Fixtures/           FixtureBase, 인터페이스 넷, InteractHighlightView, LinkColorView
+        Gates/            GateBase, Door, LaserWall, DoorView, LaserWallView
+        Submittables/     SubmittableObjectBase, ActuatorBase, SingleUseActuator, ReusableActuator, Goal, StoredOrbView
+        ColorSources/     추출 오브젝트 (사물마다 그 사물의 이름)
+        FloorMoves/       FloorMoveBase (계단 계열)
+        SpawnPoints/      SpawnPointBase, StartPoint, Checkpoint
+        (합성기 ColorMixer는 기물 분류 편집에서 정한 계열의 폴더에 둠)
+      NodeSystem/         NodeGraph, NodeGraphBuilder, NodeObjectBase, WallSegment, DoorPiece, LaserSegment, FloorOpening, NodeBuildConfig
+      Player/             (지금 폴더) + InteractionController(Q510), PlayerInventory, PlayerContext, OrbViewmodel
+      UI/                 (지금 폴더) + Popups/, Hud/, MapClearScreen
+      Editor/             (지금 폴더) + NodeSystem/, MapValidator, FixtureIdAssigner
+    Assets/Tests/EditMode/  ColorMaze.Assembly.Tests.asmdef와 테스트
+
+v1 코드를 먼저 지우므로(Q505) v1과 v2 파일이 섞이는 기간이 없습니다. A는 기물·노드 시스템처럼 새로 생기는 역할에 새 이름의 폴더를 쓰고, 남는 지금 코드(Core의 GameManager 등)는 그 자리에 둡니다. 폴더 이름이 코드의 말(Fixture, NodeSystem)과 같아 찾기 쉽습니다. B는 폴더 수가 늘지 않지만, v1 기물을 담던 MapObjects라는 이름이 v2 코드의 기물(Fixture)과 말이 달라지고, Core 안에 코어 규칙(asmdef)과 기본 어셈블리 코드가 섞입니다. Fixtures 아래 폴더는 기물 분류의 계열을 따르므로, 기물 분류 편집기의 결과에 맞추고 새 계열이 생기면 폴더 하나를 더합니다.
+
+[참고 의견]
+  - A.
+
+답:A (추천대로, 2026-10-28 채팅). 합성기는 Fixtures/ColorProcessors/, 계단 계열은 Fixtures/FloorMoves/
+
+------------------------------------------------------------
+Q514. [보통] 프리팹 · 설정 애셋 · 씬의 위치와 시험 씬 이름
+
+[이미 정해진 전제]
+  - 지금 프리팹 폴더는 Assets/Prefebs(철자가 Prefabs와 다름)이고, StageTable 애셋은 Assets/Resources, URP 설정은 Assets/Settings, v1 스테이지 씬은 Assets/Scenes/Chapter1~7에 있습니다.
+  - 설정 애셋은 맵 씬 기본 프리팹(MapRoot)의 맵 매니저가 직접 참조합니다. (코드 흐름 10.2)
+  - 첫 시험 맵은 노드로 벽을 세운 회색 시험 씬 하나이고, 맵 id는 씬 이름과 따로 적은 고정 문자열입니다. (3차 Q487, Q490)
+
+[빈 곳]
+  [v2 프리팹]
+    - v1 프리팹을 지울 때 Assets/Prefebs의 이름을 Assets/Prefabs로 바로잡고, 그 아래 계열별 폴더
+    - Assets/Prefabs를 새로 만들고, 지금 Prefebs에는 남는 프리팹만 둠
+    - 기타
+  [설정 애셋 (GameRulesConfig 등)]
+    - Assets/Data (새로 만듦)
+    - Assets/Settings (URP 설정과 같은 곳)
+    - Assets/Resources
+  [v2 맵 씬]
+    - Assets/Scenes/Maps
+    - 기타
+  [시험 씬 이름과 맵 id]
+    - 씬 TestMap_CoreLoop, 맵 id test_core_loop
+    - 기타
+
+v1 프리팹을 먼저 지우므로 그때 폴더 이름을 바로잡으면 프리팹 폴더가 하나로 남습니다. 유니티에서 폴더 이름을 바꾸면 .meta 덕분에 씬과 프리팹의 연결은 끊기지 않습니다. Resources에 넣은 애셋은 늘 빌드에 들어가고 이름으로 불러오게 되는데, 설정 애셋은 MapRoot가 직접 참조하므로 Resources가 필요 없습니다. Assets/Settings에 두면 URP 설정 파일과 섞입니다.
+
+[참고 의견]
+  - Prefebs를 Prefabs로 바로잡음 / Assets/Data / Assets/Scenes/Maps / TestMap_CoreLoop, test_core_loop.
+
+답:추천대로 (2026-10-28 채팅)
+
+------------------------------------------------------------
+Q515. [보통] 매핑 테이블의 위치와 모양
+
+[이미 정해진 전제]
+  - 기획 용어와 코드 이름은 매핑 테이블로 잇고, 매핑 테이블은 정하면 Docs/v2 기물 분류.md에 더합니다. (2차 Q265, 3차 Q486 채팅에서 확인)
+  - 기물 분류 문서는 기물 분류(계열과 종류)의 단일 출처입니다.
+
+[빈 곳]
+  [기물의 매핑 테이블]
+    - 기물 분류 문서의 계열 표와 종류 표에 '코드 이름' 칸을 더함
+    - 기물 분류 문서 끝에 '매핑 테이블' 절을 따로 둠
+  [기물 말고 다른 이름 (코어 규칙, UI, 이벤트 등)]
+    - 코드 흐름 설계 문서에서 한글 이름 옆에 코드 이름을 적음 (예: 맵 매니저(MapManager))
+    - 기물 분류 문서의 매핑 테이블에 모두 넣음
+    - 따로 적지 않음 (코드가 단일 출처)
+
+계열·종류 표에 칸을 더하면 한글 이름과 코드 이름을 한 곳에서 함께 보지만 표가 넓어집니다. 기물이 아닌 이름까지 기물 분류 문서에 넣으면 그 문서의 범위가 넓어집니다. 코드 흐름 문서에 적어 두면 흐름을 읽으면서 코드 이름을 바로 찾을 수 있고, 코드를 고칠 때 함께 고칠 곳이 그 문서 하나입니다.
+
+[참고 의견]
+  - 계열·종류 표에 '코드 이름' 칸을 더함 / 코드 흐름 문서에서 한글 이름 옆에 적음.
+
+답:추천대로 (2026-10-28 채팅)
+
+메모:
+
+============================================================
+ 자유 메모
+============================================================
+
+(이 파일에 없는 생각, 이미 정해둔 것, 걱정되는 점 등을 편하게 적어주세요.)

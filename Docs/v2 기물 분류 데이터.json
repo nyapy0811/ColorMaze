@@ -1,0 +1,156 @@
+{
+  "about": "Docs/v2 기물 분류 편집기.html로 고치는 작업 파일이다. 기물 분류의 기준 문서는 Docs/v2 기물 분류.md이고, 편집이 끝나면 그 문서에 반영한다.",
+  "version": 1,
+  "updated": "2026-10-28",
+  "root": {
+    "ko": "기물",
+    "code": "FixtureBase"
+  },
+  "places": [
+    "노드 시스템",
+    "설치형",
+    "구역 지정형",
+    "미정"
+  ],
+  "families": [
+    {
+      "ko": "문 계열",
+      "code": "Gate",
+      "base": "GateBase",
+      "place": "노드 시스템",
+      "types": [
+        {
+          "ko": "문",
+          "code": "Door",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "레이저 벽",
+          "code": "LaserWall",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "작동기 계열",
+      "code": "Submittable",
+      "base": "SubmittableObjectBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "일회용 작동기",
+          "code": "SingleUseActuator",
+          "mid": "ActuatorBase",
+          "note": ""
+        },
+        {
+          "ko": "반복 작동기",
+          "code": "ReusableActuator",
+          "mid": "ActuatorBase",
+          "note": ""
+        },
+        {
+          "ko": "목적지",
+          "code": "Goal",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "오브 획득 계열",
+      "code": "ColorSource",
+      "base": "",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "추출 오브젝트",
+          "code": "(사물 이름)",
+          "mid": "",
+          "note": "사물마다 그 사물의 이름 (예: 소화기)"
+        }
+      ]
+    },
+    {
+      "ko": "계단 계열",
+      "code": "FloorMove",
+      "base": "FloorMoveBase",
+      "place": "구역 지정형",
+      "types": [
+        {
+          "ko": "계단",
+          "code": "Stair",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "점프패드",
+          "code": "JumpPad",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "낙하구간",
+          "code": "JumpDown",
+          "mid": "",
+          "note": "한 층 아래로 낙하"
+        }
+      ]
+    },
+    {
+      "ko": "출발점 계열",
+      "code": "SpawnPoint",
+      "base": "SpawnPointBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "시작 지점",
+          "code": "StartPoint",
+          "mid": "",
+          "note": ""
+        },
+        {
+          "ko": "체크포인트",
+          "code": "Checkpoint",
+          "mid": "",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "ko": "오브 편집기 계열",
+      "code": "ColorProcessor",
+      "base": "ColorProcessorBase",
+      "place": "설치형",
+      "types": [
+        {
+          "ko": "합성기",
+          "code": "ColorMixer",
+          "mid": "ReusableProcessorBase",
+          "note": ""
+        },
+        {
+          "ko": "필터",
+          "code": "ColorFilter",
+          "mid": "ReusableProcessorBase",
+          "note": "색상 빼기 연산"
+        },
+        {
+          "ko": "복제기",
+          "code": "ColorCopier",
+          "mid": "SingleUseProcessorBase",
+          "note": "오브 하나를 넣으면 동일한 오브 2개가 나오는 장치"
+        },
+        {
+          "ko": "증폭기",
+          "code": "ColorAmplifier",
+          "mid": "SingleUseProcessorBase",
+          "note": "오브 하나를 넣으면 값이 전부 지정한 배수가 증가되어 나옴"
+        }
+      ]
+    }
+  ],
+  "memo": ""
+}

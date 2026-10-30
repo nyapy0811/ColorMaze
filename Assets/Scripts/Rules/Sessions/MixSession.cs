@@ -17,6 +17,9 @@ namespace ColorMaze
             this.inventory = inventory;
         }
 
+        /// <summary>고를 수 있는 소지 오브(들어온 순서).</summary>
+        public IReadOnlyList<HeldOrb> Orbs => inventory.Items;
+
         public IReadOnlyList<HeldOrb> Selected => selected;
         public bool IsSelected(HeldOrb orb) => selected.Contains(orb);
 

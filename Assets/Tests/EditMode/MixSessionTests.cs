@@ -25,6 +25,15 @@ namespace ColorMaze
         }
 
         [Test]
+        public void Orbs_ListsInventoryInArrivalOrder()
+        {
+            var inventory = Inventory(new OrbValue(1, 0, 0), new OrbValue(0, 2, 0));
+            var session = new MixSession(inventory);
+            Assert.AreEqual(2, session.Orbs.Count);
+            Assert.AreSame(inventory.Items[1], session.Orbs[1]);
+        }
+
+        [Test]
         public void Preview_SumOverLimitIsClamped()
         {
             var inventory = Inventory(new OrbValue(4, 1, 0), new OrbValue(3, 0, 2));

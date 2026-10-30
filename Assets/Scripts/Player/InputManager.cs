@@ -50,5 +50,12 @@ namespace ColorMaze
             var mouse = Mouse.current;
             return mouse != null && mouse.leftButton.wasPressedThisFrame;
         }
+
+        /// <summary>뒤로 가기(ESC)를 누른 순간.</summary>
+        public bool ReadCancel()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.escapeKey.wasPressedThisFrame;
+        }
     }
 }

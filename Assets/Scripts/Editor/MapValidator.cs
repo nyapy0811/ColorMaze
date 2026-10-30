@@ -51,6 +51,12 @@ namespace ColorMaze
                 problems++;
             }
 
+            foreach (var source in FixtureIdAssigner.FixturesIn(scene).OfType<ColorSource>().Where(s => !OrbRules.IsValidSourceValue(s.Value)))
+            {
+                Debug.LogError($"[맵 검사] 추출 오브젝트 '{source.name}'의 값 {source.Value}은 쓸 수 없다((0,0,0)이나 세 채널이 같은 값).", source);
+                problems++;
+            }
+
             problems += CheckNodeGraph(scene);
 
             return problems;

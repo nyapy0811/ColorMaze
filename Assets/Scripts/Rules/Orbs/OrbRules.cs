@@ -40,6 +40,16 @@ namespace ColorMaze
             return new Color((float)value.R / max, (float)value.G / max, (float)value.B / max);
         }
 
+        /// <summary>
+        /// 흑백 색(추출한 오브젝트). 채도만 0으로 내리고 밝기는 세 채널의 평균이라,
+        /// 순수한 빨강·초록·파랑이 모두 같은 회색이 된다(밝기 가중이 아님, 코어 루프 4단계).
+        /// </summary>
+        public static Color ToGrayscale(Color color)
+        {
+            float gray = (color.r + color.g + color.b) / 3f;
+            return new Color(gray, gray, gray, color.a);
+        }
+
         /// <summary>발광 세기. 가장 큰 채널에 비례하고 계수는 설정 애셋에서 받는다.</summary>
         public static float GlowIntensity(OrbValue value, float factor) => value.Max * factor;
 

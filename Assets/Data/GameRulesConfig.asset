@@ -18,4 +18,4 @@ MonoBehaviour:
     b: 5
   slotCount: 5
   interactDistance: 1.3
-  glowFactor: 1
+  glowFactor: 0.2

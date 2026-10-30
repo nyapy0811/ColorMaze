@@ -48,6 +48,16 @@ namespace ColorMaze
         }
 
         [Test]
+        public void ToGrayscale_UsesChannelAverage()
+        {
+            Assert.AreEqual(ToGray(1f / 3f), OrbRules.ToGrayscale(Color.red));
+            Assert.AreEqual(OrbRules.ToGrayscale(Color.red), OrbRules.ToGrayscale(Color.blue));
+            Assert.AreEqual(ToGray(0.5f), OrbRules.ToGrayscale(new Color(1f, 0.5f, 0f)));
+        }
+
+        static Color ToGray(float value) => new(value, value, value, 1f);
+
+        [Test]
         public void GlowIntensity_IsProportionalToLargestChannel()
         {
             Assert.AreEqual(1.5f, OrbRules.GlowIntensity(new OrbValue(1, 3, 2), 0.5f));

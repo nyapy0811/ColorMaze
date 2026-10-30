@@ -57,8 +57,49 @@ namespace ColorMaze
                 problems++;
             }
 
+            foreach (var submittable in FixtureIdAssigner.FixturesIn(scene).OfType<SubmittableObjectBase>().Where(s => !OrbRules.IsValidGoal(s.RequiredOrb)))
+            {
+                Debug.LogError($"[맵 검사] '{submittable.name}'의 요구 값 {submittable.RequiredOrb}은 쓸 수 없다(모든 채널 1 이상, 세 채널이 모두 같지 않아야 함).", submittable);
+                problems++;
+            }
+
+            problems += CheckActuatorLinks(scene);
             problems += CheckNodeGraph(scene);
 
+            return problems;
+        }
+
+        /// <summary>작동기 연결: 빈 칸, 두 문 계열에 든 작동기는 오류, 어느 목록에도 없는 작동기와 빈 목록은 경고.</summary>
+        static int CheckActuatorLinks(Scene scene)
+        {
+            int problems = 0;
+            var fixtures = FixtureIdAssigner.FixturesIn(scene).ToList();
+            var gates = fixtures.OfType<GateBase>().ToList();
+            foreach (var gate in gates)
+            {
+                if (gate.Actuators.Count == 0)
+                {
+                    Debug.LogWarning($"[맵 검사] 문 계열 '{gate.name}'에 연결된 작동기가 없다(늘 닫혀 있음).", gate);
+                    problems++;
+                }
+                if (gate.Actuators.Any(actuator => actuator == null))
+                {
+                    Debug.LogError($"[맵 검사] 문 계열 '{gate.name}'의 작동기 목록에 빈 칸이 있다.", gate);
+                    problems++;
+                }
+            }
+
+            var links = gates.SelectMany(gate => gate.Actuators.Where(actuator => actuator != null).Distinct().Select(actuator => (actuator, gate))).ToList();
+            foreach (var group in links.GroupBy(link => link.actuator).Where(g => g.Count() > 1))
+            {
+                Debug.LogError($"[맵 검사] 작동기 '{group.Key.name}'가 문 계열 여러 개에 연결돼 있다: {string.Join(", ", group.Select(link => $"'{link.gate.name}'"))}. 작동기 하나는 기물 하나에만 잇는다.", group.Key);
+                problems++;
+            }
+            foreach (var actuator in fixtures.OfType<ActuatorBase>().Where(a => links.All(link => link.actuator != a)))
+            {
+                Debug.LogWarning($"[맵 검사] 작동기 '{actuator.name}'가 어느 문 계열에도 연결돼 있지 않다.", actuator);
+                problems++;
+            }
             return problems;
         }
 

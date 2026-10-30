@@ -70,15 +70,5 @@ namespace ColorMaze
         OrbCellView AddCell(RectTransform row) => Instantiate(cellPrefab, row);
 
         void AddSymbol(string symbol) => Instantiate(symbolPrefab, formulaRow).text = symbol;
-
-        // Destroy는 프레임 끝에 일어나므로 먼저 꺼서 줄 배치에서 뺀다.
-        static void Clear(RectTransform row)
-        {
-            foreach (Transform child in row)
-            {
-                child.gameObject.SetActive(false);
-                Destroy(child.gameObject);
-            }
-        }
     }
 }

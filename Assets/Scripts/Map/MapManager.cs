@@ -16,12 +16,14 @@ namespace ColorMaze
         [Tooltip("맵 id. 맵 목록 애셋을 만들기 전까지는 씬마다 직접 적는다.")]
         [SerializeField] string mapId = "test_core_loop";
         [SerializeField] GameRulesConfig rules;
+        [SerializeField] LinkColorConfig linkColors;
         [SerializeField] FirstPersonController player;
 
         readonly Dictionary<int, FixtureBase> fixtures = new();
 
         public string MapId => mapId;
         public GameRulesConfig Rules => rules;
+        public LinkColorConfig LinkColors => linkColors;
         public FirstPersonController Player => player;
 
         void Awake() => Current = this;

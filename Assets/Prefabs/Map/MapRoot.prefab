@@ -47,6 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.MapManager
   mapId: test_core_loop
   rules: {fileID: 11400000, guid: 8d5419a019904f845a7a4960b685ac87, type: 2}
+  linkColors: {fileID: 11400000, guid: 3500695b469385a4181741fac64e9c56, type: 2}
   player: {fileID: 7640263962046832447}
 --- !u!1001 &8660316190462950122
 PrefabInstance:

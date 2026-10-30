@@ -15,5 +15,15 @@ namespace ColorMaze
 
         /// <summary>닫히기 직전에 부른다.</summary>
         public virtual void Hide() { }
+
+        /// <summary>줄의 칸을 모두 지운다. Destroy는 프레임 끝에 일어나므로 먼저 꺼서 줄 배치에서 뺀다.</summary>
+        protected static void Clear(RectTransform row)
+        {
+            foreach (Transform child in row)
+            {
+                child.gameObject.SetActive(false);
+                Destroy(child.gameObject);
+            }
+        }
     }
 }

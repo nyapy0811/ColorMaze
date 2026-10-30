@@ -9,5 +9,7 @@ namespace ColorMaze
         SlotFull,
         /// <summary>소지 오브가 가득 차 회수할 수 없음.</summary>
         InventoryFull,
+        /// <summary>회수하면 닫힐 문 계열의 막는 자리에 플레이어가 있음.</summary>
+        GateOccupied,
     }
 }

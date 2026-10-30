@@ -10,6 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2800785389051017207}
   - component: {fileID: 508235429252620439}
+  - component: {fileID: 2367701127916203431}
+  - component: {fileID: 9145203899604760913}
+  - component: {fileID: 3768806407981117390}
   m_Layer: 0
   m_Name: Laser
   m_TagString: Untagged
@@ -49,6 +52,54 @@ MonoBehaviour:
   dataId: 0
   beam: {fileID: 1564021834805351915}
   emitter: {fileID: 5811676011171227533}
+--- !u!114 &2367701127916203431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3777860990401765183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef084e5c64e74414ca60ad819963dfce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.LaserWallView
+  beam: {fileID: 1564021834805351915}
+  duration: 0.4
+--- !u!114 &9145203899604760913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3777860990401765183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3ee14f4c54d7664e9643b1f99a4e0cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.LinkColorView
+  renderers:
+  - {fileID: 8481462108067191981}
+--- !u!114 &3768806407981117390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3777860990401765183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f630c6e5ff45f0346b420d552cc7005e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.LaserWall
+  fixtureId: 0
+  highlight: {fileID: 0}
+  actuators: []
+  linkColorIndex: 0
+  blockers:
+  - {fileID: 4645137979019011529}
+  linkColorView: {fileID: 9145203899604760913}
+  view: {fileID: 2367701127916203431}
 --- !u!1 &5426421486740668870
 GameObject:
   m_ObjectHideFlags: 0

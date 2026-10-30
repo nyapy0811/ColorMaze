@@ -13,8 +13,18 @@ namespace ColorMaze
             return inventory;
         }
 
-        static SubmitSession Session(OrbInventory inventory, SubmitKind kind, OrbValue? stored = null) =>
-            new(inventory, value => value == Goal, kind, stored);
+        static SubmitSession Session(OrbInventory inventory, SubmitKind kind, OrbValue? stored = null, bool canRelease = true) =>
+            new(inventory, Goal, value => value == Goal, () => canRelease, kind, stored);
+
+        [Test]
+        public void Orbs_ListsInventoryInArrivalOrder()
+        {
+            var inventory = Inventory(5, new OrbValue(1, 0, 0), Goal);
+            var session = Session(inventory, SubmitKind.SingleUse);
+            Assert.AreEqual(2, session.Orbs.Count);
+            Assert.AreSame(inventory.Items[1], session.Orbs[1]);
+            Assert.AreEqual(Goal, session.Required);
+        }
 
         [Test]
         public void Submit_RightValueMovesOrbIntoSlot()
@@ -83,6 +93,18 @@ namespace ColorMaze
             Assert.IsFalse(session.TryRetrieve(out var reason));
             Assert.AreEqual(SubmitRejectReason.InventoryFull, reason);
             Assert.AreEqual(Goal, session.SlotOrb);
+        }
+
+        [Test]
+        public void Retrieve_WhenReleaseIsBlockedIsRejected()
+        {
+            var inventory = Inventory(5);
+            var session = Session(inventory, SubmitKind.Reusable, Goal, canRelease: false);
+
+            Assert.IsFalse(session.TryRetrieve(out var reason));
+            Assert.AreEqual(SubmitRejectReason.GateOccupied, reason);
+            Assert.AreEqual(Goal, session.SlotOrb);
+            Assert.AreEqual(0, inventory.Count);
         }
 
         [Test]

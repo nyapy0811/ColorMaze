@@ -21,7 +21,7 @@ namespace ColorMaze
             panel.SetActive(false);
             resumeButton.onClick.AddListener(Resume);
             restartButton.onClick.AddListener(Restart);
-            quitButton.onClick.AddListener(Quit);
+            quitButton.onClick.AddListener(GameManager.Instance.QuitGame);
         }
 
         void OnDisable() => BackStack.Remove(Resume);
@@ -58,15 +58,6 @@ namespace ColorMaze
         {
             BackStack.Remove(Resume);
             SceneRestarter.Restart();
-        }
-
-        static void Quit()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -32,9 +33,16 @@ namespace ColorMaze
                 if (fixture.FixtureId > 0 && used.Add(fixture.FixtureId)) continue;
                 var serialized = new SerializedObject(fixture);
                 serialized.FindProperty("fixtureId").intValue = next;
-                serialized.ApplyModifiedProperties(); // Undo와 씬 변경 표시가 함께 된다.
+                serialized.ApplyModifiedProperties(); // 메뉴에서 되돌릴 수 있게 Undo에 남긴다.
                 used.Add(next++);
                 changed++;
+            }
+            if (changed > 0)
+            {
+                // 프리팹 인스턴스의 Undo 기록은 프레임 끝에 처리돼, 같은 프레임에 저장하면 저장 뒤에 씬이 다시 '바뀜'이 된다.
+                // 여기서 기록을 마무리하고 씬 변경 표시도 직접 한다(인스턴스 값만 바뀌면 표시가 안 붙는다).
+                Undo.FlushUndoRecordObjects();
+                EditorSceneManager.MarkSceneDirty(scene);
             }
             return changed;
         }

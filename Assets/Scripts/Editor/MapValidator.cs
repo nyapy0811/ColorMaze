@@ -51,6 +51,13 @@ namespace ColorMaze
                 problems++;
             }
 
+            var goals = FixtureIdAssigner.FixturesIn(scene).OfType<Goal>().ToList();
+            if (goals.Count != 1)
+            {
+                Debug.LogError($"[맵 검사] 목적지가 {goals.Count}개다(1개여야 함).", goals.FirstOrDefault());
+                problems++;
+            }
+
             foreach (var source in FixtureIdAssigner.FixturesIn(scene).OfType<ColorSource>().Where(s => !OrbRules.IsValidSourceValue(s.Value)))
             {
                 Debug.LogError($"[맵 검사] 추출 오브젝트 '{source.name}'의 값 {source.Value}은 쓸 수 없다((0,0,0)이나 세 채널이 같은 값).", source);

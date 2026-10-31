@@ -3,6 +3,7 @@
     "rootNamespace": "ColorMaze",
     "references": [
         "ColorMaze.Assembly",
+        "ColorMaze.Vox.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

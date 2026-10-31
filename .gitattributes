@@ -95,6 +95,7 @@ Packages/packages-lock.json linguist-generated
 *.ply                   lfs
 *.skp                   lfs
 *.stl                   lfs
+*.vox                   lfs
 *.ztl                   lfs
 
 # Audio

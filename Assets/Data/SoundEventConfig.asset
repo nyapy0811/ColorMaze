@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6411bdf7a441f1c47b0e2e2f5ba369a9, type: 3}
+  m_Name: SoundEventConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.SoundEventConfig
+  orbExtracted: {fileID: 8300000, guid: 7004bea058d49bc4eae0a360414ae3ef, type: 3}
+  extractRejected: {fileID: 8300000, guid: 5d3fd80ace0eab941995378ba0008c1d, type: 3}
+  orbsMixed: {fileID: 8300000, guid: 4327ff4bb647ef141a1bcf62cc7674db, type: 3}
+  submitAccepted: {fileID: 8300000, guid: 1fdda8c1b880aae42af19ae2b9ab3c5d, type: 3}
+  submitRejected: {fileID: 8300000, guid: 5d3fd80ace0eab941995378ba0008c1d, type: 3}
+  actuatorOn: {fileID: 8300000, guid: 49181efe2b71f7848b0785a9c0c11899, type: 3}
+  actuatorOff: {fileID: 8300000, guid: 896258cf48aaceb49b6dc21b1dc6a5fe, type: 3}
+  gateOpened: {fileID: 0}
+  gateClosed: {fileID: 0}
+  mapCleared: {fileID: 8300000, guid: d6ad8d9ee71c1fa4885bd2fa4be7d2ff, type: 3}

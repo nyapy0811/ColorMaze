@@ -23,6 +23,9 @@ namespace ColorMaze
         public IReadOnlyList<HeldOrb> Selected => selected;
         public bool IsSelected(HeldOrb orb) => selected.Contains(orb);
 
+        /// <summary>합성했을 때 결과 값으로 알린다(합성기가 '합성함'으로 보냄). 결과가 (0,0,0)이어도 알린다.</summary>
+        public event Action<OrbValue> Mixed;
+
         /// <summary>고르기. 이미 고른 오브를 다시 누르면 취소한다.</summary>
         public void Toggle(HeldOrb orb)
         {
@@ -53,8 +56,9 @@ namespace ColorMaze
             var result = Preview;
             foreach (var orb in selected) inventory.Remove(orb);
             selected.Clear();
-            if (result == OrbValue.Zero) return null;
-            inventory.TryAdd(result, out var added);
+            HeldOrb added = null;
+            if (result != OrbValue.Zero) inventory.TryAdd(result, out added);
+            Mixed?.Invoke(result);
             return added;
         }
 

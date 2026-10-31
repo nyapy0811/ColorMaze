@@ -95,6 +95,23 @@ namespace ColorMaze
         }
 
         [Test]
+        public void Mix_ReportsResultValue()
+        {
+            var inventory = Inventory(new OrbValue(1, 0, 0), new OrbValue(0, 2, 0), OrbValue.Zero);
+            var session = new MixSession(inventory);
+            var reported = new System.Collections.Generic.List<OrbValue>();
+            session.Mixed += reported.Add;
+
+            session.Toggle(inventory.Items[0]);
+            session.Toggle(inventory.Items[1]);
+            session.Mix();
+            session.Toggle(inventory.Items[0]);
+            session.Mix();
+
+            CollectionAssert.AreEqual(new[] { new OrbValue(1, 2, 0), OrbValue.Zero }, reported);
+        }
+
+        [Test]
         public void Close_ClearsSelectionWithoutChangingInventory()
         {
             var inventory = Inventory(new OrbValue(1, 0, 0), new OrbValue(0, 1, 0));

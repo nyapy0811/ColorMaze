@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 91523513434163832}
   - component: {fileID: 2859209190413856057}
+  - component: {fileID: 5608387345766397136}
   m_Layer: 0
   m_Name: MapRoot
   m_TagString: Untagged
@@ -49,6 +50,19 @@ MonoBehaviour:
   rules: {fileID: 11400000, guid: 8d5419a019904f845a7a4960b685ac87, type: 2}
   linkColors: {fileID: 11400000, guid: 3500695b469385a4181741fac64e9c56, type: 2}
   player: {fileID: 7640263962046832447}
+--- !u!114 &5608387345766397136
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3359824686104386515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f48efd911f651d4c95c979a78fa53b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.SoundEventPlayer
+  config: {fileID: 11400000, guid: 87815d81412baf04189f5cfdf28497b9, type: 2}
 --- !u!1001 &8660316190462950122
 PrefabInstance:
   m_ObjectHideFlags: 0

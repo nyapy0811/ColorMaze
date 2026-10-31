@@ -28,5 +28,8 @@ namespace ColorMaze
             }
             return Host.TryOpen(session, onClosed);
         }
+
+        /// <summary>열린 팝업을 닫는다(인벤토리 창을 Tab으로 닫을 때).</summary>
+        public static void Close() => Host?.Close();
     }
 }

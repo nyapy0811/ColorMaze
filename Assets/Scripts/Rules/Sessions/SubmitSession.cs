@@ -37,6 +37,9 @@ namespace ColorMaze
         /// <summary>제출 슬롯에 든 오브.</summary>
         public OrbValue? SlotOrb { get; private set; }
 
+        /// <summary>넣기·되돌리기·회수를 할 때마다 받아들임 여부와 거부 이유(받아들이면 기본값)로 알린다(작동기 계열이 '제출 결과'로 보냄).</summary>
+        public event Action<bool, SubmitRejectReason> Attempted;
+
         /// <summary>소지 오브를 누름: 슬롯이 비어 있고 판정이 맞으면 소지 오브에서 빼서 슬롯에 넣는다.</summary>
         public bool TrySubmit(HeldOrb orb, out SubmitRejectReason reason)
         {
@@ -44,17 +47,17 @@ namespace ColorMaze
             if (SlotOrb.HasValue)
             {
                 reason = SubmitRejectReason.SlotFull;
-                return false;
+                return Report(false, reason);
             }
             if (!judge(orb.Value))
             {
                 reason = SubmitRejectReason.WrongValue;
-                return false;
+                return Report(false, reason);
             }
             inventory.Remove(orb);
             SlotOrb = orb.Value;
             placedThisSession = true;
-            return true;
+            return Report(true, reason);
         }
 
         /// <summary>슬롯 오브를 되돌리거나 회수할 수 있는가: 반복 작동기이거나 이번에 넣은 오브.</summary>
@@ -68,19 +71,25 @@ namespace ColorMaze
             if (!canRelease())
             {
                 reason = SubmitRejectReason.GateOccupied;
-                return false;
+                return Report(false, reason);
             }
             if (!inventory.TryAdd(SlotOrb.Value, out _))
             {
                 reason = SubmitRejectReason.InventoryFull;
-                return false;
+                return Report(false, reason);
             }
             SlotOrb = null;
             placedThisSession = false;
-            return true;
+            return Report(true, reason);
         }
 
         /// <summary>팝업을 닫을 때: 슬롯에 든 오브를 결과로 돌려준다.</summary>
         public SubmitOutcome Close() => new(SlotOrb);
+
+        bool Report(bool accepted, SubmitRejectReason reason)
+        {
+            Attempted?.Invoke(accepted, reason);
+            return accepted;
+        }
     }
 }

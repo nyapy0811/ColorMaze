@@ -29,6 +29,7 @@ namespace ColorMaze
 
         OrbValue value;
         Action clicked;
+        bool valuePinned;
 
         /// <summary>그릴 값과 고름 여부, 눌렀을 때 할 일.</summary>
         public void Set(OrbValue orbValue, bool selected, Action onClick)
@@ -38,7 +39,15 @@ namespace ColorMaze
             fill.color = OrbRules.ToColor(orbValue);
             float width = selected ? selectedRingWidth : ringWidth;
             ring.sizeDelta = new Vector2(width * 2f, width * 2f);
+            valuePinned = false;
             valueLabel.Hide();
+        }
+
+        /// <summary>값 상자를 마우스와 상관없이 늘 보인다(인벤토리 창).</summary>
+        public void PinValue()
+        {
+            valuePinned = true;
+            valueLabel.Show(value);
         }
 
         /// <summary>거부: 제자리에서 좌우로 흔들린다(그림 4).</summary>
@@ -61,7 +70,10 @@ namespace ColorMaze
 
         public void OnPointerEnter(PointerEventData eventData) => valueLabel.Show(value);
 
-        public void OnPointerExit(PointerEventData eventData) => valueLabel.Hide();
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (!valuePinned) valueLabel.Hide();
+        }
 
         public void OnPointerClick(PointerEventData eventData)
         {

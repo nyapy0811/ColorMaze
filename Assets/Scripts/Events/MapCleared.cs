@@ -2,7 +2,7 @@ using Framework.Core;
 
 namespace ColorMaze
 {
-    /// <summary>맵을 클리어함. 보내는 곳: 맵 매니저. 받는 곳: 클리어 화면, 소리 연결(8단계), (코어 루프 뒤) 전역 진행.</summary>
+    /// <summary>맵을 클리어함. 보내는 곳: 맵 매니저. 받는 곳: 클리어 화면, 소리 연결, (코어 루프 뒤) 전역 진행.</summary>
     public readonly struct MapCleared : IEvent
     {
         public readonly string MapId;

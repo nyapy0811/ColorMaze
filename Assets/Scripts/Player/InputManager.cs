@@ -57,5 +57,12 @@ namespace ColorMaze
             var kb = Keyboard.current;
             return kb != null && kb.escapeKey.wasPressedThisFrame;
         }
+
+        /// <summary>인벤토리 창(Tab)을 누른 순간.</summary>
+        public bool ReadInventory()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.tabKey.wasPressedThisFrame;
+        }
     }
 }

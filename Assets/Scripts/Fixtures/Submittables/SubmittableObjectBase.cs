@@ -1,3 +1,4 @@
+using Framework.Core;
 using UnityEngine;
 
 namespace ColorMaze
@@ -6,9 +7,10 @@ namespace ColorMaze
     /// 작동기 계열의 기반(6.4): 요구 값, 작동기 상태, 제출 팝업. 상호작용하면 제출 세션을 만들어 팝업으로 열고,
     /// 팝업이 닫히면(호스트가 입력 잠금을 먼저 푼 뒤) 세션 결과로 상태를 바꾼 다음 든 오브 겉모습과 강조를 고친다.
     /// 켜짐이 바뀌면 종류마다의 응답을 부른다. 판정은 <see cref="TrySubmit"/> 한 곳이다(값이 정확히 같은가, 2차 Q147).
-    /// '제출 결과'·'작동기 바뀜'은 받는 곳(소리)을 만드는 8단계에서 더하고, 상태 저장은 체크포인트 단계에서 더한다.
+    /// 세션의 넣기·되돌리기·회수마다 '제출 결과'를 보내고, 조준하면 요구 값을 보인다(다 쓴 뒤에도, 3차 Q478).
+    /// 상태 저장은 체크포인트 단계에서 더한다.
     /// </summary>
-    public abstract class SubmittableObjectBase : FixtureBase, IInteractable
+    public abstract class SubmittableObjectBase : FixtureBase, IInteractable, IValueProvider
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -53,10 +55,17 @@ namespace ColorMaze
         /// <summary>제출 판정: 값이 정확히 같은가.</summary>
         public bool TrySubmit(OrbValue value) => value == requiredOrb;
 
+        public bool TryGetDisplayValue(out OrbValue value)
+        {
+            value = requiredOrb;
+            return true;
+        }
+
         public void Interact(PlayerContext player)
         {
             if (!CanInteract) return;
             var session = new SubmitSession(player.Inventory.Orbs, requiredOrb, TrySubmit, () => CanRelease, Kind, state.StoredOrb);
+            session.Attempted += (accepted, reason) => EventBus.Publish(new SubmitAttempted(accepted, reason));
             Popups.TryOpen(session, () => Apply(session.Close()));
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Framework.Core;
 using UnityEngine;
 
 namespace ColorMaze
@@ -7,9 +8,8 @@ namespace ColorMaze
     /// <summary>
     /// 문 계열의 기반(6.5). 연결된 작동기 목록을 들고, 시작할 때 목록의 작동기마다 '네 대상은 나'라고 알린다.
     /// 작동기에서 알림을 받을 때마다 목록 전체를 다시 보고 모두 켜져 있으면 연다(AND만, 목록이 비면 닫힘, 3차 Q479).
-    /// 열림이 바뀌면 상태 함수 하나가 막는 콜라이더와 겉모습을 바꾼다(루트와 스크립트는 늘 켜 둠, 2차 Q277).
+    /// 열림이 바뀌면 상태 함수 하나가 막는 콜라이더와 겉모습을 바꾸고 '문 계열 바뀜'을 보낸다(루트와 스크립트는 늘 켜 둠, 2차 Q277).
     /// 열려 있을 때 막는 자리에 플레이어가 있으면 작동기를 끄지 못하게 해(회수 거부) 플레이어 위로 닫히는 일이 없다(6단계 확인 채팅).
-    /// '문 계열 바뀜'은 8단계에서 더한다.
     /// </summary>
     public abstract class GateBase : FixtureBase, IActuatorTarget
     {
@@ -59,6 +59,7 @@ namespace ColorMaze
             IsOpen = open;
             foreach (var blocker in blockers) blocker.enabled = !open;
             ShowOpen(open);
+            EventBus.Publish(new GateStateChanged(open));
         }
 
         bool PlayerInBlockedArea()

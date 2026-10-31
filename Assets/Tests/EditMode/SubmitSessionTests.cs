@@ -108,6 +108,29 @@ namespace ColorMaze
         }
 
         [Test]
+        public void SubmitAndRetrieve_ReportEveryAttempt()
+        {
+            var inventory = Inventory(1, new OrbValue(0, 1, 0));
+            var session = Session(inventory, SubmitKind.Reusable);
+            var reported = new System.Collections.Generic.List<(bool, SubmitRejectReason)>();
+            session.Attempted += (accepted, reason) => reported.Add((accepted, reason));
+
+            session.TrySubmit(inventory.Items[0], out _);
+            inventory.Remove(inventory.Items[0]);
+            inventory.TryAdd(Goal, out var goal);
+            session.TrySubmit(goal, out _);
+            inventory.TryAdd(Goal, out _);
+            session.TryRetrieve(out _);
+
+            CollectionAssert.AreEqual(new[]
+            {
+                (false, SubmitRejectReason.WrongValue),
+                (true, default(SubmitRejectReason)),
+                (false, SubmitRejectReason.InventoryFull),
+            }, reported);
+        }
+
+        [Test]
         public void Close_ReturnsSlotOrb()
         {
             var inventory = Inventory(5, Goal);

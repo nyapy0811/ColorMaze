@@ -6,9 +6,9 @@ namespace ColorMaze
     /// <summary>
     /// 추출 오브젝트. 사물마다 다른 프리팹(이름은 사물 이름, 예: 소화기)에 붙인다. 렌더러를 값의 색(정규화 RGB × 오브젝트 밝기)으로
     /// 칠하고(에디터에서도 보임), 조준해 상호작용하면 소지 오브에 값을 더한다. 성공하면 추출됨(흑백, 강조 끔, '추출함'),
-    /// 소지 오브가 가득 차 있으면 '추출 불가'를 보낸다. 추출 상태의 저장은 체크포인트 단계에서 더한다.
+    /// 소지 오브가 가득 차 있으면 '추출 불가'를 보낸다. 조준하면 추출 전에만 값을 보인다. 추출 상태의 저장은 체크포인트 단계에서 더한다.
     /// </summary>
-    public class ColorSource : FixtureBase, IInteractable
+    public class ColorSource : FixtureBase, IInteractable, IValueProvider
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -26,6 +26,12 @@ namespace ColorMaze
 
         public OrbValue Value => value;
         public bool CanInteract => !extracted;
+
+        public bool TryGetDisplayValue(out OrbValue shown)
+        {
+            shown = value;
+            return !extracted;
+        }
 
         void Awake() => Paint();
 

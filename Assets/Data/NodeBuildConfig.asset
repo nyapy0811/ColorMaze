@@ -16,7 +16,7 @@ MonoBehaviour:
   pillarSize: 0.3
   wallHeight: 3
   doorWidth: 1
-  doorHeight: 2.2
+  doorHeight: 2
   plateThickness: 0.1
   wallModulePrefab: {fileID: 7783139911928230626, guid: e16adef7243dd844d82780e5ed9d94fc, type: 3}
   pillarPrefab: {fileID: 7534852657423961518, guid: c2446160f8dcf544db840ff3b0f06ef8, type: 3}

@@ -12,8 +12,8 @@ namespace ColorMaze
         [Tooltip("소지 오브 슬롯 수")]
         public int slotCount = 5;
 
-        [Tooltip("조준해 상호작용할 수 있는 거리(유닛)")]
-        public float interactDistance = 1.3f;
+        [Tooltip("조준해 상호작용할 수 있는 거리(유닛). 코어 루프 9단계에서 걸어 보며 정했다(v1은 1.3).")]
+        public float interactDistance = 3f;
 
         [Tooltip("오브 발광 세기 계수(가장 큰 채널 × 계수). 블룸이 꺼져 있어 1을 넘는 발광은 더 밝아 보이지 않으므로 " +
                  "값 1~5가 0.2~1이 되게 둔다(임시, 블룸은 미정).")]

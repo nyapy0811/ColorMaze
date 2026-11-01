@@ -9,17 +9,11 @@ namespace ColorMaze
     [CreateAssetMenu(menuName = "ColorMaze/소리 연결", fileName = "SoundEventConfig")]
     public class SoundEventConfig : ScriptableObject
     {
-        public AudioClip orbExtracted;
-        public AudioClip extractRejected;
-        public AudioClip orbsMixed;
-        [Tooltip("제출 화면의 넣기·되돌리기·회수를 받아들임")]
-        public AudioClip submitAccepted;
-        [Tooltip("제출 화면의 넣기·되돌리기·회수를 거부")]
-        public AudioClip submitRejected;
-        public AudioClip actuatorOn;
-        public AudioClip actuatorOff;
-        public AudioClip gateOpened;
-        public AudioClip gateClosed;
+        public AudioClip colorAbsorbed;
+        [Tooltip("문·목적지가 지금 색을 받아들이지 않음")]
+        public AudioClip colorRejected;
+        public AudioClip doorOpened;
+        public AudioClip laserPassed;
         public AudioClip mapCleared;
     }
 }

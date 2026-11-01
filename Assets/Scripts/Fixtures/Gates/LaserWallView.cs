@@ -3,49 +3,50 @@ using UnityEngine;
 namespace ColorMaze
 {
     /// <summary>
-    /// 레이저 벽의 겉모습(그림 1): 꺼질 때 레이저 면이 아래에서부터 위로 올라가며 천장의 발사 장치 쪽으로 사라지고,
-    /// 켜질 때 다시 내려온다. 노드 시스템이 맞춰 둔 레이저 면의 위치·크기(켜짐)를 기준으로 한다.
-    /// 레이저 색은 미정이라 지금은 재질 색을 그대로 쓴다.
+    /// 레이저 벽의 겉모습(임시): 지나갈 수 있으면 레이저 면이 흐려지고, 막으면 다시 짙어진다(v1 필터의 채움 투명도처럼).
+    /// 레이저 면의 재질은 투명 재질이고, 짙을 때는 재질 색을 그대로 쓴다. 레이저 색과 미리 보이는 모양은 미정이다.
     /// </summary>
     public class LaserWallView : MonoBehaviour
     {
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
         [SerializeField] Transform beam;
 
-        [Tooltip("다 꺼지거나 켜지는 데 걸리는 시간(초)")]
+        [Tooltip("지나갈 수 있을 때 레이저 면의 불투명도")]
+        [SerializeField, Range(0f, 1f)] float passableAlpha = 0.12f;
+
+        [Tooltip("다 흐려지거나 짙어지는 데 걸리는 시간(초)")]
         [SerializeField] float duration = 0.4f;
 
         Renderer beamRenderer;
-        float height;
-        float top;
-        float openness;
+        MaterialPropertyBlock block;
+        Color baseColor;
+        float passable;
         float target;
 
         void Awake()
         {
             beamRenderer = beam.GetComponent<Renderer>();
-            height = beam.localScale.y;
-            top = beam.localPosition.y + height / 2f;
+            baseColor = beamRenderer.sharedMaterial.GetColor(BaseColorId);
+            block = new MaterialPropertyBlock();
             enabled = false;
         }
 
-        public void SetOpen(bool open)
+        public void SetPassable(bool value)
         {
-            target = open ? 1f : 0f;
+            target = value ? 1f : 0f;
             enabled = true;
         }
 
         void Update()
         {
-            openness = Mathf.MoveTowards(openness, target, Time.deltaTime / duration);
-            float visible = height * (1f - openness);
-            var scale = beam.localScale;
-            scale.y = Mathf.Max(visible, 0.001f);
-            beam.localScale = scale;
-            var position = beam.localPosition;
-            position.y = top - scale.y / 2f;
-            beam.localPosition = position;
-            beamRenderer.enabled = openness < 1f;
-            if (openness == target) enabled = false;
+            passable = Mathf.MoveTowards(passable, target, Time.deltaTime / duration);
+            var color = baseColor;
+            color.a = Mathf.Lerp(baseColor.a, passableAlpha, passable);
+            beamRenderer.GetPropertyBlock(block);
+            block.SetColor(BaseColorId, color);
+            beamRenderer.SetPropertyBlock(block);
+            if (passable == target) enabled = false;
         }
     }
 }

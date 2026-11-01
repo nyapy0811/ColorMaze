@@ -6,9 +6,9 @@ namespace ColorMaze
     public readonly struct AimTargetChanged : IEvent
     {
         public readonly bool HasValue;
-        public readonly OrbValue Value;
+        public readonly ColorValue Value;
 
-        public AimTargetChanged(bool hasValue, OrbValue value)
+        public AimTargetChanged(bool hasValue, ColorValue value)
         {
             HasValue = hasValue;
             Value = value;

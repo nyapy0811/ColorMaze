@@ -6,7 +6,7 @@ namespace ColorMaze
 {
     /// <summary>
     /// 노드 편집 창(메뉴 ColorMaze/노드 편집). 지금 맵의 노드 그래프를 찾아 노드·벽 목록, 고른 노드·벽의 값
-    /// (벽 종류, 끼운 문과 위치), 층 높이, '다시 만들기' 버튼을 보인다. 선택은 씬 뷰 도구와 같이 쓴다.
+    /// (벽 종류, 끼운 문과 위치), '다시 만들기' 버튼을 보인다. 선택은 씬 뷰 도구와 같이 쓴다.
     /// </summary>
     public class NodeGraphWindow : EditorWindow
     {
@@ -56,8 +56,6 @@ namespace ColorMaze
                 }
                 if (GUILayout.Button("다시 만들기")) NodeGraphEditing.Rebuild(graph);
             }
-            NodeGraphEditing.Level = EditorGUILayout.IntField(
-                new GUIContent("층 높이 (y)", $"새 노드를 찍는 높이. 층마다 벽의 키({config.wallHeight})만큼 올라간다."), NodeGraphEditing.Level);
             EditorGUILayout.HelpBox(
                 "빈 곳 클릭: 노드 찍기 / 노드·벽 클릭: 고르기 / Shift+클릭: 고른 노드에서 벽 잇기 / 끌기: 노드 옮기기 / Delete: 지우기",
                 MessageType.None);
@@ -88,8 +86,9 @@ namespace ColorMaze
         static void DrawNode(NodeGraph graph, NodeData node)
         {
             EditorGUILayout.LabelField($"고른 노드 #{node.id}", EditorStyles.boldLabel);
-            var position = EditorGUILayout.Vector3IntField("위치", node.position);
-            if (position != node.position) NodeGraphEditing.SelectNode(NodeGraphEditing.MoveNode(graph, node.id, position));
+            var position = new Vector2Int(node.position.x, node.position.z);
+            var edited = EditorGUILayout.Vector2IntField("위치 (x, z)", position);
+            if (edited != position) NodeGraphEditing.SelectNode(NodeGraphEditing.MoveNode(graph, node.id, new Vector3Int(edited.x, 0, edited.y)));
             if (GUILayout.Button("노드 지우기 (붙은 벽도)"))
             {
                 NodeGraphEditing.RemoveNode(graph, node.id);

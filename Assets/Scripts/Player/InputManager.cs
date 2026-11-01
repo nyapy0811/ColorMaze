@@ -8,7 +8,7 @@ namespace ColorMaze
     /// <summary>
     /// 키보드·마우스 입력을 읽는 곳. 게임플레이 입력 잠금도 여기 있다: 잠근 쪽(팝업 등)이 하나라도 있으면 잠김이고,
     /// 이동·시점과 조준이 이것을 본다. 일시정지는 잠금이 아니라 <c>Time.timeScale = 0</c>으로 멈춘다.
-    /// 읽는 키는 쓰는 단계에서 더한다(ESC는 뒤로 가기 스택, 좌클릭은 상호작용, Tab은 인벤토리 창).
+    /// 읽는 키는 쓰는 단계에서 더한다(ESC는 뒤로 가기 스택, 좌클릭은 상호작용).
     /// </summary>
     public class InputManager : MonoSingleton<InputManager>
     {
@@ -56,13 +56,6 @@ namespace ColorMaze
         {
             var kb = Keyboard.current;
             return kb != null && kb.escapeKey.wasPressedThisFrame;
-        }
-
-        /// <summary>인벤토리 창(Tab)을 누른 순간.</summary>
-        public bool ReadInventory()
-        {
-            var kb = Keyboard.current;
-            return kb != null && kb.tabKey.wasPressedThisFrame;
         }
     }
 }

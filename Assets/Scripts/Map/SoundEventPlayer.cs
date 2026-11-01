@@ -13,32 +13,26 @@ namespace ColorMaze
 
         void OnEnable()
         {
-            EventBus.Subscribe<OrbExtracted>(OnOrbExtracted);
-            EventBus.Subscribe<ExtractRejected>(OnExtractRejected);
-            EventBus.Subscribe<OrbsMixed>(OnOrbsMixed);
-            EventBus.Subscribe<SubmitAttempted>(OnSubmitAttempted);
-            EventBus.Subscribe<ActuatorStateChanged>(OnActuatorStateChanged);
-            EventBus.Subscribe<GateStateChanged>(OnGateStateChanged);
+            EventBus.Subscribe<ColorAbsorbed>(OnColorAbsorbed);
+            EventBus.Subscribe<ColorRejected>(OnColorRejected);
+            EventBus.Subscribe<DoorOpened>(OnDoorOpened);
+            EventBus.Subscribe<LaserPassed>(OnLaserPassed);
             EventBus.Subscribe<MapCleared>(OnMapCleared);
         }
 
         void OnDisable()
         {
-            EventBus.Unsubscribe<OrbExtracted>(OnOrbExtracted);
-            EventBus.Unsubscribe<ExtractRejected>(OnExtractRejected);
-            EventBus.Unsubscribe<OrbsMixed>(OnOrbsMixed);
-            EventBus.Unsubscribe<SubmitAttempted>(OnSubmitAttempted);
-            EventBus.Unsubscribe<ActuatorStateChanged>(OnActuatorStateChanged);
-            EventBus.Unsubscribe<GateStateChanged>(OnGateStateChanged);
+            EventBus.Unsubscribe<ColorAbsorbed>(OnColorAbsorbed);
+            EventBus.Unsubscribe<ColorRejected>(OnColorRejected);
+            EventBus.Unsubscribe<DoorOpened>(OnDoorOpened);
+            EventBus.Unsubscribe<LaserPassed>(OnLaserPassed);
             EventBus.Unsubscribe<MapCleared>(OnMapCleared);
         }
 
-        void OnOrbExtracted(OrbExtracted e) => Play(config.orbExtracted);
-        void OnExtractRejected(ExtractRejected e) => Play(config.extractRejected);
-        void OnOrbsMixed(OrbsMixed e) => Play(config.orbsMixed);
-        void OnSubmitAttempted(SubmitAttempted e) => Play(e.Accepted ? config.submitAccepted : config.submitRejected);
-        void OnActuatorStateChanged(ActuatorStateChanged e) => Play(e.IsOn ? config.actuatorOn : config.actuatorOff);
-        void OnGateStateChanged(GateStateChanged e) => Play(e.IsOpen ? config.gateOpened : config.gateClosed);
+        void OnColorAbsorbed(ColorAbsorbed e) => Play(config.colorAbsorbed);
+        void OnColorRejected(ColorRejected e) => Play(config.colorRejected);
+        void OnDoorOpened(DoorOpened e) => Play(config.doorOpened);
+        void OnLaserPassed(LaserPassed e) => Play(config.laserPassed);
         void OnMapCleared(MapCleared e) => Play(config.mapCleared);
 
         static void Play(AudioClip clip)

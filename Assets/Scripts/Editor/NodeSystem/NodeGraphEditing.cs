@@ -13,9 +13,6 @@ namespace ColorMaze
         public static int SelectedNodeId { get; private set; }
         public static int SelectedWallId { get; private set; }
 
-        /// <summary>새 노드를 찍는 층 높이(y). 층마다 벽의 키만큼 올라간다.</summary>
-        public static int Level { get; set; }
-
         public static event Action SelectionChanged;
 
         public static void SelectNode(int id) => Select(id, 0);

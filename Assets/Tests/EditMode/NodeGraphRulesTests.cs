@@ -133,16 +133,14 @@ namespace ColorMaze
         }
 
         [Test]
-        public void Connect_RejectsSameNodeDifferentHeightAndExistingWall()
+        public void Connect_RejectsSameNodeAndExistingWall()
         {
             var data = new NodeGraphData();
             var a = Node(data, 0, 0);
             var b = Node(data, 3, 0);
-            var upper = NodeGraphRules.AddNode(data, new Vector3Int(3, 3, 0));
             NodeGraphRules.Connect(data, a.id, b.id);
 
             Assert.IsNull(NodeGraphRules.Connect(data, a.id, a.id));
-            Assert.IsNull(NodeGraphRules.Connect(data, a.id, upper.id));
             Assert.IsNull(NodeGraphRules.Connect(data, b.id, a.id));
             Assert.AreEqual(1, data.walls.Count);
         }
@@ -238,24 +236,6 @@ namespace ColorMaze
             Assert.AreEqual(new Vector3Int(1, 0, 0), cells[1]);
             Assert.AreEqual(new Vector3Int(0, 3, 0), cells[2]);
             Assert.AreEqual(new Vector3Int(1, 3, 0), cells[3]);
-        }
-
-        [Test]
-        public void PlateCells_LowerCeilingAndUpperFloorAreOnePlate()
-        {
-            var data = new NodeGraphData();
-            Node(data, 0, 0);
-            Node(data, 1, 1);
-            NodeGraphRules.AddNode(data, new Vector3Int(0, 3, 0));
-            NodeGraphRules.AddNode(data, new Vector3Int(2, 3, 1));
-
-            var cells = NodeGraphRules.PlateCells(data, 3);
-
-            // 높이 0: 1칸, 높이 3: 아래층 천장 1칸과 위층 바닥 2칸이 합쳐져 2칸, 높이 6: 2칸
-            Assert.AreEqual(5, cells.Count);
-            Assert.AreEqual(1, cells.FindAll(c => c.y == 0).Count);
-            Assert.AreEqual(2, cells.FindAll(c => c.y == 3).Count);
-            Assert.AreEqual(2, cells.FindAll(c => c.y == 6).Count);
         }
     }
 }

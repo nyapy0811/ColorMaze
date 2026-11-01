@@ -6,7 +6,7 @@ namespace ColorMaze
 {
     /// <summary>
     /// 씬 뷰의 노드 편집 도구. 노드 그래프를 고르면 씬 뷰 툴바에 나타난다(노드 편집 창의 '씬 뷰 도구 켜기'로도 켬).
-    /// 빈 곳 클릭: 노드 찍기(정수 스냅, 창에서 고른 층 높이) / 노드·벽 클릭: 고르기 /
+    /// 빈 곳 클릭: 노드 찍기(정수 스냅) / 노드·벽 클릭: 고르기 /
     /// Shift+클릭: 고른 노드에서 벽 잇기(빈 곳이면 노드를 찍고 이어 연달아 그림) / 끌기: 노드 옮기기(놓을 때 다시 만듦) /
     /// Delete: 고른 노드(붙은 벽 포함)나 벽 지우기. 노드와 벽은 벽에 가려지지 않게 바닥 높이에 겹쳐 그린다.
     /// </summary>
@@ -47,7 +47,7 @@ namespace ColorMaze
                     OnMouseDown(graph, e, control);
                     break;
                 case EventType.MouseDrag when GUIUtility.hotControl == control && draggingNodeId != 0:
-                    var point = GroundPoint(graph, e.mousePosition, NodeGraphRules.FindNode(graph.Data, draggingNodeId)?.position.y);
+                    var point = GroundPoint(graph, e.mousePosition);
                     if (point.HasValue && point.Value != dragTarget)
                     {
                         dragTarget = point.Value;
@@ -122,16 +122,15 @@ namespace ColorMaze
             NodeGraphEditing.ClearSelection();
         }
 
-        // 마우스 아래 바닥(층 높이 y의 평면)의 정수 좌표. 노드 그래프 기준이다.
-        static Vector3Int? GroundPoint(NodeGraph graph, Vector2 mouse, int? level = null)
+        // 마우스 아래 바닥(높이 0의 평면)의 정수 좌표. 노드 그래프 기준이다.
+        static Vector3Int? GroundPoint(NodeGraph graph, Vector2 mouse)
         {
-            int y = level ?? NodeGraphEditing.Level;
             var root = graph.transform;
-            var plane = new Plane(root.up, root.TransformPoint(new Vector3(0f, y, 0f)));
+            var plane = new Plane(root.up, root.position);
             var ray = HandleUtility.GUIPointToWorldRay(mouse);
             if (!plane.Raycast(ray, out float distance)) return null;
             var local = root.InverseTransformPoint(ray.GetPoint(distance));
-            return new Vector3Int(Mathf.RoundToInt(local.x), y, Mathf.RoundToInt(local.z));
+            return new Vector3Int(Mathf.RoundToInt(local.x), 0, Mathf.RoundToInt(local.z));
         }
 
         static int PickNode(NodeGraph graph, Vector2 mouse)

@@ -58,59 +58,44 @@ namespace ColorMaze
                 problems++;
             }
 
-            foreach (var source in FixtureIdAssigner.FixturesIn(scene).OfType<ColorSource>().Where(s => !OrbRules.IsValidSourceValue(s.Value)))
+            foreach (var source in FixtureIdAssigner.FixturesIn(scene).OfType<ColorSource>().Where(s => !ColorRules.IsValidSourceValue(s.Value)))
             {
-                Debug.LogError($"[맵 검사] 추출 오브젝트 '{source.name}'의 값 {source.Value}은 쓸 수 없다((0,0,0)이나 세 채널이 같은 값).", source);
+                Debug.LogError($"[맵 검사] 색 원천 '{source.name}'의 값 {source.Value}은 쓸 수 없다((0,0,0)이나 세 채널이 같은 값).", source);
                 problems++;
             }
 
-            foreach (var submittable in FixtureIdAssigner.FixturesIn(scene).OfType<SubmittableObjectBase>().Where(s => !OrbRules.IsValidGoal(s.RequiredOrb)))
-            {
-                Debug.LogError($"[맵 검사] '{submittable.name}'의 요구 값 {submittable.RequiredOrb}은 쓸 수 없다(모든 채널 1 이상, 세 채널이 모두 같지 않아야 함).", submittable);
-                problems++;
-            }
+            var rules = managers.Count == 1 ? managers[0].Rules : null;
+            if (rules == null) Debug.LogWarning("[맵 검사] 게임 규칙을 찾지 못해 요구 색을 검사하지 않았다(맵 매니저의 게임 규칙 칸).");
+            else problems += CheckRequiredColors(scene, rules.channelLimit);
 
-            problems += CheckActuatorLinks(scene);
             problems += CheckNodeGraph(scene);
 
             return problems;
         }
 
-        /// <summary>작동기 연결: 빈 칸, 두 문 계열에 든 작동기는 오류, 어느 목록에도 없는 작동기와 빈 목록은 경고.</summary>
-        static int CheckActuatorLinks(Scene scene)
+        /// <summary>요구 색: 문·목적지는 요구 색 규칙, 레이저 벽의 빼는 색은 색 원천 값 규칙에 더해 한도 안이어야 지날 수 있다.</summary>
+        static int CheckRequiredColors(Scene scene, ColorValue limit)
         {
             int problems = 0;
-            var fixtures = FixtureIdAssigner.FixturesIn(scene).ToList();
-            var gates = fixtures.OfType<GateBase>().ToList();
-            foreach (var gate in gates)
+            foreach (var fixture in FixtureIdAssigner.FixturesIn(scene).OfType<RequiredColorBase>())
             {
-                if (gate.Actuators.Count == 0)
+                var color = fixture.RequiredColor;
+                if (fixture is LaserWall)
                 {
-                    Debug.LogWarning($"[맵 검사] 문 계열 '{gate.name}'에 연결된 작동기가 없다(늘 닫혀 있음).", gate);
-                    problems++;
+                    if (ColorRules.IsValidSourceValue(color) && ColorRules.IsWithin(color, limit)) continue;
+                    Debug.LogError($"[맵 검사] 레이저 벽 '{fixture.name}'의 빼는 색 {color}은 쓸 수 없다((0,0,0)이나 세 채널이 같은 값, 또는 한도 {limit}를 넘음).", fixture);
                 }
-                if (gate.Actuators.Any(actuator => actuator == null))
+                else
                 {
-                    Debug.LogError($"[맵 검사] 문 계열 '{gate.name}'의 작동기 목록에 빈 칸이 있다.", gate);
-                    problems++;
+                    if (ColorRules.IsValidRequired(color, limit)) continue;
+                    Debug.LogError($"[맵 검사] '{fixture.name}'의 요구 색 {color}은 쓸 수 없다(모든 채널 1 이상, 세 채널이 모두 같지 않고, 한도 {limit} 안이어야 함).", fixture);
                 }
-            }
-
-            var links = gates.SelectMany(gate => gate.Actuators.Where(actuator => actuator != null).Distinct().Select(actuator => (actuator, gate))).ToList();
-            foreach (var group in links.GroupBy(link => link.actuator).Where(g => g.Count() > 1))
-            {
-                Debug.LogError($"[맵 검사] 작동기 '{group.Key.name}'가 문 계열 여러 개에 연결돼 있다: {string.Join(", ", group.Select(link => $"'{link.gate.name}'"))}. 작동기 하나는 기물 하나에만 잇는다.", group.Key);
-                problems++;
-            }
-            foreach (var actuator in fixtures.OfType<ActuatorBase>().Where(a => links.All(link => link.actuator != a)))
-            {
-                Debug.LogWarning($"[맵 검사] 작동기 '{actuator.name}'가 어느 문 계열에도 연결돼 있지 않다.", actuator);
                 problems++;
             }
             return problems;
         }
 
-        /// <summary>노드 그래프 1개, 같은 자리 노드, 없는 노드를 가리키는 벽, 높이가 다른 벽, 끼울 수 없는 문 위치.</summary>
+        /// <summary>노드 그래프 1개, 같은 자리 노드, 높이(y)가 0이 아닌 노드, 없는 노드를 가리키는 벽, 끼울 수 없는 문 위치.</summary>
         static int CheckNodeGraph(Scene scene)
         {
             var graphs = Roots(scene).SelectMany(root => root.GetComponentsInChildren<NodeGraph>(true)).ToList();
@@ -128,6 +113,11 @@ namespace ColorMaze
                 Debug.LogError($"[맵 검사] 같은 자리 {group.Key}에 노드가 {group.Count()}개다. 노드 편집 창의 '다시 만들기'가 합친다.", graph);
                 problems++;
             }
+            foreach (var node in data.nodes.Where(node => node.position.y != 0))
+            {
+                Debug.LogError($"[맵 검사] 노드 #{node.id}의 높이가 {node.position.y}다(맵은 한 층이라 y는 0이어야 함). 노드 편집 도구로 옮기면 y가 0이 된다.", graph);
+                problems++;
+            }
 
             var config = NodeGraphEditing.FindConfig();
             foreach (var wall in data.walls)
@@ -137,11 +127,6 @@ namespace ColorMaze
                 if (start == null || end == null)
                 {
                     Debug.LogError($"[맵 검사] 벽 #{wall.id}이 없는 노드를 가리킨다.", graph);
-                    problems++;
-                }
-                else if (start.position.y != end.position.y)
-                {
-                    Debug.LogError($"[맵 검사] 벽 #{wall.id}의 두 노드 높이가 다르다(벽은 y가 같은 노드끼리만 잇는다).", graph);
                     problems++;
                 }
                 else if (wall.kind == WallKind.Normal && wall.hasDoor && config != null

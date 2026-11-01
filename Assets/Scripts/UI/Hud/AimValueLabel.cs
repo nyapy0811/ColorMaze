@@ -10,7 +10,7 @@ namespace ColorMaze
     public class AimValueLabel : MonoBehaviour
     {
         [Tooltip("값 상자. 숨길 때 이 오브젝트를 끈다(이 컴포넌트는 늘 켜진 부모에 둔다).")]
-        [SerializeField] OrbValueLabel label;
+        [SerializeField] ColorValueLabel label;
 
         void Awake() => label.Hide();
 

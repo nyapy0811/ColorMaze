@@ -20,10 +20,8 @@ namespace ColorMaze
         /// <summary>카메라의 위아래 회전(도).</summary>
         public float playerPitch;
 
-        /// <summary>소지 오브 값 목록(들어온 순서 그대로).</summary>
-        public List<OrbValue> heldOrbs = new();
-        /// <summary>지금 채널 한도(흡수로 늘어난 값).</summary>
-        public OrbValue channelLimit;
+        /// <summary>지금 색.</summary>
+        public ColorValue currentColor;
 
         public List<FixtureStateEntry> fixtures = new();
         public float playTime;

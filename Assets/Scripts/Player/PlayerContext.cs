@@ -8,13 +8,16 @@ namespace ColorMaze
     /// </summary>
     public sealed class PlayerContext
     {
-        public PlayerContext(PlayerInventory inventory, FirstPersonController movement)
+        readonly PlayerColor color;
+
+        public PlayerContext(PlayerColor color, FirstPersonController movement)
         {
-            Inventory = inventory;
+            this.color = color;
             Movement = movement;
         }
 
-        public PlayerInventory Inventory { get; }
+        /// <summary>지금 색. 플레이어의 지금 색이 깨어날 때 만들어지므로 쓸 때 읽는다.</summary>
+        public CurrentColor Color => color.Current;
         public FirstPersonController Movement { get; }
 
         /// <summary>발밑 위치.</summary>

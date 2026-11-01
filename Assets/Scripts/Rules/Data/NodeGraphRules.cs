@@ -42,14 +42,13 @@ namespace ColorMaze
         }
 
         /// <summary>
-        /// 두 노드를 일반 벽으로 잇는다. 같은 노드, 높이(y)가 다른 노드(경사 벽 없음), 이미 벽으로 이어진 두 노드는
-        /// 잇지 않고 null을 돌려준다.
+        /// 두 노드를 일반 벽으로 잇는다. 같은 노드, 이미 벽으로 이어진 두 노드는 잇지 않고 null을 돌려준다.
         /// </summary>
         public static WallData Connect(NodeGraphData data, int startNodeId, int endNodeId)
         {
             var start = FindNode(data, startNodeId);
             var end = FindNode(data, endNodeId);
-            if (start == null || end == null || start == end || start.position.y != end.position.y) return null;
+            if (start == null || end == null || start == end) return null;
             if (data.walls.Exists(wall => Pair(wall) == Pair(startNodeId, endNodeId))) return null;
             var added = new WallData { id = IssueId(data), startNodeId = startNodeId, endNodeId = endNodeId };
             data.walls.Add(added);
@@ -152,35 +151,27 @@ namespace ColorMaze
         }
 
         /// <summary>
-        /// 바닥·천장 판을 깔 1×1 칸. 층(노드의 y)마다 그 층 노드를 감싸는 사각형 안의 칸에 바닥 판(높이 y)과
-        /// 천장 판(높이 y + 벽의 키)을 둔다. 칸은 (x, 판 높이, z)이고 x, z는 칸의 작은 쪽 모서리다.
-        /// 겹치는 칸은 하나로 세므로 아래층 천장과 위층 바닥이 한 판이 되고, 넓이가 다른 층은 합쳐진다.
-        /// 층간 이동 칸을 빼는 것은 계단 계열을 만들 때 더한다. 높이, z, x 순서로 돌려준다.
+        /// 바닥·천장 판을 깔 1×1 칸. 맵은 한 층이라 모든 노드를 감싸는 사각형 안의 칸에 바닥 판(높이 0)과
+        /// 천장 판(높이 = 벽의 키)을 둔다. 칸은 (x, 판 높이, z)이고 x, z는 칸의 작은 쪽 모서리다. 높이, z, x 순서로 돌려준다.
         /// </summary>
         public static List<Vector3Int> PlateCells(NodeGraphData data, int wallHeight)
         {
-            var bounds = new Dictionary<int, (int xMin, int xMax, int zMin, int zMax)>();
+            int xMin = int.MaxValue, xMax = int.MinValue, zMin = int.MaxValue, zMax = int.MinValue;
             foreach (var node in data.nodes)
             {
                 var p = node.position;
-                bounds[p.y] = bounds.TryGetValue(p.y, out var b)
-                    ? (Math.Min(b.xMin, p.x), Math.Max(b.xMax, p.x), Math.Min(b.zMin, p.z), Math.Max(b.zMax, p.z))
-                    : (p.x, p.x, p.z, p.z);
+                xMin = Math.Min(xMin, p.x);
+                xMax = Math.Max(xMax, p.x);
+                zMin = Math.Min(zMin, p.z);
+                zMax = Math.Max(zMax, p.z);
             }
 
-            var cells = new HashSet<Vector3Int>();
-            foreach (var (floorY, b) in bounds)
-            {
-                for (int x = b.xMin; x < b.xMax; x++)
-                for (int z = b.zMin; z < b.zMax; z++)
-                {
-                    cells.Add(new Vector3Int(x, floorY, z));
-                    cells.Add(new Vector3Int(x, floorY + wallHeight, z));
-                }
-            }
-            var sorted = new List<Vector3Int>(cells);
-            sorted.Sort((a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.z != b.z ? a.z.CompareTo(b.z) : a.x.CompareTo(b.x));
-            return sorted;
+            var cells = new List<Vector3Int>();
+            foreach (int y in new[] { 0, wallHeight })
+                for (int z = zMin; z < zMax; z++)
+                for (int x = xMin; x < xMax; x++)
+                    cells.Add(new Vector3Int(x, y, z));
+            return cells;
         }
     }
 }

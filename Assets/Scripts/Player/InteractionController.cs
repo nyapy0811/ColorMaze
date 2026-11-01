@@ -9,7 +9,7 @@ namespace ColorMaze
     /// 보일 값(값 제공)이 바뀔 때만 '조준 대상 바뀜'을 보낸다. 입력이 잠겨 있거나 일시정지 중이면 대상이 없으므로
     /// 팝업·일시정지·클리어 화면에서는 값 표시가 숨는다. 뷰모델에는 콜라이더가 없어 레이캐스트에 걸리지 않는다.
     /// </summary>
-    [RequireComponent(typeof(PlayerInventory), typeof(FirstPersonController))]
+    [RequireComponent(typeof(PlayerColor), typeof(FirstPersonController))]
     public class InteractionController : MonoBehaviour
     {
         [Tooltip("레이캐스트를 쏘는 카메라(눈높이)")]
@@ -17,12 +17,12 @@ namespace ColorMaze
 
         PlayerContext context;
         bool shownHasValue;
-        OrbValue shownValue;
+        ColorValue shownValue;
 
         /// <summary>지금 조준한 기물. 없으면 null.</summary>
         public FixtureBase Target { get; private set; }
 
-        void Awake() => context = new PlayerContext(GetComponent<PlayerInventory>(), GetComponent<FirstPersonController>());
+        void Awake() => context = new PlayerContext(GetComponent<PlayerColor>(), GetComponent<FirstPersonController>());
 
         void Update()
         {
@@ -41,10 +41,10 @@ namespace ColorMaze
             return hit.collider.GetComponentInParent<FixtureBase>();
         }
 
-        // 추출 직후처럼 같은 대상의 값이 없어져도 여기서 잡힌다.
+        // 흡수 직후처럼 같은 대상의 값이 없어져도 여기서 잡힌다.
         void ReportValue()
         {
-            var value = OrbValue.Zero;
+            var value = ColorValue.Zero;
             bool hasValue = Target is IValueProvider provider && provider.TryGetDisplayValue(out value);
             if (hasValue == shownHasValue && (!hasValue || value == shownValue)) return;
             shownHasValue = hasValue;

@@ -51,6 +51,13 @@ svg .ts{font-size:12px}
 .wire{fill:none;stroke:var(--line2);stroke-width:1}
 .dash{fill:none;stroke:var(--line2);stroke-width:1;stroke-dasharray:4 3}
 .click{cursor:pointer}.click:hover rect{opacity:.75}
+svg .tc{font-size:11px}.pc .tc{fill:var(--t)}
+.chips{flex-basis:100%;display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 2px}
+.chip{font-size:12px;line-height:18px;padding:0 8px;border-radius:10px;border:1px dashed var(--line2);color:var(--muted)}
+.chip.on{border-style:solid;border-color:var(--s);background:var(--f);color:var(--t)}
+.tag{font-size:12px;line-height:18px;padding:0 8px;border-radius:10px;border:1px solid var(--s);background:var(--f);color:var(--t);flex:none}
+#byTrait{margin-top:10px;font-size:13px}#byTrait .row{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-top:1px solid var(--line)}
+.lnk{cursor:pointer;text-decoration:underline dotted}
 </style>
 </head>
 <body>
@@ -65,11 +72,12 @@ svg .ts{font-size:12px}
 <input id="fileInput" type="file" accept=".json,application/json" hidden>
 </header>
 <main>
-<section id="left"><svg id="dg" viewBox="0 0 680 120" role="img" aria-label="기물 계열과 종류 관계도"></svg></section>
+<section id="left"><svg id="dg" viewBox="0 0 680 120" role="img" aria-label="기물 계열과 종류 관계도"></svg><div id="byTrait"></div></section>
 <section id="right">
-<p class="hint">데이터 파일: Docs/v2 기물 분류 데이터.json. 처음이면 '파일 열기'로 이 파일을 고르세요. 고친 내용은 '저장'을 눌러야 파일에 들어갑니다(그전까지는 이 브라우저에만 임시 저장). 그림의 박스를 누르면 그 항목의 입력 칸으로 이동합니다. '거치는 기반'에 같은 이름을 적은 종류는 점선 상자로 묶입니다.</p>
+<p class="hint">데이터 파일: Docs/v2 기물 분류 데이터.json. 처음이면 '파일 열기'로 이 파일을 고르세요. 고친 내용은 '저장'을 눌러야 파일에 들어갑니다(그전까지는 이 브라우저에만 임시 저장). 그림의 박스를 누르면 그 항목의 입력 칸으로 이동합니다. '거치는 기반'에 같은 이름을 적은 종류는 점선 상자로 묶입니다. 계열은 종류마다 하나(코드의 기반 클래스)이고, 성질은 종류마다 여러 개(코드의 인터페이스나 컴포넌트)입니다. 종류 줄의 성질 칩을 누르면 그 성질을 켜고 끕니다.</p>
 <div class="card"><div class="frow"><span class="lbl">기물 공통 기반</span><input id="rk" data-r="ko" placeholder="한글 이름"><input id="rc" data-r="code" placeholder="코드 이름"></div></div>
 <div class="card"><div class="frow"><span class="lbl">배치 방식 · '미정'은 늘 있습니다. 쓰이는 방식을 지우면 그 계열은 '미정'이 됩니다.</span></div><div id="places"></div><div class="frow"><button id="bAddPlace">배치 방식 추가</button></div></div>
+<div class="card"><div class="frow"><span class="lbl">성질 · 한 종류에 여러 개를 붙일 수 있습니다. 지우면 그 성질을 가진 종류에서도 빠집니다.</span></div><div id="traits"></div><div class="frow"><button id="bAddTrait">성질 추가</button></div></div>
 <div id="fams"></div>
 <div class="frow" style="margin-bottom:10px"><button id="bAddFam">계열 추가</button></div>
 <textarea id="memo" rows="3" style="width:100%" placeholder="메모 (선택, 파일에 함께 저장)"></textarea>
@@ -78,12 +86,40 @@ svg .ts{font-size:12px}
 <script>
 const DEFAULT_DATA = {
   "about": "Docs/v2 기물 분류 편집기.html로 고치는 작업 파일이다. 기물 분류의 기준 문서는 Docs/v2 기물 분류.md이고, 편집이 끝나면 그 문서에 반영한다.",
-  "version": 1,
-  "updated": "2026-10-28",
+  "version": 2,
+  "updated": "2026-11-01",
   "root": {
     "ko": "기물",
     "code": "FixtureBase"
   },
+  "places": [
+    "노드 시스템",
+    "설치형",
+    "구역 지정형",
+    "미정"
+  ],
+  "traits": [
+    {
+      "ko": "색상 제출",
+      "code": "ColorSubmit",
+      "note": ""
+    },
+    {
+      "ko": "색상 뺄셈연산",
+      "code": "ColorSubtraction",
+      "note": ""
+    },
+    {
+      "ko": "색상 덧셈연산",
+      "code": "ColorAddition",
+      "note": ""
+    },
+    {
+      "ko": "일방통행",
+      "code": "OneWay",
+      "note": ""
+    }
+  ],
   "families": [
     {
       "ko": "문 계열",
@@ -95,44 +131,41 @@ const DEFAULT_DATA = {
           "ko": "문",
           "code": "Door",
           "mid": "",
+          "traits": [
+            "색상 제출"
+          ],
           "note": ""
         },
         {
           "ko": "레이저 벽",
           "code": "LaserWall",
           "mid": "",
+          "traits": [
+            "색상 뺄셈연산"
+          ],
           "note": ""
         }
       ]
     },
     {
       "ko": "작동기 계열",
-      "code": "Submittable",
-      "base": "SubmittableObjectBase",
+      "code": "Activator",
+      "base": "ActivatorBase",
       "place": "설치형",
       "types": [
-        {
-          "ko": "일회용 작동기",
-          "code": "SingleUseActuator",
-          "mid": "ActuatorBase",
-          "note": ""
-        },
-        {
-          "ko": "반복 작동기",
-          "code": "ReusableActuator",
-          "mid": "ActuatorBase",
-          "note": ""
-        },
         {
           "ko": "목적지",
           "code": "Goal",
           "mid": "",
+          "traits": [
+            "색상 제출"
+          ],
           "note": ""
         }
       ]
     },
     {
-      "ko": "오브 획득 계열",
+      "ko": "색상 획득 계열",
       "code": "ColorSource",
       "base": "",
       "place": "설치형",
@@ -141,33 +174,10 @@ const DEFAULT_DATA = {
           "ko": "추출 오브젝트",
           "code": "(사물 이름)",
           "mid": "",
+          "traits": [
+            "색상 덧셈연산"
+          ],
           "note": "사물마다 그 사물의 이름 (예: 소화기)"
-        }
-      ]
-    },
-    {
-      "ko": "계단 계열",
-      "code": "FloorMove",
-      "base": "FloorMoveBase",
-      "place": "설치형",
-      "types": [
-        {
-          "ko": "계단",
-          "code": "Stair",
-          "mid": "",
-          "note": ""
-        },
-        {
-          "ko": "점프패드",
-          "code": "JumpPad",
-          "mid": "",
-          "note": ""
-        },
-        {
-          "ko": "낙하구간",
-          "code": "JumpDown",
-          "mid": "",
-          "note": ""
         }
       ]
     },
@@ -181,38 +191,14 @@ const DEFAULT_DATA = {
           "ko": "시작 지점",
           "code": "StartPoint",
           "mid": "",
+          "traits": [],
           "note": ""
         },
         {
           "ko": "체크포인트",
           "code": "Checkpoint",
           "mid": "",
-          "note": ""
-        }
-      ]
-    },
-    {
-      "ko": "편집기 계열",
-      "code": "ColorEditor",
-      "base": "ColorEditorBase",
-      "place": "설치형",
-      "types": [
-        {
-          "ko": "합성기",
-          "code": "ColorMixer",
-          "mid": "ReuseableEditor",
-          "note": ""
-        },
-        {
-          "ko": "필터",
-          "code": "ColorFilter",
-          "mid": "ReuseableEditor",
-          "note": ""
-        },
-        {
-          "ko": "복제기",
-          "code": "ColorCopier",
-          "mid": "SingleUseEditor",
+          "traits": [],
           "note": ""
         }
       ]
@@ -235,15 +221,23 @@ function fromJson(j) {
   if (!j || !Array.isArray(j.families)) throw new Error('families 목록이 없습니다');
   const names = Array.isArray(j.places) ? j.places : DEFAULT_PLACES;
   const places = [...new Set(names.map(s => String(s ?? '').trim()))].filter(s => s && s !== NONE).map(name => ({id: 'p' + nid(), name}));
+  // 성질은 이름으로 잇는다(배치 방식과 같음). 빈 이름은 버리고 같은 이름은 하나로 합친다.
+  const traits = [];
+  for (const r of Array.isArray(j.traits) ? j.traits : []) {
+    const ko = String(r?.ko ?? '').trim();
+    if (ko && !traits.some(x => x.ko === ko)) traits.push({id: 'r' + nid(), ko, code: r.code || '', note: r.note || ''});
+  }
+  const traitIds = list => [...new Set((Array.isArray(list) ? list : []).map(n => traits.find(r => r.ko === String(n ?? '').trim())?.id).filter(Boolean))];
   return {
     about: j.about || '',
     root: {ko: j.root?.ko ?? '', code: j.root?.code ?? ''},
     places,
+    traits,
     memo: j.memo || '',
     families: j.families.map(f => ({
       id: nid(), ko: f.ko || '', code: f.code || '', base: f.base || '',
       place: places.find(p => p.name === f.place)?.id ?? NONE,
-      types: (f.types || []).map(t => ({id: nid(), ko: t.ko || '', code: t.code || '', mid: t.mid || '', note: t.note || ''}))
+      types: (f.types || []).map(t => ({id: nid(), ko: t.ko || '', code: t.code || '', mid: t.mid || '', traits: traitIds(t.traits), note: t.note || ''}))
     }))
   };
 }
@@ -254,16 +248,21 @@ function today() {
 function toJson(stamp) {
   return {
     about: D.about,
-    version: 1,
+    version: 2,
     updated: stamp ? today() : (D.updated || today()),
     root: {ko: D.root.ko, code: D.root.code},
     places: [...D.places.map(p => p.name), NONE],
+    traits: D.traits.map(r => ({ko: r.ko, code: r.code, note: r.note})),
     families: D.families.map(f => ({ko: f.ko, code: f.code, base: f.base, place: placeName(f.place),
-      types: f.types.map(t => ({ko: t.ko, code: t.code, mid: t.mid, note: t.note}))})),
+      types: f.types.map(t => ({ko: t.ko, code: t.code, mid: t.mid, traits: t.traits.map(traitName).filter(Boolean), note: t.note}))})),
     memo: D.memo
   };
 }
 const placeName = id => id === NONE ? NONE : (D.places.find(p => p.id === id)?.name ?? NONE);
+const traitName = id => D.traits.find(r => r.id === id)?.ko ?? '';
+// 성질 색은 배치 방식 색과 겹치지 않게 팔레트 뒤쪽부터 쓴다.
+const tcolor = i => (i + 3) % 6;
+const tcls = id => `pc pc${tcolor(D.traits.findIndex(r => r.id === id))}`;
 const pcls = id => id === NONE ? 'g-none' : `pc pc${D.places.findIndex(p => p.id === id) % 6}`;
 const placeOpts = sel => [...D.places, {id: NONE, name: NONE}].map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${esc(p.name || '(이름 없음)')}</option>`).join('');
 
@@ -313,8 +312,34 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&
 const cut = (s, n) => { s = s || ''; return s.length > n ? s.slice(0, n - 1) + '…' : s; };
 const tx = (cls, x, y, s, mid) => `<text class="${cls}" x="${x}" y="${y}"${mid ? ' text-anchor="middle"' : ''} dominant-baseline="central">${esc(s)}</text>`;
 const arrow = (x1, y, x2) => `<line class="wire" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" marker-end="url(#ah)"/>`;
+// 칩 너비는 글자 수로 어림한다(한글 11, 그 밖 6.5픽셀). 상자 폭을 넘으면 다음 줄로.
+const textW = s => [...s].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 11 : 6.5), 0);
+function chipRows(t) {
+  const rows = [];
+  let row = null, w = 0;
+  for (const id of t.traits) {
+    const s = cut(traitName(id) || '(이름 없음)', 12), cw = textW(s) + 14;
+    if (!row || w + cw > 224) { row = []; rows.push(row); w = 0; }
+    row.push({id, s, cw}); w += cw + 4;
+  }
+  return rows;
+}
+const tH = t => t.traits.length ? 50 + chipRows(t).length * 20 : 46;
 function typeBox(t, x, y) {
-  return `<g class="g-box click" data-kind="t" data-id="${t.id}"><rect x="${x}" y="${y}" width="240" height="46" rx="8"/>${t.note ? `<title>${esc(t.note)}</title>` : ''}${tx('th', x + 120, y + 15, cut(t.ko, 14), 1)}${tx('ts', x + 120, y + 33, cut(t.code || '코드 이름 없음', 30), 1)}</g>`;
+  const chips = chipRows(t).map((row, i) => {
+    let cx = x + 120 - (row.reduce((a, c) => a + c.cw, 0) + (row.length - 1) * 4) / 2;
+    const cy = y + 46 + i * 20;
+    return row.map(c => { const g = `<g class="${tcls(c.id)}"><rect x="${cx}" y="${cy}" width="${c.cw}" height="16" rx="8"/>${tx('tc', cx + c.cw / 2, cy + 8, c.s, 1)}</g>`; cx += c.cw + 4; return g; }).join('');
+  }).join('');
+  return `<g class="g-box click" data-kind="t" data-id="${t.id}"><rect x="${x}" y="${y}" width="240" height="${tH(t)}" rx="8"/>${t.note ? `<title>${esc(t.note)}</title>` : ''}${tx('th', x + 120, y + 15, cut(t.ko, 14), 1)}${tx('ts', x + 120, y + 33, cut(t.code || '코드 이름 없음', 30), 1)}</g>` +
+    (chips ? `<g class="click" data-kind="t" data-id="${t.id}">${chips}</g>` : '');
+}
+function drawTraits() {
+  $('byTrait').innerHTML = D.traits.length ? '<div class="lbl">성질별 보기</div>' + D.traits.map(r => {
+    const owners = D.families.flatMap(f => f.types.filter(t => t.traits.includes(r.id))
+      .map(t => `<span class="click lnk" data-kind="t" data-id="${t.id}">${esc(t.ko || '(이름 없음)')}</span> (${esc(f.ko || '(이름 없음)')})`));
+    return `<div class="row"><span class="tag ${tcls(r.id)}">${esc(r.ko || '(이름 없음)')}</span><span>${owners.length ? owners.join(', ') : '<span class="lbl">아직 없음</span>'}</span></div>`;
+  }).join('') : '';
 }
 function draw() {
   const FX = 80, FW = 200, FH = 64, TX = 320, TW = 240, TH = 46, G = 10;
@@ -335,7 +360,7 @@ function draw() {
       else if (t.mid) items.push({mid: t.mid, ts: [t]});
       else items.push({t});
     }
-    const hOf = it => it.mid ? 30 + it.ts.length * (TH + G) - G + 12 : TH;
+    const hOf = it => it.mid ? 30 + it.ts.reduce((a, t) => a + tH(t) + G, 0) - G + 12 : tH(it.t);
     const ch = items.length ? items.reduce((a, it) => a + hOf(it) + G, 0) - G : TH;
     const bh = Math.max(ch, FH), fc = y + bh / 2;
     let cy = y + (bh - ch) / 2;
@@ -345,11 +370,12 @@ function draw() {
       cs.push(cy + TH / 2);
     }
     for (const it of items) {
-      if (it.t) { body.push(typeBox(it.t, TX, cy)); cs.push(cy + TH / 2); cy += TH + G; }
+      if (it.t) { body.push(typeBox(it.t, TX, cy)); cs.push(cy + tH(it.t) / 2); cy += tH(it.t) + G; }
       else {
         const h = hOf(it);
         body.push(`<rect class="dash" x="${TX}" y="${cy}" width="300" height="${h}" rx="12"/>${tx('ts plain', TX + 15, cy + 16, cut('거치는 기반 · ' + it.mid, 34))}`);
-        it.ts.forEach((t, i) => body.push(typeBox(t, TX + 15, cy + 30 + i * (TH + G))));
+        let ty = cy + 30;
+        for (const t of it.ts) { body.push(typeBox(t, TX + 15, ty)); ty += tH(t) + G; }
         cs.push(cy + h / 2); cy += h + G;
       }
     }
@@ -364,20 +390,23 @@ function draw() {
   const svg = $('dg');
   svg.setAttribute('viewBox', `0 0 680 ${Math.max(y, 120)}`);
   svg.innerHTML = head.concat(body).join('');
+  drawTraits();
 }
 
 // ---------- 편집 칸 ----------
 const inp = (a, v, ph) => `<input ${a} value="${esc(v)}" placeholder="${ph}">`;
+const chipsOf = t => D.traits.length ? `<div class="chips"><span class="lbl">성질</span>${D.traits.map((r, i) => `<button class="chip pc${tcolor(i)}${t.traits.includes(r.id) ? ' on' : ''}" data-act="tgl" data-t="${t.id}" data-rid="${r.id}">${esc(r.ko || '(이름 없음)')}</button>`).join('')}</div>` : '';
 function renderEd() {
   $('rk').value = D.root.ko; $('rc').value = D.root.code; $('memo').value = D.memo;
   $('places').innerHTML = D.places.map((p, i) => `<div class="frow" id="pr${p.id}"><span class="sw pc${i % 6}"></span>${inp(`data-p="${p.id}"`, p.name, '배치 방식 이름')}<button data-act="delP" data-id="${p.id}">삭제</button></div>`).join('');
+  $('traits').innerHTML = D.traits.map((r, i) => `<div class="frow" id="rr${r.id}"><span class="sw pc${tcolor(i)}"></span>${inp(`data-tr="${r.id}" data-k="ko"`, r.ko, '성질 한글 이름')}${inp(`data-tr="${r.id}" data-k="code"`, r.code, '코드 이름 (인터페이스·컴포넌트)')}${inp(`data-tr="${r.id}" data-k="note"`, r.note, '메모 (선택)')}<button data-act="delR" data-id="${r.id}">삭제</button></div>`).join('');
   $('fams').innerHTML = D.families.map((f, fi) => `<div class="card" id="fc${f.id}">
 <div class="frow">${inp(`data-f="${f.id}" data-k="ko"`, f.ko, '계열 한글 이름')}${inp(`data-f="${f.id}" data-k="code"`, f.code, '코드 이름')}${inp(`data-f="${f.id}" data-k="base"`, f.base, '기반 클래스 (선택)')}
 <select data-f="${f.id}" data-k="place" aria-label="배치 방식">${placeOpts(f.place)}</select>
 <span class="btns"><button data-act="mvF" data-i="${fi}" data-d="-1" aria-label="계열 위로">↑</button><button data-act="mvF" data-i="${fi}" data-d="1" aria-label="계열 아래로">↓</button><button data-act="delF" data-id="${f.id}">계열 삭제</button></span></div>
 ${f.types.map(t => `<div class="trow" id="tr${t.id}">${inp(`data-t="${t.id}" data-k="ko"`, t.ko, '종류 한글 이름')}${inp(`data-t="${t.id}" data-k="code"`, t.code, '코드 이름')}${inp(`data-t="${t.id}" data-k="mid"`, t.mid, '거치는 기반 (선택)')}${inp(`data-t="${t.id}" data-k="note"`, t.note, '메모 (선택)')}
 <select data-t="${t.id}" data-k="move" aria-label="다른 계열로 옮기기"><option value="">옮기기…</option>${D.families.filter(g => g !== f).map(g => `<option value="${g.id}">${esc(g.ko || '(이름 없음)')}</option>`).join('')}</select>
-<span class="btns"><button data-act="mvT" data-id="${t.id}" data-d="-1" aria-label="종류 위로">↑</button><button data-act="mvT" data-id="${t.id}" data-d="1" aria-label="종류 아래로">↓</button><button data-act="delT" data-id="${t.id}">삭제</button></span></div>`).join('')}
+<span class="btns"><button data-act="mvT" data-id="${t.id}" data-d="-1" aria-label="종류 위로">↑</button><button data-act="mvT" data-id="${t.id}" data-d="1" aria-label="종류 아래로">↓</button><button data-act="delT" data-id="${t.id}">삭제</button></span>${chipsOf(t)}</div>`).join('')}
 <div class="trow"><button data-act="addT" data-id="${f.id}">종류 추가</button></div></div>`).join('');
 }
 function renderAll() { renderEd(); draw(); }
@@ -398,6 +427,15 @@ document.addEventListener('input', e => {
   if (el.dataset.p) {
     D.places.find(p => p.id === el.dataset.p).name = el.value;
     document.querySelectorAll(`select[data-k="place"] option[value="${el.dataset.p}"]`).forEach(o => o.textContent = el.value || '(이름 없음)');
+    changed(); return draw();
+  }
+  if (el.dataset.tr) {
+    const r = D.traits.find(x => x.id === el.dataset.tr); r[k] = el.value;
+    if (k === 'ko') {
+      document.querySelectorAll(`button[data-rid="${r.id}"]`).forEach(b => b.textContent = el.value || '(이름 없음)');
+      const name = el.value.trim();
+      if (name && D.traits.some(x => x !== r && x.ko.trim() === name)) msg('같은 이름의 성질이 이미 있습니다. 저장한 뒤 다시 열면 하나로 합쳐집니다.', 1);
+    }
     changed(); return draw();
   }
   if (!k || k === 'move' || k === 'place') return;
@@ -422,7 +460,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const act = b.dataset.act;
-  if (act === 'addT') { const t = {id: nid(), ko: '새 종류', code: '', mid: '', note: ''}; famById(b.dataset.id).types.push(t); changed(); renderAll(); focusItem('t', t.id); }
+  if (act === 'addT') { const t = {id: nid(), ko: '새 종류', code: '', mid: '', traits: [], note: ''}; famById(b.dataset.id).types.push(t); changed(); renderAll(); focusItem('t', t.id); }
   if (act === 'delT') { const [f, i] = findT(b.dataset.id); f.types.splice(i, 1); changed(); renderAll(); }
   if (act === 'mvT') { const [f, i] = findT(b.dataset.id), j = i + +b.dataset.d; if (j < 0 || j >= f.types.length) return; [f.types[i], f.types[j]] = [f.types[j], f.types[i]]; changed(); renderAll(); }
   if (act === 'mvF') { const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= D.families.length) return; [D.families[i], D.families[j]] = [D.families[j], D.families[i]]; changed(); renderAll(); }
@@ -430,6 +468,18 @@ document.addEventListener('click', e => {
     const f = famById(b.dataset.id);
     if (f.types.length) return msg(`'${f.ko}'에 종류가 남아 있습니다. 종류를 먼저 옮기거나 지워 주세요.`, 1);
     D.families = D.families.filter(x => x !== f); changed(); renderAll();
+  }
+  if (act === 'tgl') {
+    const [f, i] = findT(b.dataset.t), t = f.types[i], id = b.dataset.rid, on = !t.traits.includes(id);
+    // 성질 목록의 순서를 지킨다.
+    t.traits = D.traits.map(r => r.id).filter(x => x === id ? on : t.traits.includes(x));
+    b.classList.toggle('on', on); changed(); draw();
+  }
+  if (act === 'delR') {
+    const id = b.dataset.id, used = D.families.flatMap(f => f.types).filter(t => t.traits.includes(id));
+    used.forEach(t => t.traits = t.traits.filter(x => x !== id));
+    D.traits = D.traits.filter(r => r.id !== id); changed(); renderAll();
+    if (used.length) msg(`지운 성질을 종류 ${used.length}개에서 뺐습니다.`);
   }
   if (act === 'delP') {
     const id = b.dataset.id, used = D.families.filter(f => f.place === id);
@@ -441,6 +491,13 @@ document.addEventListener('click', e => {
 $('bAddFam').onclick = () => {
   const f = {id: nid(), ko: '새 계열', code: '', base: '', place: D.places.find(p => p.name === '설치형')?.id ?? NONE, types: []};
   D.families.push(f); changed(); renderAll(); focusItem('f', f.id);
+};
+$('bAddTrait').onclick = () => {
+  let name = '새 성질';
+  for (let n = 2; D.traits.some(r => r.ko === name); n++) name = `새 성질 ${n}`;
+  const r = {id: 'r' + nid(), ko: name, code: '', note: ''};
+  D.traits.push(r); changed(); renderAll();
+  const el = document.querySelector(`#rr${r.id} input`); el.focus(); el.select();
 };
 $('bAddPlace').onclick = () => {
   const p = {id: 'p' + nid(), name: '새 배치 방식'};

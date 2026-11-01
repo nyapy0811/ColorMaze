@@ -65,7 +65,7 @@ namespace ColorMaze
             return laser;
         }
 
-        // 기둥은 모든 노드에, 바닥·천장 판은 층마다 노드를 감싸는 사각형 안의 1×1 칸에 둔다(판 위쪽 면이 그 높이).
+        // 기둥은 모든 노드에, 바닥·천장 판은 모든 노드를 감싸는 사각형 안의 1×1 칸에 둔다(판 위쪽 면이 그 높이).
         static void BuildPillarsAndPlates(NodeGraph graph, NodeBuildConfig config)
         {
             var parts = NodeBuildOps.ReplaceChild(graph.transform, NodeObjectBase.GeneratedPartsName);

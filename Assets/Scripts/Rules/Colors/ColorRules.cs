@@ -1,0 +1,61 @@
+using System;
+using UnityEngine;
+
+namespace ColorMaze
+{
+    /// <summary>
+    /// 색 값의 규칙. 채널 한도는 채널마다 따로인 값(<see cref="ColorValue"/>)을 인자로 받는다(한도는 게임 규칙 애셋에 있음).
+    /// </summary>
+    public static class ColorRules
+    {
+        /// <summary>모든 채널이 0 ~ 그 채널의 한도인가.</summary>
+        public static bool IsWithin(ColorValue value, ColorValue limit) =>
+            value.R >= 0 && value.R <= limit.R &&
+            value.G >= 0 && value.G <= limit.G &&
+            value.B >= 0 && value.B <= limit.B;
+
+        /// <summary>채널마다 0 ~ 그 채널의 한도로 자른다(음수는 0, 넘치면 한도). 흡수로 넘친 값은 사라진다.</summary>
+        public static ColorValue Clamp(ColorValue value, ColorValue limit) => new(
+            Math.Clamp(value.R, 0, limit.R),
+            Math.Clamp(value.G, 0, limit.G),
+            Math.Clamp(value.B, 0, limit.B));
+
+        /// <summary>모든 채널이 cost의 그 채널 이상인가(레이저 벽을 지날 수 있는가).</summary>
+        public static bool IsAtLeast(ColorValue value, ColorValue cost) =>
+            value.R >= cost.R && value.G >= cost.G && value.B >= cost.B;
+
+        /// <summary>문·목적지의 요구 색으로 쓸 수 있는가: 모든 채널 1 이상, 세 채널이 모두 같지 않음, 한도 안(지금 색이 닿을 수 있음).</summary>
+        public static bool IsValidRequired(ColorValue value, ColorValue limit) =>
+            value.R >= 1 && value.G >= 1 && value.B >= 1 && !IsAllEqual(value) && IsWithin(value, limit);
+
+        /// <summary>색 원천의 값으로 쓸 수 있는가: 음수가 없고, (0,0,0)을 포함해 세 채널이 모두 같지 않음.</summary>
+        public static bool IsValidSourceValue(ColorValue value) =>
+            value.R >= 0 && value.G >= 0 && value.B >= 0 && !IsAllEqual(value);
+
+        /// <summary>
+        /// 값의 색. 가장 큰 채널로 나눈 정규화 RGB라 늘 최대 밝기다((1,0,0)과 (2,0,0)은 같은 색).
+        /// (0,0,0)은 검정으로 둔다.
+        /// </summary>
+        public static Color ToColor(ColorValue value)
+        {
+            int max = value.Max;
+            if (max <= 0) return Color.black;
+            return new Color((float)value.R / max, (float)value.G / max, (float)value.B / max);
+        }
+
+        /// <summary>
+        /// 흑백 색(흡수한 색 원천). 채도만 0으로 내리고 밝기는 세 채널의 평균이라,
+        /// 순수한 빨강·초록·파랑이 모두 같은 회색이 된다(밝기 가중이 아님, 코어 루프 4단계).
+        /// </summary>
+        public static Color ToGrayscale(Color color)
+        {
+            float gray = (color.r + color.g + color.b) / 3f;
+            return new Color(gray, gray, gray, color.a);
+        }
+
+        /// <summary>발광 세기. 가장 큰 채널에 비례하고 계수는 설정 애셋에서 받는다.</summary>
+        public static float GlowIntensity(ColorValue value, float factor) => value.Max * factor;
+
+        static bool IsAllEqual(ColorValue value) => value.R == value.G && value.G == value.B;
+    }
+}

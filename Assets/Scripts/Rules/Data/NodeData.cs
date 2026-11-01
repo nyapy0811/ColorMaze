@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace ColorMaze
 {
-    /// <summary>노드: id와 정수 좌표(월드 1유닛). y는 그 노드가 선 층의 바닥 높이다.</summary>
+    /// <summary>노드: id와 정수 좌표(월드 1유닛). 맵은 한 층이라 y는 늘 0이다.</summary>
     [Serializable]
     public sealed class NodeData
     {

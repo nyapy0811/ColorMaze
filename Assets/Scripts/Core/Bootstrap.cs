@@ -6,14 +6,14 @@ namespace ColorMaze
 {
     /// <summary>
     /// 게임의 단일 진입점. 부팅 씬(Boot)에 두면 전역 서비스를 정해진 순서로 깨운 뒤 다음 씬을 불러온다.
-    /// 코어 루프 동안 다음 씬은 시험 씬이고, 메뉴 흐름을 만들 때 메인 메뉴로 바꾼다.
+    /// 다음 씬은 메인 메뉴다(진행 시스템 3단계).
     /// 에디터에서 '열린 맵에서 바로 시작'이 켜져 있으면 열려 있던 씬을 대신 불러온다.
     /// </summary>
     [DefaultExecutionOrder(-1000)] // 다른 스크립트가 Awake에서 싱글톤을 찾기 전에 먼저 깨운다.
     public class Bootstrap : MonoBehaviour
     {
         [Tooltip("부팅 뒤 불러올 씬 이름 (Build Settings에 있어야 함)")]
-        [SerializeField] string nextSceneName = "TestMap_CoreLoop";
+        [SerializeField] string nextSceneName = "MainMenu";
 
         void Awake()
         {

@@ -5,8 +5,8 @@ namespace ColorMaze
 {
     /// <summary>
     /// Framework.Core의 범용 GameManagerBase를 이 게임의 GameState로 구체화한 전역 상태 관리자.
-    /// 부팅 직후 상태는 Boot이고, 맵이 시작되면 맵 매니저가 Playing으로 바꾸고, 클리어하면 Cleared로 바꾼다.
-    /// 맵 사이의 전역 진행(클리어 기록 등)은 코어 루프 뒤에 여기 더한다(2차 Q293).
+    /// 부팅 직후 상태는 Boot이고, 메인 메뉴가 열리면 MainMenu, 맵이 시작되면 맵 매니저가 Playing으로 바꾸고, 클리어하면 Cleared로 바꾼다.
+    /// 맵 사이의 전역 진행(클리어 기록 등)은 진행 저장소(<see cref="ProgressStore"/>)가 맡는다(진행 시스템 2단계 ← 2차 Q293).
     /// </summary>
     public class GameManager : GameManagerBase<GameManager, GameState>
     {

@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70c5b90700803634aa5d78de3175c5b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.Bootstrap
-  nextSceneName: TestMap_CoreLoop
+  nextSceneName: MainMenu
 --- !u!4 &1504239225
 Transform:
   m_ObjectHideFlags: 0

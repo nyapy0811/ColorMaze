@@ -50,6 +50,32 @@ namespace ColorMaze
         }
 
         [Test]
+        public void DiscardStaleCheckpoint_WhenMapMissingOrVersionDiffers()
+        {
+            var save = new ProgressSave();
+            save.SetCheckpoint(Snapshot("a", 1));
+            Assert.IsFalse(save.DiscardStaleCheckpoint(1), "버전이 같으면 둔다");
+            Assert.IsTrue(save.hasCheckpoint);
+
+            Assert.IsTrue(save.DiscardStaleCheckpoint(2), "버전이 다르면 버린다");
+            Assert.IsFalse(save.hasCheckpoint);
+
+            save.SetCheckpoint(Snapshot("a", 1));
+            Assert.IsTrue(save.DiscardStaleCheckpoint(null), "맵 목록에 없으면 버린다");
+            Assert.IsFalse(save.DiscardStaleCheckpoint(null), "버릴 기록이 없으면 false");
+        }
+
+        [Test]
+        public void StartWarning_DependsOnSavedCheckpoint()
+        {
+            var save = new ProgressSave();
+            Assert.AreEqual(MapStartWarning.None, save.StartWarning("a"));
+            save.SetCheckpoint(Snapshot("a", 1));
+            Assert.AreEqual(MapStartWarning.ClearsThisCheckpoint, save.StartWarning("a"));
+            Assert.AreEqual(MapStartWarning.OverwritesOtherCheckpoint, save.StartWarning("b"));
+        }
+
+        [Test]
         public void JsonRoundTrip_KeepsRecordsAndCheckpoint()
         {
             var save = new ProgressSave { savedAt = "2026-11-06T00:00:00Z" };

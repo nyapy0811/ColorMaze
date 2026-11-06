@@ -14,6 +14,15 @@ namespace ColorMaze
         public List<MapListEntry> maps = new();
 
         public MapListEntry FindByScene(string sceneName) => maps.Find(entry => entry.sceneName == sceneName);
+
+        public MapListEntry FindById(string mapId) => maps.Find(entry => entry.mapId == mapId);
+
+        /// <summary>목록에서 그 맵 다음 맵('다음 맵', 2차 Q447). 마지막 맵이면 null.</summary>
+        public MapListEntry NextAfter(MapListEntry entry)
+        {
+            int index = maps.IndexOf(entry);
+            return index >= 0 && index + 1 < maps.Count ? maps[index + 1] : null;
+        }
     }
 
     [Serializable]

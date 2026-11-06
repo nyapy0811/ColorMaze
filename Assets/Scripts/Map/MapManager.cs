@@ -11,6 +11,7 @@ namespace ColorMaze
     /// 체크포인트에 처음 닿으면 스냅샷을 만들고, '체크포인트로'는 씬을 다시 불러오지 않고 기물마다 되돌린다(부분 초기화, 2차 Q307).
     /// 플레이어가 맵 밖으로 떨어지면 상태는 그대로 두고 마지막 체크포인트(없으면 시작 지점)로 옮기기만 한다(낙사 안전망, 2차 Q139).
     /// 맵 id와 맵 버전은 맵 목록에서 자기 씬 이름으로 찾는다. 체크포인트·클리어는 진행 저장(<see cref="ProgressStore"/>)에 바로 쓴다.
+    /// 메뉴의 '이어하기'로 열렸을 때만(<see cref="SceneFlow"/>의 요청) 저장된 체크포인트부터 시작한다.
     /// 기물이 OnEnable에서 등록하므로 기물보다 먼저 깨어나도록 실행 순서를 앞에 둔다.
     /// </summary>
     [DefaultExecutionOrder(-100)]
@@ -30,7 +31,11 @@ namespace ColorMaze
         MapSnapshot checkpoint;
 
         public MapList MapList => mapList;
+        public MapListEntry Entry => entry;
         public string MapId => entry.mapId;
+
+        /// <summary>닿은 체크포인트가 있는지('체크포인트로'의 확인 문구가 다름).</summary>
+        public bool HasCheckpoint => checkpoint != null;
         public GameRulesConfig Rules => rules;
         public FirstPersonController Player => player;
 
@@ -54,22 +59,24 @@ namespace ColorMaze
             // 열린 맵에서 바로 시작하면 메뉴를 거치지 않으므로 여기서 Playing으로 맞춘다.
             if (GameManager.Instance.State != GameState.Playing) GameManager.Instance.StartGame();
             playerColor = player.GetComponent<PlayerColor>();
-            StartFromSaveOrStart();
+            Begin(SceneFlow.TakeContinueRequest());
         }
 
-        // 임시 이어하기(진행 시스템 2단계): 메인 메뉴가 생기기 전까지는 그 맵의 체크포인트 기록이 있으면 자동으로 이어서 시작한다.
-        // 3단계에서 메뉴의 '이어하기'를 눌렀을 때만 이어서 시작하게 바꾼다. UI 씬이 검은 화면에서 밝아지므로 페이드는 따로 없다.
-        void StartFromSaveOrStart()
+        // 메뉴의 '이어하기'로 열렸으면 그 맵의 체크포인트 기록으로 시작하고(플레이 시간도 이어짐), 아니면 시작 지점에서 시작한다.
+        // UI 씬이 검은 화면에서 밝아지므로 페이드는 따로 없다.
+        void Begin(bool continueFromCheckpoint)
         {
-            var progress = ProgressStore.Current;
-            if (progress.TryGetCheckpoint(MapId, entry.version, out var saved, out bool discarded))
+            if (continueFromCheckpoint)
             {
-                checkpoint = saved;
-                ClearTime = saved.playTime;
-                Restore(saved);
-                return;
+                if (ProgressStore.Current.TryGetCheckpoint(MapId, entry.version, out var saved, out bool discarded))
+                {
+                    checkpoint = saved;
+                    ClearTime = saved.playTime;
+                    Restore(saved);
+                    return;
+                }
+                if (discarded) ProgressStore.Save();
             }
-            if (discarded) ProgressStore.Save();
             MovePlayerToStart();
         }
 
@@ -126,7 +133,7 @@ namespace ColorMaze
         /// </summary>
         public void ReturnToCheckpoint()
         {
-            if (checkpoint == null) SceneRestarter.Restart();
+            if (checkpoint == null) SceneFlow.Restart();
             else ScreenFade.FadeThrough(() => Restore(checkpoint));
         }
 

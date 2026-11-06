@@ -9,10 +9,16 @@ EditorBuildSettings:
     path: Assets/Scenes/Boot.unity
     guid: 4686f88bac392b04290bc52424353484
   - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 57f2a91a3d313864eb6cb93c3c55a1b8
+  - enabled: 1
     path: Assets/Scenes/UIScene.unity
     guid: 8171f5176dac72d429dc0ba7a2d0988e
   - enabled: 1
     path: Assets/Scenes/Maps/TestMap_CoreLoop.unity
     guid: 6fd98c5b293696543b20c768853addc3
+  - enabled: 1
+    path: Assets/Scenes/Maps/TestMap_CoreLoop_B.unity
+    guid: 293420d2dd712a1429500bac782a8078
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

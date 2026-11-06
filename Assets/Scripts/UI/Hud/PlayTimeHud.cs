@@ -34,8 +34,7 @@ namespace ColorMaze
             float best = record is { cleared: true } ? record.bestTime : 0f;
             if (best == shownBest) return;
             shownBest = best;
-            int minutes = (int)(best / 60f);
-            bestLabel.text = best > 0f ? $"최고 {minutes:00}:{best - minutes * 60f:00.00}" : "최고 --:--";
+            bestLabel.text = best > 0f ? $"최고 {TimeFormat.ClearTime(best)}" : "최고 --:--";
         }
     }
 }

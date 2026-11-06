@@ -68,6 +68,33 @@ namespace ColorMaze
             snapshot = checkpoint;
             return true;
         }
+
+        /// <summary>
+        /// 저장된 체크포인트의 맵이 맵 목록에 없거나(<paramref name="currentVersion"/>이 null) 맵 버전이 다르면 버린다(3차 Q488).
+        /// 메뉴가 '이어하기'를 보일지 정하기 전에 부른다. 버렸으면 true.
+        /// </summary>
+        public bool DiscardStaleCheckpoint(int? currentVersion)
+        {
+            if (!hasCheckpoint || checkpoint.mapVersion == currentVersion) return false;
+            return ClearCheckpoint(checkpoint.mapId);
+        }
+
+        /// <summary>그 맵을 처음부터 시작하기 전에 띄울 경고(2차 Q449, Q456).</summary>
+        public MapStartWarning StartWarning(string mapId)
+        {
+            if (!hasCheckpoint) return MapStartWarning.None;
+            return checkpoint.mapId == mapId ? MapStartWarning.ClearsThisCheckpoint : MapStartWarning.OverwritesOtherCheckpoint;
+        }
+    }
+
+    /// <summary>맵을 처음부터 시작하기 전에 띄울 경고.</summary>
+    public enum MapStartWarning
+    {
+        None,
+        /// <summary>이 맵에 체크포인트가 저장돼 있다: 시작하면 지운다(2차 Q456).</summary>
+        ClearsThisCheckpoint,
+        /// <summary>다른 맵의 체크포인트가 저장돼 있다: 이 맵의 체크포인트에 닿으면 덮어쓴다(2차 Q449).</summary>
+        OverwritesOtherCheckpoint,
     }
 
     /// <summary>맵 하나의 기록. 맵은 맵 목록의 고정 문자열 맵 id로 찾는다(3차 Q487).</summary>

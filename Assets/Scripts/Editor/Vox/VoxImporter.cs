@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using UnityEditor;
 using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -12,7 +13,7 @@ namespace ColorMaze
     /// 칠하는 색(값 색 248, 연결색 249)의 칸은 자식 아래 별도 렌더러(흰색)로 떼어낸다. 기물 컴포넌트가 그 렌더러를 통째로 칠한다.
     /// 나머지 칸은 파일의 팔레트를 256 × 1 텍스처로 만들어 면마다 자기 색 칸을 가리키게 한다(URP Lit은 버텍스 색을 읽지 않음).
     /// </summary>
-    [ScriptedImporter(1, "vox")]
+    [ScriptedImporter(2, "vox")]
     public class VoxImporter : ScriptedImporter
     {
         public enum PivotMode { BottomBackEdge, BottomCenter, TopCenter }
@@ -23,6 +24,8 @@ namespace ColorMaze
         public const byte ValueColor = 248;
         public const byte LinkColor = 249;
         const byte FirstSpareColor = 250;
+
+        const string LitShaderPath = "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader";
 
         static readonly (byte color, string name)[] Paints = { (ValueColor, "ValueColor"), (LinkColor, "LinkColor") };
 
@@ -44,8 +47,11 @@ namespace ColorMaze
             palette.SetPixels32(file.palette);
             palette.Apply();
             ctx.AddObjectToAsset("palette", palette);
-            var voxelMaterial = NewMaterial("Voxel", palette);
-            var paintMaterial = NewMaterial("Paint", null);
+            // 셰이더를 의존으로 알려 셰이더가 먼저 가져와지게 한다(전체를 다시 가져올 때 Shader.Find가 null을 주던 원인).
+            ctx.DependsOnArtifact(LitShaderPath);
+            var lit = AssetDatabase.LoadAssetAtPath<Shader>(LitShaderPath);
+            var voxelMaterial = NewMaterial("Voxel", lit, palette);
+            var paintMaterial = NewMaterial("Paint", lit, null);
             ctx.AddObjectToAsset("material:Voxel", voxelMaterial);
             ctx.AddObjectToAsset("material:Paint", paintMaterial);
 
@@ -139,9 +145,9 @@ namespace ColorMaze
         /// 파일 안 모든 렌더러가 같이 쓰는 재질. 칠하기와 상호작용 강조는 기물 컴포넌트가 MaterialPropertyBlock으로 렌더러마다 바꾸므로
         /// 발광을 켜 두고(검정) 나머지는 임시 회색 재질(Temp)과 맞춘다.
         /// </summary>
-        static Material NewMaterial(string name, Texture2D baseMap)
+        static Material NewMaterial(string name, Shader shader, Texture2D baseMap)
         {
-            var material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+            var material = new Material(shader) { name = name };
             material.SetTexture("_BaseMap", baseMap);
             material.SetFloat("_Smoothness", 0.2f);
             material.SetColor("_EmissionColor", Color.black);

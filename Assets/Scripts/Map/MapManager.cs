@@ -10,6 +10,7 @@ namespace ColorMaze
     /// 클리어 시간을 재고, 목적지가 요청하면 클리어한다(7.6).
     /// 체크포인트에 처음 닿으면 스냅샷을 만들고, '체크포인트로'는 씬을 다시 불러오지 않고 기물마다 되돌린다(부분 초기화, 2차 Q307).
     /// 플레이어가 맵 밖으로 떨어지면 상태는 그대로 두고 마지막 체크포인트(없으면 시작 지점)로 옮기기만 한다(낙사 안전망, 2차 Q139).
+    /// 맵 id와 맵 버전은 맵 목록에서 자기 씬 이름으로 찾는다. 체크포인트·클리어는 진행 저장(<see cref="ProgressStore"/>)에 바로 쓴다.
     /// 기물이 OnEnable에서 등록하므로 기물보다 먼저 깨어나도록 실행 순서를 앞에 둔다.
     /// </summary>
     [DefaultExecutionOrder(-100)]
@@ -17,25 +18,31 @@ namespace ColorMaze
     {
         public static MapManager Current { get; private set; }
 
-        [Tooltip("맵 id. 맵 목록 애셋을 만들기 전까지는 씬마다 직접 적는다.")]
-        [SerializeField] string mapId = "test_core_loop";
+        [SerializeField] MapList mapList;
         [SerializeField] GameRulesConfig rules;
         [SerializeField] FirstPersonController player;
 
         readonly Dictionary<int, FixtureBase> fixtures = new();
         PlayerColor playerColor;
+        MapListEntry entry;
 
-        /// <summary>마지막으로 닿은 체크포인트의 스냅샷. 없으면 null. 저장 단계에서 저장 파일에도 쓴다.</summary>
+        /// <summary>마지막으로 닿은 체크포인트의 스냅샷(저장 파일에도 있음). 없으면 null.</summary>
         MapSnapshot checkpoint;
 
-        public string MapId => mapId;
+        public MapList MapList => mapList;
+        public string MapId => entry.mapId;
         public GameRulesConfig Rules => rules;
         public FirstPersonController Player => player;
 
         /// <summary>맵을 시작한 뒤 흐른 시간(초).</summary>
         public float ClearTime { get; private set; }
 
-        void Awake() => Current = this;
+        void Awake()
+        {
+            Current = this;
+            entry = mapList.FindByScene(gameObject.scene.name);
+            if (entry == null) Debug.LogError($"[MapManager] 맵 목록에 씬 '{gameObject.scene.name}'이 없다. Assets/Data/MapList에 더한다.", this);
+        }
 
         void OnDestroy()
         {
@@ -47,6 +54,22 @@ namespace ColorMaze
             // 열린 맵에서 바로 시작하면 메뉴를 거치지 않으므로 여기서 Playing으로 맞춘다.
             if (GameManager.Instance.State != GameState.Playing) GameManager.Instance.StartGame();
             playerColor = player.GetComponent<PlayerColor>();
+            StartFromSaveOrStart();
+        }
+
+        // 임시 이어하기(진행 시스템 2단계): 메인 메뉴가 생기기 전까지는 그 맵의 체크포인트 기록이 있으면 자동으로 이어서 시작한다.
+        // 3단계에서 메뉴의 '이어하기'를 눌렀을 때만 이어서 시작하게 바꾼다. UI 씬이 검은 화면에서 밝아지므로 페이드는 따로 없다.
+        void StartFromSaveOrStart()
+        {
+            var progress = ProgressStore.Current;
+            if (progress.TryGetCheckpoint(MapId, entry.version, out var saved, out bool discarded))
+            {
+                checkpoint = saved;
+                ClearTime = saved.playTime;
+                Restore(saved);
+                return;
+            }
+            if (discarded) ProgressStore.Save();
             MovePlayerToStart();
         }
 
@@ -58,11 +81,15 @@ namespace ColorMaze
             if (player.transform.position.y < -rules.fallDepth) CatchFall();
         }
 
-        /// <summary>목적지가 부른다: 클리어 시간을 멈추고 '맵 클리어'를 보낸 뒤 상태를 Cleared로 바꾼다.</summary>
+        /// <summary>목적지가 부른다: 클리어와 최고 시간을 기록하고 체크포인트 기록을 지운 뒤(바로 저장), '맵 클리어'를 보내고 상태를 Cleared로 바꾼다.</summary>
         public void Clear()
         {
             if (GameManager.Instance.State != GameState.Playing) return;
-            EventBus.Publish(new MapCleared(mapId, ClearTime));
+            var progress = ProgressStore.Current;
+            progress.RecordClear(MapId, ClearTime);
+            progress.ClearCheckpoint(MapId);
+            ProgressStore.Save();
+            EventBus.Publish(new MapCleared(MapId, ClearTime));
             GameManager.Instance.ClearMap();
         }
 
@@ -88,6 +115,8 @@ namespace ColorMaze
             if (GameManager.Instance.State != GameState.Playing || reached.IsActivated) return;
             reached.SetActivated(true);
             checkpoint = Capture(reached);
+            ProgressStore.Current.SetCheckpoint(checkpoint);
+            ProgressStore.Save();
             EventBus.Publish(new CheckpointReached());
         }
 
@@ -106,7 +135,8 @@ namespace ColorMaze
         {
             var snapshot = new MapSnapshot
             {
-                mapId = mapId,
+                mapId = MapId,
+                mapVersion = entry.version,
                 playerPosition = at.transform.position,
                 playerYaw = at.SpawnRotation.eulerAngles.y,
                 currentColor = playerColor.Current.Value,

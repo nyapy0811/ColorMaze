@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c39e8a46d67a99147b377c437ccb50df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ColorMaze.MapManager
-  mapId: test_core_loop
+  mapList: {fileID: 11400000, guid: a3cece53594c67346b11d6e6f52f1c39, type: 2}
   rules: {fileID: 11400000, guid: 8d5419a019904f845a7a4960b685ac87, type: 2}
   player: {fileID: 7640263962046832447}
 --- !u!114 &5608387345766397136

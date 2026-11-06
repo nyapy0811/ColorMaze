@@ -70,6 +70,35 @@ namespace ColorMaze
 
             problems += CheckNodeGraph(scene);
 
+            if (managers.Count == 1) problems += CheckMapList(scene, managers[0].MapList);
+
+            return problems;
+        }
+
+        /// <summary>맵 목록: 맵 매니저에 연결됐는지, 이 씬이 목록에 있는지, 맵 id가 비었거나 겹치는지.</summary>
+        static int CheckMapList(Scene scene, MapList mapList)
+        {
+            if (mapList == null)
+            {
+                Debug.LogError("[맵 검사] 맵 매니저에 맵 목록(Assets/Data/MapList)이 연결되지 않았다.");
+                return 1;
+            }
+            int problems = 0;
+            if (mapList.FindByScene(scene.name) == null)
+            {
+                Debug.LogError($"[맵 검사] 맵 목록에 이 씬('{scene.name}')이 없다.", mapList);
+                problems++;
+            }
+            foreach (var entry in mapList.maps.Where(entry => string.IsNullOrWhiteSpace(entry.mapId)))
+            {
+                Debug.LogError($"[맵 검사] 맵 목록의 '{entry.sceneName}' 항목에 맵 id가 없다.", mapList);
+                problems++;
+            }
+            foreach (var group in mapList.maps.Where(entry => !string.IsNullOrWhiteSpace(entry.mapId)).GroupBy(entry => entry.mapId).Where(g => g.Count() > 1))
+            {
+                Debug.LogError($"[맵 검사] 맵 목록에 맵 id '{group.Key}'가 {group.Count()}개다(맵마다 달라야 함).", mapList);
+                problems++;
+            }
             return problems;
         }
 

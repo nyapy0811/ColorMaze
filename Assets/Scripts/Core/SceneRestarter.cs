@@ -5,15 +5,16 @@ using UnityEngine.SceneManagement;
 namespace ColorMaze
 {
     /// <summary>
-    /// 코어 루프 동안의 '처음부터': 지금 맵 씬을 다시 불러온다(UI 씬은 UI 관리자가 다시 얹고, 상태는 맵 매니저가 Playing으로 맞춤).
-    /// 체크포인트 단계에서 체크포인트 기록을 지우는 '처음부터'로 바꾼다(2차 Q312).
+    /// '처음부터': 검은 화면으로 어두워진 뒤 지금 맵 씬을 다시 불러온다(씬 재로드, 진행 시스템 구상 채팅).
+    /// UI 씬은 UI 관리자가 다시 얹고(새 화면 페이드가 검은 화면에서 밝아짐), 상태는 맵 매니저가 Playing으로 맞춘다.
+    /// 저장된 체크포인트 기록을 지우는 일은 저장 단계에서 더한다.
     /// </summary>
     public static class SceneRestarter
     {
-        public static void Restart()
+        public static void Restart() => ScreenFade.FadeOut(() =>
         {
             Time.timeScale = 1f;
             SceneLoader.Instance.Load(SceneManager.GetActiveScene().name);
-        }
+        });
     }
 }

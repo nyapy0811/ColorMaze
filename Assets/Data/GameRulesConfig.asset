@@ -18,3 +18,4 @@ MonoBehaviour:
     b: 5
   interactDistance: 3
   glowFactor: 0.2
+  fallDepth: 10

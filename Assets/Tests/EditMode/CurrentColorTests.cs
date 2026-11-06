@@ -67,5 +67,16 @@ namespace ColorMaze
             color.Absorb(new ColorValue(0, 1, 0));
             Assert.AreEqual(1, count);
         }
+
+        [Test]
+        public void Restore_SetsSavedValue()
+        {
+            var color = Make(new ColorValue(3, 1, 1));
+            int count = 0;
+            color.Changed += () => count++;
+            color.Restore(new ColorValue(1, 0, 2));
+            Assert.AreEqual(new ColorValue(1, 0, 2), color.Value);
+            Assert.AreEqual(1, count);
+        }
     }
 }

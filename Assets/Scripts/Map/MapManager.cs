@@ -8,6 +8,8 @@ namespace ColorMaze
     /// 맵 씬마다 하나 있는 맵 관리자. 맵 범위의 것은 <see cref="Current"/> 하나로 찾는다(씬과 함께 생기고 사라짐).
     /// 기물 등록부(맵 안 id → 기물)를 들고, 시작할 때 상태를 Playing으로 맞추고 플레이어를 시작 지점으로 옮긴다.
     /// 클리어 시간을 재고, 목적지가 요청하면 클리어한다(7.6).
+    /// 체크포인트에 처음 닿으면 스냅샷을 만들고, '체크포인트로'는 씬을 다시 불러오지 않고 기물마다 되돌린다(부분 초기화, 2차 Q307).
+    /// 플레이어가 맵 밖으로 떨어지면 상태는 그대로 두고 마지막 체크포인트(없으면 시작 지점)로 옮기기만 한다(낙사 안전망, 2차 Q139).
     /// 기물이 OnEnable에서 등록하므로 기물보다 먼저 깨어나도록 실행 순서를 앞에 둔다.
     /// </summary>
     [DefaultExecutionOrder(-100)]
@@ -21,6 +23,10 @@ namespace ColorMaze
         [SerializeField] FirstPersonController player;
 
         readonly Dictionary<int, FixtureBase> fixtures = new();
+        PlayerColor playerColor;
+
+        /// <summary>마지막으로 닿은 체크포인트의 스냅샷. 없으면 null. 저장 단계에서 저장 파일에도 쓴다.</summary>
+        MapSnapshot checkpoint;
 
         public string MapId => mapId;
         public GameRulesConfig Rules => rules;
@@ -40,13 +46,16 @@ namespace ColorMaze
         {
             // 열린 맵에서 바로 시작하면 메뉴를 거치지 않으므로 여기서 Playing으로 맞춘다.
             if (GameManager.Instance.State != GameState.Playing) GameManager.Instance.StartGame();
+            playerColor = player.GetComponent<PlayerColor>();
             MovePlayerToStart();
         }
 
         // 게임 중에만 흐른다: 일시정지(Paused)와 클리어 뒤에는 멈추고, 팝업은 상태가 아니라 팝업 중에는 흐른다(2차 Q468).
         void Update()
         {
-            if (GameManager.Instance.State == GameState.Playing) ClearTime += Time.deltaTime;
+            if (GameManager.Instance.State != GameState.Playing) return;
+            ClearTime += Time.deltaTime;
+            if (player.transform.position.y < -rules.fallDepth) CatchFall();
         }
 
         /// <summary>목적지가 부른다: 클리어 시간을 멈추고 '맵 클리어'를 보낸 뒤 상태를 Cleared로 바꾼다.</summary>
@@ -71,6 +80,66 @@ namespace ColorMaze
         {
             if (fixtures.TryGetValue(fixture.FixtureId, out var registered) && registered == fixture)
                 fixtures.Remove(fixture.FixtureId);
+        }
+
+        /// <summary>체크포인트가 처음 닿을 때 부른다: 활성화하고 지금 상태를 스냅샷으로 남긴다.</summary>
+        public void ReachCheckpoint(Checkpoint reached)
+        {
+            if (GameManager.Instance.State != GameState.Playing || reached.IsActivated) return;
+            reached.SetActivated(true);
+            checkpoint = Capture(reached);
+            EventBus.Publish(new CheckpointReached());
+        }
+
+        /// <summary>
+        /// '체크포인트로': 검은 화면 사이에 마지막 체크포인트의 상태로 되돌린다. 플레이 시간은 되돌리지 않는다(2차 Q468).
+        /// 아직 체크포인트에 닿지 않았으면 '처음부터'와 같다(2차 Q450).
+        /// </summary>
+        public void ReturnToCheckpoint()
+        {
+            if (checkpoint == null) SceneRestarter.Restart();
+            else ScreenFade.FadeThrough(() => Restore(checkpoint));
+        }
+
+        // 플레이어는 체크포인트의 자리와 방향에 선다(시선은 체크포인트가 정함, 2차 Q450).
+        MapSnapshot Capture(Checkpoint at)
+        {
+            var snapshot = new MapSnapshot
+            {
+                mapId = mapId,
+                playerPosition = at.transform.position,
+                playerYaw = at.SpawnRotation.eulerAngles.y,
+                currentColor = playerColor.Current.Value,
+                playTime = ClearTime,
+            };
+            foreach (var fixture in fixtures.Values)
+            {
+                if (fixture is ISnapshotable saved && saved.CaptureState() is { } state)
+                    snapshot.fixtures.Add(new FixtureStateEntry { fixtureId = fixture.FixtureId, state = state });
+                if (fixture is Checkpoint { IsActivated: true }) snapshot.activatedCheckpointIds.Add(fixture.FixtureId);
+            }
+            return snapshot;
+        }
+
+        // 기물 → 플레이어 → 지금 색 순서(지금 색이 바뀌면 레이저 벽이 막을지 다시 봄).
+        void Restore(MapSnapshot snapshot)
+        {
+            var states = new Dictionary<int, string>();
+            foreach (var entry in snapshot.fixtures) states[entry.fixtureId] = entry.state;
+            foreach (var fixture in fixtures.Values)
+            {
+                if (fixture is ISnapshotable saved) saved.RestoreState(states.GetValueOrDefault(fixture.FixtureId));
+                if (fixture is Checkpoint point) point.SetActivated(snapshot.activatedCheckpointIds.Contains(fixture.FixtureId));
+            }
+            player.Teleport(snapshot.playerPosition, Quaternion.Euler(0f, snapshot.playerYaw, 0f));
+            playerColor.Current.Restore(snapshot.currentColor);
+        }
+
+        // 낙사 안전망: 진행은 그대로 두고 옮기기만 한다(연출 없음, 2차 Q304).
+        void CatchFall()
+        {
+            if (checkpoint != null) player.Teleport(checkpoint.playerPosition, Quaternion.Euler(0f, checkpoint.playerYaw, 0f));
+            else MovePlayerToStart();
         }
 
         void MovePlayerToStart()

@@ -17,6 +17,7 @@ namespace ColorMaze
             EventBus.Subscribe<ColorRejected>(OnColorRejected);
             EventBus.Subscribe<DoorOpened>(OnDoorOpened);
             EventBus.Subscribe<LaserPassed>(OnLaserPassed);
+            EventBus.Subscribe<CheckpointReached>(OnCheckpointReached);
             EventBus.Subscribe<MapCleared>(OnMapCleared);
         }
 
@@ -26,6 +27,7 @@ namespace ColorMaze
             EventBus.Unsubscribe<ColorRejected>(OnColorRejected);
             EventBus.Unsubscribe<DoorOpened>(OnDoorOpened);
             EventBus.Unsubscribe<LaserPassed>(OnLaserPassed);
+            EventBus.Unsubscribe<CheckpointReached>(OnCheckpointReached);
             EventBus.Unsubscribe<MapCleared>(OnMapCleared);
         }
 
@@ -33,6 +35,7 @@ namespace ColorMaze
         void OnColorRejected(ColorRejected e) => Play(config.colorRejected);
         void OnDoorOpened(DoorOpened e) => Play(config.doorOpened);
         void OnLaserPassed(LaserPassed e) => Play(config.laserPassed);
+        void OnCheckpointReached(CheckpointReached e) => Play(config.checkpointReached);
         void OnMapCleared(MapCleared e) => Play(config.mapCleared);
 
         static void Play(AudioClip clip)

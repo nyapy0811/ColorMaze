@@ -7,13 +7,15 @@ namespace ColorMaze
     /// 최소 일시정지 메뉴(UIScene, v1 PauseMenuController를 참고해 새로 씀). ESC를 읽는 곳이기도 하다:
     /// 뒤로 가기 스택에 닫을 화면이 있으면 맨 위를 닫고, 스택이 비어 있고 게임 중일 때만 일시정지를 연다(설계 문서 7.1, 2차 Q194).
     /// 일시정지는 잠금이 아니라 <c>Time.timeScale = 0</c>으로 멈추고, 열린 동안 스택에 '계속'을 넣어 ESC로 닫힌다.
-    /// 코어 루프 동안은 계속·처음부터·종료만 두고, 확인 창과 설정은 메뉴 흐름에서 더한다.
+    /// 지금은 계속·처음부터·체크포인트로·종료를 두고, 확인 창과 설정·메인메뉴는 메뉴 흐름에서 더한다.
+    /// 화면 페이드 중에는 ESC를 받지 않는다.
     /// </summary>
     public class PauseMenu : MonoBehaviour
     {
         [SerializeField] GameObject panel;
         [SerializeField] Button resumeButton;
         [SerializeField] Button restartButton;
+        [SerializeField] Button checkpointButton;
         [SerializeField] Button quitButton;
 
         void Awake()
@@ -21,6 +23,7 @@ namespace ColorMaze
             panel.SetActive(false);
             resumeButton.onClick.AddListener(Resume);
             restartButton.onClick.AddListener(Restart);
+            checkpointButton.onClick.AddListener(ReturnToCheckpoint);
             quitButton.onClick.AddListener(GameManager.Instance.QuitGame);
         }
 
@@ -28,7 +31,7 @@ namespace ColorMaze
 
         void Update()
         {
-            if (!InputManager.Instance.ReadCancel()) return;
+            if (!InputManager.Instance.ReadCancel() || ScreenFade.IsFading) return;
             if (BackStack.TryCloseTop()) return;
             if (GameManager.Instance.State == GameState.Playing) Pause();
         }
@@ -58,6 +61,13 @@ namespace ColorMaze
         {
             BackStack.Remove(Resume);
             SceneRestarter.Restart();
+        }
+
+        // 맵 씬은 그대로이므로 메뉴를 닫고 게임으로 돌아간 뒤 되돌린다.
+        void ReturnToCheckpoint()
+        {
+            Resume();
+            MapManager.Current.ReturnToCheckpoint();
         }
     }
 }

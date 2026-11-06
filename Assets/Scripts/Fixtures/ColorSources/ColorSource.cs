@@ -1,3 +1,4 @@
+using System;
 using Framework.Core;
 using UnityEngine;
 
@@ -6,10 +7,16 @@ namespace ColorMaze
     /// <summary>
     /// 색 원천. 사물마다 다른 프리팹(이름은 사물 이름, 예: 소화기)에 붙인다. 렌더러를 값의 색(정규화 RGB × 오브젝트 밝기)으로
     /// 칠하고(에디터에서도 보임), 조준해 상호작용하면 값을 지금 색에 바로 더한다(채널마다 한도에서 자름). 한 번만 흡수할 수 있고,
-    /// 흡수하면 흑백이 되고 강조를 끄고 '색 흡수'를 보낸다. 조준하면 흡수 전에만 값을 보인다. 흡수 상태의 저장은 체크포인트 단계에서 더한다.
+    /// 흡수하면 흑백이 되고 강조를 끄고 '색 흡수'를 보낸다. 조준하면 흡수 전에만 값을 보인다. 체크포인트에는 흡수했는지를 저장한다.
     /// </summary>
-    public class ColorSource : FixtureBase, IInteractable, IValueProvider
+    public class ColorSource : FixtureBase, IInteractable, IValueProvider, ISnapshotable
     {
+        [Serializable]
+        struct State
+        {
+            public bool absorbed;
+        }
+
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         [Tooltip("흡수되는 값. (0,0,0)과 세 채널이 같은 값은 쓰지 않는다(맵 검사가 알림).")]
@@ -45,6 +52,15 @@ namespace ColorMaze
             Paint();
             RefreshHighlight();
             EventBus.Publish(new ColorAbsorbed(Center, value));
+        }
+
+        public string CaptureState() => JsonUtility.ToJson(new State { absorbed = absorbed });
+
+        public void RestoreState(string state)
+        {
+            absorbed = JsonUtility.FromJson<State>(state).absorbed;
+            Paint();
+            RefreshHighlight();
         }
 
         Vector3 Center => coloredRenderers.Length > 0 ? coloredRenderers[0].bounds.center : transform.position;

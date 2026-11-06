@@ -15,5 +15,8 @@ namespace ColorMaze
         [Tooltip("지금 색 구의 발광 세기 계수(가장 큰 채널 × 계수). 블룸이 꺼져 있어 1을 넘는 발광은 더 밝아 보이지 않으므로 " +
                  "값 1~5가 0.2~1이 되게 둔다(임시, 블룸은 미정).")]
         public float glowFactor = 0.2f;
+
+        [Tooltip("낙사 안전망: 맵 바닥(월드 높이 0)보다 이만큼 아래로 떨어지면 마지막 체크포인트(없으면 시작 지점)로 옮긴다.")]
+        public float fallDepth = 10f;
     }
 }

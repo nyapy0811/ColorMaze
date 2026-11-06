@@ -9,9 +9,11 @@ namespace ColorMaze
     /// 나가면 지금 색에서 빼고 '레이저 통과'를 보낸다(들어갔다 되돌아오면 빼지 않음). 모자라면 막는다. 상호작용은 없다.
     /// 지나감은 막는 콜라이더와 같은 자리의 트리거로 잰다: 들어온 쪽과 나간 쪽이 다르면 지나간 것이다.
     /// 플레이어가 레이저 자리에 있는 동안은 막지 않던 레이저를 켜지 않는다(플레이어 위로 켜지지 않게).
+    /// 저장할 상태는 없다(지금 색에서 다시 계산). 체크포인트로 돌아갈 때는 지나감 추적만 비운다:
+    /// 순간이동은 트리거 나감을 보내지 않아, 레이저 안에서 돌아가면 '안에 있음'이 남아 레이저가 다시 켜지지 않는다.
     /// </summary>
     [RequireComponent(typeof(LaserSegment))]
-    public class LaserWall : GateBase
+    public class LaserWall : GateBase, ISnapshotable
     {
         [SerializeField] LaserWallView view;
 
@@ -73,6 +75,14 @@ namespace ColorMaze
             if (blocking == IsBlocking || (blocking && inside)) return;
             SetBlocking(blocking);
             view.SetPassable(!blocking);
+        }
+
+        public string CaptureState() => null;
+
+        public void RestoreState(string state)
+        {
+            inside = false;
+            Refresh();
         }
 
         float Side(Vector3 position) => Mathf.Sign(Vector3.Dot(position - transform.position, transform.forward));

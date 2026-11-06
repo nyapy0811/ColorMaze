@@ -30,13 +30,26 @@ namespace ColorMaze
             enabled = true;
         }
 
+        /// <summary>미닫이 없이 바로 열리거나 닫힌 모양이 된다(체크포인트 복귀).</summary>
+        public void SetOpenImmediate(bool open)
+        {
+            openness = target = open ? 1f : 0f;
+            Apply();
+            enabled = false;
+        }
+
         void Update()
         {
             openness = Mathf.MoveTowards(openness, target, Time.deltaTime / duration);
+            Apply();
+            if (openness == target) enabled = false;
+        }
+
+        void Apply()
+        {
             float x = closedX + openness * rightLeaf.localScale.x;
             Place(leftLeaf, -x);
             Place(rightLeaf, x);
-            if (openness == target) enabled = false;
         }
 
         static void Place(Transform leaf, float x)

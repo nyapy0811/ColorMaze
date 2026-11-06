@@ -32,6 +32,9 @@ namespace ColorMaze
         /// <summary>레이저 벽을 지나 빼는 색만큼 뺀다. 모자란 채널은 0에서 멈춘다.</summary>
         public void Pass(ColorValue cost) => Set(ColorRules.Clamp(Value - cost, Limit));
 
+        /// <summary>체크포인트에 저장했던 값으로 되돌린다.</summary>
+        public void Restore(ColorValue value) => Set(value);
+
         void Set(ColorValue value)
         {
             if (value == Value) return;

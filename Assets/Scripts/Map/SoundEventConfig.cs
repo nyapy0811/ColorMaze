@@ -14,6 +14,7 @@ namespace ColorMaze
         public AudioClip colorRejected;
         public AudioClip doorOpened;
         public AudioClip laserPassed;
+        public AudioClip checkpointReached;
         public AudioClip mapCleared;
     }
 }

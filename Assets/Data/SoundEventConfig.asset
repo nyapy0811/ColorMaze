@@ -16,4 +16,5 @@ MonoBehaviour:
   colorRejected: {fileID: 8300000, guid: 5d3fd80ace0eab941995378ba0008c1d, type: 3}
   doorOpened: {fileID: 8300000, guid: 49181efe2b71f7848b0785a9c0c11899, type: 3}
   laserPassed: {fileID: 8300000, guid: 1fdda8c1b880aae42af19ae2b9ab3c5d, type: 3}
+  checkpointReached: {fileID: 8300000, guid: 896258cf48aaceb49b6dc21b1dc6a5fe, type: 3}
   mapCleared: {fileID: 8300000, guid: d6ad8d9ee71c1fa4885bd2fa4be7d2ff, type: 3}

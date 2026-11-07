@@ -9,29 +9,31 @@ using UnityEngine.Rendering;
 namespace ColorMaze
 {
     /// <summary>
-    /// MagicaVoxel <c>.vox</c>를 프리팹 겉모습으로 가져온다(약속은 Docs/v2 복셀 모델링 규칙 2~5절). 오브젝트 하나가 자식 하나이고,
-    /// 칠하는 색(값 색 248, 연결색 249)의 칸은 자식 아래 별도 렌더러(흰색)로 떼어낸다. 기물 컴포넌트가 그 렌더러를 통째로 칠한다.
+    /// MagicaVoxel <c>.vox</c>를 프리팹 겉모습으로 가져온다(약속은 Docs/v2 복셀 모델링 규칙 1~5절). 오브젝트 하나가 자식 하나이고,
+    /// 값 색 칸(33~40, 밝기 8단계)은 자식 아래 별도 렌더러 하나(ValueColor)로 떼어낸다. 그 렌더러의 칸은 자기 색의 가장 큰 채널을
+    /// 밝기로 남긴 회색이라, 기물 컴포넌트가 렌더러의 _BaseColor를 바꾸면 그 색과 곱해진다(값 색 안의 음영).
     /// 나머지 칸은 파일의 팔레트를 256 × 1 텍스처로 만들어 면마다 자기 색 칸을 가리키게 한다(URP Lit은 버텍스 색을 읽지 않음).
     /// </summary>
-    [ScriptedImporter(2, "vox")]
+    [ScriptedImporter(3, "vox")]
     public class VoxImporter : ScriptedImporter
     {
         public enum PivotMode { BottomBackEdge, BottomCenter, TopCenter }
 
-        /// <summary>한 칸의 길이(유닛). 1유닛 = 20칸.</summary>
-        public const float VoxelSize = 0.05f;
+        /// <summary>한 칸의 길이(유닛). 1유닛 = 16칸(블록 한 칸이 16³, 2026-11-07).</summary>
+        public const float VoxelSize = 0.0625f;
 
-        public const byte ValueColor = 248;
-        public const byte LinkColor = 249;
-        const byte FirstSpareColor = 250;
+        /// <summary>값 색 칸: 33(가장 밝음) ~ 40(가장 어두움).</summary>
+        public const byte FirstValueColor = 33;
+        public const byte LastValueColor = 40;
+
+        const string ValuePartName = "ValueColor";
 
         const string LitShaderPath = "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader";
 
-        static readonly (byte color, string name)[] Paints = { (ValueColor, "ValueColor"), (LinkColor, "LinkColor") };
-
         [Tooltip("기준점. 모든 오브젝트의 모델 크기 상자를 합친 상자에서 고른다(규칙 5절): 바닥면 뒤쪽 가장자리의 가운데(기물 기준, 기본), " +
-                 "바닥면 가운데(벽 모듈, 기둥, 끼운 문), 윗면 가운데(바닥·천장 판, 천장에 붙는 것). 자식은 자기 상자에서 같은 쪽을 기준점으로 쓴다.")]
-        public PivotMode pivot = PivotMode.BottomBackEdge;
+                 "바닥면 가운데(기물·블록·계단 기본, 칸 바닥 가운데에 놓음), 바닥면 뒤쪽 가장자리의 가운데(블록 옆면에 붙는 기물), " +
+                 "윗면 가운데(위에 붙는 것). 자식은 자기 상자에서 같은 쪽을 기준점으로 쓴다.")]
+        public PivotMode pivot = PivotMode.BottomCenter;
 
         public override void OnImportAsset(AssetImportContext ctx)
         {
@@ -50,8 +52,10 @@ namespace ColorMaze
             // 셰이더를 의존으로 알려 셰이더가 먼저 가져와지게 한다(전체를 다시 가져올 때 Shader.Find가 null을 주던 원인).
             ctx.DependsOnArtifact(LitShaderPath);
             var lit = AssetDatabase.LoadAssetAtPath<Shader>(LitShaderPath);
+            var valuePalette = ValuePalette(file.palette);
+            ctx.AddObjectToAsset("valuePalette", valuePalette);
             var voxelMaterial = NewMaterial("Voxel", lit, palette);
-            var paintMaterial = NewMaterial("Paint", lit, null);
+            var paintMaterial = NewMaterial("Paint", lit, valuePalette);
             ctx.AddObjectToAsset("material:Voxel", voxelMaterial);
             ctx.AddObjectToAsset("material:Paint", paintMaterial);
 
@@ -73,15 +77,14 @@ namespace ColorMaze
 
                 var grid = VoxMesher.Grid(obj.model);
                 var offset = ToUnity(obj.Min) - childPivot;
-                var plain = VoxMesher.Quads(grid, color => color != ValueColor && color != LinkColor);
+                var plain = VoxMesher.Quads(grid, color => !IsValueColor(color));
                 if (plain.Count > 0) Attach(ctx, child, name, BuildMesh(name, plain, offset), voxelMaterial);
-                foreach (var (color, partName) in Paints)
+                var valueQuads = VoxMesher.Quads(grid, IsValueColor);
+                if (valueQuads.Count > 0)
                 {
-                    var quads = VoxMesher.Quads(grid, c => c == color);
-                    if (quads.Count == 0) continue;
-                    var part = new GameObject(partName);
+                    var part = new GameObject(ValuePartName);
                     part.transform.SetParent(child.transform, false);
-                    Attach(ctx, part, $"{name}/{partName}", BuildMesh(partName, quads, offset), paintMaterial);
+                    Attach(ctx, part, $"{name}/{ValuePartName}", BuildMesh(ValuePartName, valueQuads, offset), paintMaterial);
                 }
             }
             ctx.AddObjectToAsset("root", root);
@@ -102,6 +105,30 @@ namespace ColorMaze
         }
 
         static Vector3 ToUnity(Vector3Int position) => new(position.x, position.z, position.y);
+
+        public static bool IsValueColor(byte color) => color >= FirstValueColor && color <= LastValueColor;
+
+        /// <summary>값 색 렌더러의 텍스처: 값 색 칸마다 그 칸 색의 가장 큰 채널을 밝기로 남긴 회색(나머지 칸은 쓰지 않아 흰색).</summary>
+        static Texture2D ValuePalette(Color32[] colors)
+        {
+            var pixels = new Color32[256];
+            for (int i = 0; i < 256; i++)
+            {
+                byte level = IsValueColor((byte)i) ? Max(colors[i]) : (byte)255;
+                pixels[i] = new Color32(level, level, level, 255);
+            }
+            var texture = new Texture2D(256, 1, TextureFormat.RGBA32, false)
+            {
+                name = "ValuePalette",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            return texture;
+        }
+
+        static byte Max(Color32 color) => (byte)Mathf.Max(color.r, Mathf.Max(color.g, color.b));
 
         static void Attach(AssetImportContext ctx, GameObject target, string id, Mesh mesh, Material material)
         {
@@ -157,15 +184,13 @@ namespace ColorMaze
             return material;
         }
 
-        /// <summary>규칙 2절: 예약 칸이 아닌 칸은 회색(R = G = B)만 쓰고 예비 칸(250~255)은 쓰지 않는다. 규칙 5절: 오브젝트 회전은 쓰지 않는다.</summary>
+        /// <summary>규칙 2·7절: 값 색 칸(33~40)이 아닌 칸은 회색(R = G = B)만 쓴다. 규칙 5절: 오브젝트 회전은 쓰지 않는다.</summary>
         static void Warn(AssetImportContext ctx, VoxFile file)
         {
             if (file.hasRotation) ctx.LogImportWarning("[VoxImporter] 오브젝트 회전(_r)이 있지만 읽지 않는다(회전 없이 놓임).");
             var used = file.models.SelectMany(model => model.voxels).Select(voxel => voxel.color).Distinct().OrderBy(color => color).ToList();
-            var spare = used.Where(color => color >= FirstSpareColor).ToList();
-            var colored = used.Where(color => color < ValueColor && !IsGray(file.palette[color])).ToList();
-            if (spare.Count > 0) ctx.LogImportWarning($"[VoxImporter] 예비 칸(250~255)을 썼다: 색 번호 {string.Join(", ", spare)}");
-            if (colored.Count > 0) ctx.LogImportWarning($"[VoxImporter] 회색이 아닌 일반 칸을 썼다: 색 번호 {string.Join(", ", colored)}");
+            var colored = used.Where(color => !IsValueColor(color) && !IsGray(file.palette[color])).ToList();
+            if (colored.Count > 0) ctx.LogImportWarning($"[VoxImporter] 값 색 칸(33~40)이 아닌데 회색이 아닌 칸을 썼다: 색 번호 {string.Join(", ", colored)}");
         }
 
         static bool IsGray(Color32 color) => color.r == color.g && color.g == color.b;

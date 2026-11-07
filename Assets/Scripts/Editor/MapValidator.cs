@@ -72,6 +72,7 @@ namespace ColorMaze
             problems += CheckCubeGrid(scene);
 
             if (managers.Count == 1) problems += CheckMapList(scene, managers[0].MapList);
+            if (managers.Count == 1) problems += CheckSharedLight(scene, managers[0]);
 
             return problems;
         }
@@ -127,7 +128,7 @@ namespace ColorMaze
 
         /// <summary>
         /// 큐브 격자 1개(원점에 두고 돌리거나 늘리지 않음), 칸 바닥 가운데에 놓이지 않은 기물, 한 칸에 둘 이상인 기물,
-        /// 블록과 같은 칸에 있는 기물(v1 칸 규칙, 한 칸에 하나).
+        /// 블록이나 계단과 같은 칸에 있는 기물(v1 칸 규칙, 한 칸에 하나). 시험 모델도 기물처럼 본다.
         /// </summary>
         static int CheckCubeGrid(Scene scene)
         {
@@ -148,8 +149,10 @@ namespace ColorMaze
             }
 
             var blocks = new HashSet<Vector3Int>(grid.Data.blocks);
-            var occupied = new Dictionary<Vector3Int, FixtureBase>();
-            foreach (var fixture in FixtureIdAssigner.FixturesIn(scene))
+            foreach (var stair in grid.Data.stairs) blocks.Add(stair.cell);
+            var occupied = new Dictionary<Vector3Int, Component>();
+            var placed = FixtureIdAssigner.FixturesIn(scene).Cast<Component>().Concat(CubeGridEditing.TestModelsIn(scene));
+            foreach (var fixture in placed)
             {
                 var position = fixture.transform.position;
                 if (!CubeGridRules.IsOnCellBottom(position))
@@ -161,15 +164,49 @@ namespace ColorMaze
                 var cell = CubeGridRules.CellAt(position);
                 if (blocks.Contains(cell))
                 {
-                    Debug.LogError($"[맵 검사] '{fixture.name}'이 블록과 같은 칸 {cell}에 있다.", fixture);
+                    Debug.LogError($"[맵 검사] '{fixture.name}'이 블록이나 계단과 같은 칸 {cell}에 있다.", fixture);
                     problems++;
                 }
                 if (occupied.TryGetValue(cell, out var other))
                 {
-                    Debug.LogError($"[맵 검사] 칸 {cell}에 기물이 둘 있다: '{other.name}', '{fixture.name}'.", fixture);
+                    Debug.LogError($"[맵 검사] 칸 {cell}에 기물이나 시험 모델이 둘 있다: '{other.name}', '{fixture.name}'.", fixture);
                     problems++;
                 }
                 else occupied[cell] = fixture;
+            }
+            return problems;
+        }
+
+        /// <summary>
+        /// 방향광은 맵 기본 프리팹(MapRoot) 안의 것 하나를 모든 맵이 같이 쓴다(2026-11-07). 그 밖의 방향광, 공유 빛이 없음,
+        /// 이 맵에서만 바꾼 공유 빛 설정(프리팹 오버라이드)을 알린다. 설정은 프리팹에서 고치거나 오버라이드를 프리팹에 적용한다.
+        /// </summary>
+        static int CheckSharedLight(Scene scene, MapManager manager)
+        {
+            int problems = 0;
+            var directional = Roots(scene).SelectMany(root => root.GetComponentsInChildren<Light>(true)).Where(l => l.type == LightType.Directional).ToList();
+            var shared = directional.Where(l => l.transform.IsChildOf(manager.transform)).ToList();
+            foreach (var other in directional.Except(shared))
+            {
+                Debug.LogError($"[맵 검사] 공유 빛(MapRoot 안) 말고 방향광 '{other.name}'이 있다. 지운다(새 씬에 기본으로 생기는 빛 포함).", other);
+                problems++;
+            }
+            if (shared.Count != 1)
+            {
+                Debug.LogError($"[맵 검사] MapRoot 안의 공유 방향광이 {shared.Count}개다(1개여야 함).", manager);
+                return problems + 1;
+            }
+
+            var light = shared[0].gameObject;
+            var instanceRoot = PrefabUtility.GetOutermostPrefabInstanceRoot(manager.gameObject);
+            if (instanceRoot == null) return problems;
+            bool changedHere = PrefabUtility.GetObjectOverrides(instanceRoot).Any(o =>
+                o.instanceObject is Component c ? c.gameObject == light : o.instanceObject == light)
+                || PrefabUtility.GetAddedComponents(instanceRoot).Any(a => a.instanceComponent.gameObject == light);
+            if (changedHere)
+            {
+                Debug.LogError($"[맵 검사] 공유 빛 '{light.name}'을 이 맵에서만 바꿨다(프리팹 오버라이드). 모든 맵에 쓰려면 인스펙터의 Overrides → Apply, 아니면 Revert.", light);
+                problems++;
             }
             return problems;
         }

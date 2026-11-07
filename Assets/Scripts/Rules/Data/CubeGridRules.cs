@@ -7,7 +7,7 @@ namespace ColorMaze
     /// <summary>
     /// 큐브 맵의 순수 계산(v1 칸 규칙). 한 칸은 1×1×1이고 칸 좌표는 정수 (x, y, z)다. 칸은 x·z가 좌표 ±0.5, y가 좌표 ~ 좌표 + 1인
     /// 상자라 칸 중심은 (x, y + 0.5, z), 칸 바닥 가운데는 (x, y, z)다. 그래서 y = −1 칸의 블록 윗면이 높이 0이다.
-    /// 높이 제한과 천장은 없다. 한 칸에는 블록이나 기물 하나만 둔다(검사는 편집 도구와 맵 검사).
+    /// 높이 제한과 천장은 없다. 한 칸에는 블록, 계단, 기물 중 하나만 둔다(기물 검사는 편집 도구와 맵 검사).
     /// </summary>
     public static class CubeGridRules
     {
@@ -30,16 +30,40 @@ namespace ColorMaze
 
         public static bool HasBlock(CubeGridData data, Vector3Int cell) => data.blocks.Contains(cell);
 
-        /// <summary>블록을 놓는다. 이미 있으면 false.</summary>
+        public static bool HasStair(CubeGridData data, Vector3Int cell) => data.stairs.Exists(stair => stair.cell == cell);
+
+        /// <summary>블록이나 계단이 칸을 차지하는가.</summary>
+        public static bool IsOccupied(CubeGridData data, Vector3Int cell) => HasBlock(data, cell) || HasStair(data, cell);
+
+        /// <summary>블록을 놓는다. 칸이 차 있으면 false.</summary>
         public static bool AddBlock(CubeGridData data, Vector3Int cell)
         {
-            if (HasBlock(data, cell)) return false;
+            if (IsOccupied(data, cell)) return false;
             data.blocks.Add(cell);
             return true;
         }
 
-        /// <summary>블록을 지운다. 없었으면 false.</summary>
-        public static bool RemoveBlock(CubeGridData data, Vector3Int cell) => data.blocks.Remove(cell);
+        /// <summary>계단을 놓는다(방향은 0~3으로 맞춤). 칸이 차 있으면 false.</summary>
+        public static bool AddStair(CubeGridData data, Vector3Int cell, int turn)
+        {
+            if (IsOccupied(data, cell)) return false;
+            data.stairs.Add(new CubeStair(cell, Turn(turn)));
+            return true;
+        }
+
+        /// <summary>칸의 블록이나 계단을 지운다. 없었으면 false.</summary>
+        public static bool Remove(CubeGridData data, Vector3Int cell) =>
+            data.blocks.Remove(cell) | data.stairs.RemoveAll(stair => stair.cell == cell) > 0;
+
+        /// <summary>방향 횟수를 0~3으로 맞춘다.</summary>
+        public static int Turn(int turn) => (turn % 4 + 4) % 4;
+
+        /// <summary>계단의 회전(모델은 +z로 오름).</summary>
+        public static Quaternion StairRotation(int turn) => Quaternion.Euler(0f, 90f * Turn(turn), 0f);
+
+        /// <summary>수평 방향에 가장 가까운 계단 방향(그쪽으로 오름). 편집 도구가 카메라가 보는 쪽으로 놓을 때 쓴다.</summary>
+        public static int TurnFacing(Vector3 direction) =>
+            Turn(Mathf.RoundToInt(Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg / 90f));
 
         /// <summary>두 칸을 모서리로 하는 상자 안의 모든 칸(직사각형 범위 놓기·지우기).</summary>
         public static List<Vector3Int> Box(Vector3Int a, Vector3Int b)
@@ -54,12 +78,13 @@ namespace ColorMaze
             return cells;
         }
 
-        /// <summary>가장 낮은 블록 칸의 y. 블록이 없으면 false.</summary>
+        /// <summary>가장 낮은 블록·계단 칸의 y. 둘 다 없으면 false.</summary>
         public static bool TryLowestY(CubeGridData data, out int lowest)
         {
             lowest = int.MaxValue;
             foreach (var cell in data.blocks) lowest = Math.Min(lowest, cell.y);
-            return data.blocks.Count > 0;
+            foreach (var stair in data.stairs) lowest = Math.Min(lowest, stair.cell.y);
+            return data.blocks.Count + data.stairs.Count > 0;
         }
 
         /// <summary>

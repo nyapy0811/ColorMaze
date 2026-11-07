@@ -32,9 +32,37 @@ namespace ColorMaze
             Assert.IsTrue(CubeGridRules.AddBlock(data, cell));
             Assert.IsFalse(CubeGridRules.AddBlock(data, cell));
             Assert.AreEqual(1, data.blocks.Count);
-            Assert.IsTrue(CubeGridRules.RemoveBlock(data, cell));
-            Assert.IsFalse(CubeGridRules.RemoveBlock(data, cell));
+            Assert.IsTrue(CubeGridRules.Remove(data, cell));
+            Assert.IsFalse(CubeGridRules.Remove(data, cell));
             Assert.AreEqual(0, data.blocks.Count);
+        }
+
+        [Test]
+        public void Stair_SharesOneThingPerCellWithBlocks()
+        {
+            var data = new CubeGridData();
+            var block = new Vector3Int(0, 0, 0);
+            var stair = new Vector3Int(1, 0, 0);
+            Assert.IsTrue(CubeGridRules.AddBlock(data, block));
+            Assert.IsFalse(CubeGridRules.AddStair(data, block, 0));
+            Assert.IsTrue(CubeGridRules.AddStair(data, stair, 5));
+            Assert.AreEqual(1, data.stairs[0].turn);
+            Assert.IsFalse(CubeGridRules.AddStair(data, stair, 0));
+            Assert.IsFalse(CubeGridRules.AddBlock(data, stair));
+            Assert.IsTrue(CubeGridRules.IsOccupied(data, stair));
+            Assert.IsTrue(CubeGridRules.Remove(data, stair));
+            Assert.IsFalse(CubeGridRules.IsOccupied(data, stair));
+        }
+
+        [Test]
+        public void TurnFacing_SnapsToNearestAxis()
+        {
+            Assert.AreEqual(0, CubeGridRules.TurnFacing(new Vector3(0.3f, -1f, 1f)));
+            Assert.AreEqual(1, CubeGridRules.TurnFacing(new Vector3(1f, 0f, 0.4f)));
+            Assert.AreEqual(2, CubeGridRules.TurnFacing(new Vector3(-0.2f, 0f, -1f)));
+            Assert.AreEqual(3, CubeGridRules.TurnFacing(new Vector3(-1f, 0f, -0.3f)));
+            var up = CubeGridRules.StairRotation(1) * Vector3.forward;
+            Assert.AreEqual(1f, up.x, 1e-5f);
         }
 
         [Test]
@@ -55,6 +83,9 @@ namespace ColorMaze
             data.blocks.Add(new Vector3Int(5, -3, 1));
             Assert.IsTrue(CubeGridRules.TryLowestY(data, out int lowest));
             Assert.AreEqual(-3, lowest);
+            data.stairs.Add(new CubeStair(new Vector3Int(1, -4, 0), 0));
+            Assert.IsTrue(CubeGridRules.TryLowestY(data, out lowest));
+            Assert.AreEqual(-4, lowest);
         }
 
         [Test]

@@ -10,14 +10,28 @@ namespace ColorMaze
 {
     /// <summary>
     /// 큐브 맵 편집 창과 씬 뷰 도구가 함께 쓰는 편집 동작(v1 MazeGeneratorEditor 방식을 v2 구조로).
-    /// 고른 붓으로 칸에 블록이나 기물을 놓고 지운다. 한 칸에는 하나만 두며, 블록은 큐브 격자 데이터에, 기물은 씬의 프리팹 인스턴스로
-    /// 칸 바닥 가운데에 놓는다(맵 안 id는 놓을 때 고침). 편집 한 번이 Undo 하나다.
+    /// 고른 붓으로 칸에 블록·계단·기물·시험 모델을 놓고 지운다. 한 칸에는 하나만 두며, 블록과 계단은 큐브 격자 데이터에, 기물과 시험 모델은
+    /// 씬의 오브젝트로 칸 바닥 가운데에 놓는다(맵 안 id는 기물을 놓을 때 고침). 계단은 씬 카메라가 보는 쪽으로 오르게 놓고, '돌리기'로 90°씩 더
+    /// 돌린다. 편집 한 번이 Undo 하나다.
     /// </summary>
     public static class CubeGridEditing
     {
-        public enum Brush { Block, StartPoint, ColorSource, Goal }
+        public enum Brush { Block, Stair, StartPoint, ColorSource, Goal, TestModel }
 
-        public static readonly string[] BrushNames = { "블록", "시작 지점", "색 원천", "목적지" };
+        public static readonly string[] BrushNames = { "블록", "계단", "시작 지점", "색 원천", "목적지", "시험 모델" };
+
+        const string TestModelsFolder = "TestModels";
+
+        /// <summary>시험 모델 붓으로 놓을 모델(.vox나 프리팹, 기준점은 바닥면 가운데).</summary>
+        public static GameObject TestModelAsset
+        {
+            get => AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(SessionState.GetString("ColorMaze.CubeGrid.TestModel", "")));
+            set
+            {
+                SessionState.SetString("ColorMaze.CubeGrid.TestModel", value != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value)) : "");
+                BrushChanged?.Invoke();
+            }
+        }
 
         public static Brush SelectedBrush
         {
@@ -29,6 +43,20 @@ namespace ColorMaze
             }
         }
 
+        /// <summary>계단을 카메라 방향에서 90°씩 더 돌린 횟수(창의 '돌리기').</summary>
+        public static int StairTurnOffset
+        {
+            get => SessionState.GetInt("ColorMaze.CubeGrid.StairTurn", 0);
+            set
+            {
+                SessionState.SetInt("ColorMaze.CubeGrid.StairTurn", CubeGridRules.Turn(value));
+                BrushChanged?.Invoke();
+            }
+        }
+
+        /// <summary>지금 놓을 계단의 방향: 씬 카메라가 보는 쪽 + 돌린 횟수.</summary>
+        public static int StairTurn(Vector3 cameraForward) => CubeGridRules.Turn(CubeGridRules.TurnFacing(cameraForward) + StairTurnOffset);
+
         public static event Action BrushChanged;
 
         public static CubeGridConfig FindConfig()
@@ -37,44 +65,57 @@ namespace ColorMaze
             return guids.Length == 0 ? null : AssetDatabase.LoadAssetAtPath<CubeGridConfig>(AssetDatabase.GUIDToAssetPath(guids[0]));
         }
 
+        /// <summary>새 맵의 큐브 격자를 만들고, 그 씬의 하늘 상자를 기본값(큐브 맵 설정)으로 맞춘다.</summary>
         public static CubeGrid CreateGrid()
         {
+            var config = FindConfig();
+            if (config != null && config.defaultSkybox != null && RenderSettings.skybox != config.defaultSkybox)
+            {
+                RenderSettings.skybox = config.defaultSkybox;
+                DynamicGI.UpdateEnvironment();
+            }
             var go = new GameObject("CubeGrid");
             Undo.RegisterCreatedObjectUndo(go, "큐브 격자 만들기");
             Selection.activeGameObject = go;
             return go.AddComponent<CubeGrid>();
         }
 
-        /// <summary>씬의 기물이 든 칸(칸 바닥 가운데에 놓인 기물 기준).</summary>
-        public static Dictionary<Vector3Int, FixtureBase> FixtureCells(CubeGrid grid)
+        /// <summary>씬의 기물과 시험 모델이 든 칸(칸 바닥 가운데에 놓인 자리 기준).</summary>
+        public static Dictionary<Vector3Int, GameObject> ObjectCells(CubeGrid grid)
         {
-            var cells = new Dictionary<Vector3Int, FixtureBase>();
-            foreach (var fixture in FixtureIdAssigner.FixturesIn(grid.gameObject.scene))
-                cells.TryAdd(CubeGridRules.CellAt(fixture.transform.position), fixture);
+            var cells = new Dictionary<Vector3Int, GameObject>();
+            var scene = grid.gameObject.scene;
+            foreach (var fixture in FixtureIdAssigner.FixturesIn(scene))
+                cells.TryAdd(CubeGridRules.CellAt(fixture.transform.position), fixture.gameObject);
+            foreach (var model in TestModelsIn(scene))
+                cells.TryAdd(CubeGridRules.CellAt(model.transform.position), model.gameObject);
             return cells;
         }
 
-        public static bool IsFilled(CubeGrid grid, Dictionary<Vector3Int, FixtureBase> fixtures, Vector3Int cell) =>
-            CubeGridRules.HasBlock(grid.Data, cell) || fixtures.ContainsKey(cell);
+        public static IEnumerable<CubeTestModel> TestModelsIn(UnityEngine.SceneManagement.Scene scene) =>
+            scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<CubeTestModel>(true));
 
-        /// <summary>빈 칸이면 고른 붓으로 놓는다.</summary>
-        public static void Place(CubeGrid grid, Vector3Int cell) => PlaceAll(grid, new[] { cell }, "칸에 놓기");
+        public static bool IsFilled(CubeGrid grid, Dictionary<Vector3Int, GameObject> objects, Vector3Int cell) =>
+            CubeGridRules.IsOccupied(grid.Data, cell) || objects.ContainsKey(cell);
+
+        /// <summary>빈 칸이면 고른 붓으로 놓는다. 계단은 <paramref name="stairTurn"/> 방향으로 오른다.</summary>
+        public static void Place(CubeGrid grid, Vector3Int cell, int stairTurn) => PlaceAll(grid, new[] { cell }, "칸에 놓기", stairTurn: stairTurn);
 
         /// <summary>범위의 빈 칸에 블록을 놓는다(범위 놓기는 블록만).</summary>
         public static void PlaceBlocks(CubeGrid grid, IEnumerable<Vector3Int> cells) => PlaceAll(grid, cells, "블록 범위 놓기", blocksOnly: true);
 
-        /// <summary>칸의 블록이나 기물을 지운다.</summary>
+        /// <summary>칸의 블록·계단·기물·시험 모델을 지운다.</summary>
         public static void Remove(CubeGrid grid, IEnumerable<Vector3Int> cells)
         {
             var config = RequireConfig();
             if (config == null) return;
-            var fixtures = FixtureCells(grid);
+            var objects = ObjectCells(grid);
             Edit(grid, "칸 지우기", () =>
             {
                 foreach (var cell in cells)
                 {
-                    CubeGridRules.RemoveBlock(grid.Data, cell);
-                    if (fixtures.Remove(cell, out var fixture)) Undo.DestroyObjectImmediate(fixture.gameObject);
+                    CubeGridRules.Remove(grid.Data, cell);
+                    if (objects.Remove(cell, out var placed)) Undo.DestroyObjectImmediate(placed);
                 }
             }, config);
         }
@@ -86,27 +127,31 @@ namespace ColorMaze
             Edit(grid, "블록 다시 만들기", () => { }, config, fullRebuild: true);
         }
 
-        static void PlaceAll(CubeGrid grid, IEnumerable<Vector3Int> cells, string undoName, bool blocksOnly = false)
+        static void PlaceAll(CubeGrid grid, IEnumerable<Vector3Int> cells, string undoName, bool blocksOnly = false, int stairTurn = 0)
         {
             var config = RequireConfig();
             if (config == null) return;
             var brush = blocksOnly ? Brush.Block : SelectedBrush;
             var prefab = PrefabFor(config, brush);
-            if (brush != Brush.Block && prefab == null)
+            if (prefab == null)
             {
-                Debug.LogError($"[큐브 맵 편집] 큐브 맵 설정에 '{BrushNames[(int)brush]}' 프리팹이 없다.", config);
+                Debug.LogError(brush == Brush.TestModel
+                    ? "[큐브 맵 편집] 시험 모델을 고르지 않았다(큐브 맵 편집 창의 붓 아래 칸)."
+                    : $"[큐브 맵 편집] 큐브 맵 설정에 '{BrushNames[(int)brush]}' 프리팹이 없다.", config);
                 return;
             }
-            var fixtures = FixtureCells(grid);
+            var objects = ObjectCells(grid);
             Edit(grid, undoName, () =>
             {
                 foreach (var cell in cells)
                 {
-                    if (IsFilled(grid, fixtures, cell)) continue;
+                    if (IsFilled(grid, objects, cell)) continue;
                     if (brush == Brush.Block) CubeGridRules.AddBlock(grid.Data, cell);
-                    else fixtures[cell] = PlaceFixture(grid, prefab, brush, cell);
+                    else if (brush == Brush.Stair) CubeGridRules.AddStair(grid.Data, cell, stairTurn);
+                    else if (brush == Brush.TestModel) objects[cell] = PlaceTestModel(grid, prefab, cell);
+                    else objects[cell] = PlaceFixture(grid, prefab, brush, cell).gameObject;
                 }
-                if (brush != Brush.Block) FixtureIdAssigner.FixIds(grid.gameObject.scene);
+                if (IsFixture(brush)) FixtureIdAssigner.FixIds(grid.gameObject.scene);
             }, config);
         }
 
@@ -121,10 +166,29 @@ namespace ColorMaze
             return go.GetComponent<FixtureBase>();
         }
 
+        // 시험 모델: 한 칸 상자 콜라이더를 단 바깥 오브젝트 아래에 모델을 둔다(모델 모양과 상관없이 충돌은 한 칸).
+        static GameObject PlaceTestModel(CubeGrid grid, GameObject model, Vector3Int cell)
+        {
+            var scene = grid.gameObject.scene;
+            var holder = new GameObject($"Test {model.name} {cell.x},{cell.y},{cell.z}");
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(holder, scene);
+            Undo.RegisterCreatedObjectUndo(holder, "시험 모델 놓기");
+            Undo.SetTransformParent(holder.transform, FolderFor(scene, Brush.TestModel), "시험 모델 놓기");
+            holder.transform.SetPositionAndRotation(CubeGridRules.CellBottom(cell), Quaternion.identity);
+            var box = holder.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.5f, 0f);
+            box.size = Vector3.one;
+            holder.AddComponent<CubeTestModel>();
+            var view = (GameObject)PrefabUtility.InstantiatePrefab(model, holder.transform);
+            view.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            Selection.activeGameObject = holder;
+            return holder;
+        }
+
         // 기물은 종류별 묶음 오브젝트 아래에 둔다(시험 맵의 구성과 같음). 시작 지점은 씬 바로 아래.
         static Transform FolderFor(UnityEngine.SceneManagement.Scene scene, Brush brush)
         {
-            string name = brush switch { Brush.ColorSource => "ColorSources", Brush.Goal => "Activators", _ => null };
+            string name = brush switch { Brush.ColorSource => "ColorSources", Brush.Goal => "Activators", Brush.TestModel => TestModelsFolder, _ => null };
             if (name == null) return null;
             var existing = scene.GetRootGameObjects().FirstOrDefault(root => root.name == name);
             if (existing != null) return existing.transform;
@@ -134,8 +198,12 @@ namespace ColorMaze
             return folder.transform;
         }
 
+        static bool IsFixture(Brush brush) => brush is not (Brush.Block or Brush.Stair or Brush.TestModel);
+
         static GameObject PrefabFor(CubeGridConfig config, Brush brush) => brush switch
         {
+            Brush.Stair => config.stairPrefab,
+            Brush.TestModel => TestModelAsset,
             Brush.StartPoint => config.startPointPrefab,
             Brush.ColorSource => config.colorSourcePrefab,
             Brush.Goal => config.goalPrefab,

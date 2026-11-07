@@ -29,11 +29,13 @@ namespace ColorMaze
         [Test]
         public void Read_TestFile_PaletteIndexIsColorNumber()
         {
+            // 값 색 칸 33(가장 밝음)과 40(가장 어두움)은 Base의 윗면 테두리에만 있다(규칙 3절, 8절).
             var file = ReadTestFile();
-            Assert.AreEqual(new Color32(255, 0, 0, 255), file.palette[VoxImporter.ValueColor]);
-            Assert.AreEqual(new Color32(0, 230, 230, 255), file.palette[VoxImporter.LinkColor]);
-            Assert.AreEqual(88, file.objects[0].model.voxels.Count(voxel => voxel.color == VoxImporter.ValueColor));
-            Assert.AreEqual(75, file.objects[1].model.voxels.Count(voxel => voxel.color == VoxImporter.LinkColor));
+            Assert.AreEqual(new Color32(255, 0, 0, 255), file.palette[VoxImporter.FirstValueColor]);
+            Assert.AreEqual(new Color32(45, 0, 0, 255), file.palette[VoxImporter.LastValueColor]);
+            Assert.AreEqual(44, file.objects[0].model.voxels.Count(voxel => voxel.color == VoxImporter.FirstValueColor));
+            Assert.AreEqual(44, file.objects[0].model.voxels.Count(voxel => voxel.color == VoxImporter.LastValueColor));
+            Assert.AreEqual(0, file.objects[1].model.voxels.Count(voxel => VoxImporter.IsValueColor(voxel.color)));
             Assert.IsFalse(file.hasRotation);
         }
 

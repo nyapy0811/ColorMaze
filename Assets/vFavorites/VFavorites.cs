@@ -1021,7 +1021,9 @@ namespace VFavorites
                 var folderAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
 
                 if (browser.GetFieldValue<int>("m_ViewMode") == 1)
-#if UNITY_6000_3_OR_NEWER
+#if UNITY_6000_6_OR_NEWER
+                    browser.InvokeMethod("SetFolderSelection", new[] { (EntityId)folderAsset.GetObjectID() }, true, false);
+#elif UNITY_6000_3_OR_NEWER
                     browser.InvokeMethod("SetFolderSelection", new[] { (EntityId)folderAsset.GetObjectID() }, false);
 #else
                     browser.InvokeMethod("SetFolderSelection", new[] { folderAsset.GetObjectID() }, false);
@@ -1856,7 +1858,7 @@ namespace VFavorites
                 var lockedBrowserEntityIdULongString = EditorPrefsCached.GetString("vFavorites-lockedBrowserEntityIdULongString", default);
 
                 if (lockedBrowserEntityIdULongString == default) return null;
-                if(!ulong.TryParse(lockedBrowserEntityIdULongString, out _)) return null;
+                if (!ulong.TryParse(lockedBrowserEntityIdULongString, out _)) return null;
 
 
                 var lockedBrowserObjectId = EntityId.FromULong(ulong.Parse(lockedBrowserEntityIdULongString));
@@ -1940,7 +1942,11 @@ namespace VFavorites
 
         static void RepaintOnAltUp() // Update 
         {
+#if UNITY_6000_7_OR_NEWER
+            var lastEvent = t_EventIMGUIBindings.GetFieldValue<Event>("s_Current");
+#else
             var lastEvent = typeof(Event).GetFieldValue<Event>("s_Current");
+#endif
 
             if (wasAlt && !lastEvent.alt)
                 if (EditorWindow.mouseOverWindow?.GetType() == t_BrowserWindow)
@@ -1957,6 +1963,15 @@ namespace VFavorites
 
 
 
+        static void ResetFailedToLoadSceneObjects_onSceneLoad(Scene scene, OpenSceneMode mode)
+        {
+            if (!data) return;
+
+            foreach (var page in data.pages)
+                foreach (var item in page.items)
+                    item.failedToLoadSceneObject = false;
+
+        }
 
 
 
@@ -1986,6 +2001,12 @@ namespace VFavorites
 
                 EditorApplication.quitting -= VFavoritesState.Save;
                 EditorApplication.quitting += VFavoritesState.Save;
+
+
+                EditorSceneManager.sceneOpened -= ResetFailedToLoadSceneObjects_onSceneLoad;
+                EditorSceneManager.sceneOpened += ResetFailedToLoadSceneObjects_onSceneLoad;
+
+
 
             }
             void loadData()
@@ -2063,6 +2084,7 @@ namespace VFavorites
         static Type t_VHierarchy = Type.GetType("VHierarchy.VHierarchy") ?? Type.GetType("VHierarchy.VHierarchy, VHierarchy, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null");
         static Type t_VFolders = Type.GetType("VFolders.VFolders") ?? Type.GetType("VFolders.VFolders, VFolders, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null");
         static Type t_VTabs = Type.GetType("VTabs.VTabs") ?? Type.GetType("VTabs.VTabs, VTabs, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null");
+        static Type t_EventIMGUIBindings = typeof(GUIUtility).Assembly.GetType("UnityEngine.EventIMGUIBindings");
 
         static MethodInfo mi_VHierarchy_GetIconName = t_VHierarchy?.GetMethod("GetIconName_forVFavorites", maxBindingFlags);
         static MethodInfo mi_VFolders_DrawBigFolderIcon = t_VFolders?.GetMethod("DrawBigFolderIcon_forVFavorites", maxBindingFlags);
@@ -2071,7 +2093,7 @@ namespace VFavorites
 
 
 
-        const string version = "2.0.17";
+        const string version = "2.0.19";
 
     }
 }

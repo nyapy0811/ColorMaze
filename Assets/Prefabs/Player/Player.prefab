@@ -141,7 +141,7 @@ CharacterController:
   serializedVersion: 3
   m_Height: 1.6
   m_Radius: 0.25
-  m_SlopeLimit: 45
+  m_SlopeLimit: 50
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
@@ -163,8 +163,7 @@ MonoBehaviour:
   pitchLimit: 85
   accelerationTime: 0.2
   airDecelerationTime: 0.5
-  jumpHeight: 1.05
-  airTime: 0.8
+  gravity: 13.125
   cameraPivot: {fileID: 9179665582831082242}
 --- !u!114 &147754407189271427
 MonoBehaviour:

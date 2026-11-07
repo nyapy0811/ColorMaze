@@ -8,10 +8,10 @@ namespace ColorMaze
 {
     /// <summary>
     /// 씬 뷰의 큐브 맵 편집 도구(v1 MazeGeneratorEditor 조작). 큐브 격자를 고르면 씬 뷰 툴바에 나타난다(큐브 맵 편집 창으로도 켬).
-    /// 클릭: 가리킨 면 쪽 칸에 고른 붓으로 놓기 / Ctrl+클릭: 가리킨 칸 지우기 /
+    /// 클릭: 가리킨 면 쪽 칸에 고른 붓으로 놓기(계단은 카메라가 보는 쪽으로 오름) / Ctrl+클릭: 가리킨 칸 지우기 /
     /// Shift+드래그: 직사각형 범위에 블록 놓기 / Shift+Ctrl+드래그: 범위 지우기.
-    /// 가리킨 칸은 콜라이더가 아니라 격자로 찾는다(블록과 기물이 든 칸). 아무것도 가리키지 않으면 높이 0의 바닥면을 쓴다
-    /// (블록은 그 아래 y = −1 칸, 기물은 그 위 y = 0 칸). 범위는 시작한 칸을 지나고 가리킨 면에 수직인 평면에서 정한다(v1과 같음).
+    /// 가리킨 칸은 콜라이더가 아니라 격자로 찾는다(블록·계단·기물·시험 모델이 든 칸). 아무것도 가리키지 않으면 높이 0의 바닥면을 쓴다
+    /// (블록은 그 아래 y = −1 칸, 계단과 기물은 그 위 y = 0 칸). 범위는 시작한 칸을 지나고 가리킨 면에 수직인 평면에서 정한다(v1과 같음).
     /// </summary>
     [EditorTool("큐브 맵 편집", typeof(CubeGrid))]
     public class CubeGridSceneTool : EditorTool
@@ -85,7 +85,7 @@ namespace ColorMaze
             else
             {
                 var placeAt = hit ? cell + normal : GroundCell(e.mousePosition, CubeGridEditing.SelectedBrush);
-                if (placeAt.HasValue) CubeGridEditing.Place(grid, placeAt.Value);
+                if (placeAt.HasValue) CubeGridEditing.Place(grid, placeAt.Value, CubeGridEditing.StairTurn(CameraForward()));
             }
             e.Use();
         }
@@ -93,9 +93,9 @@ namespace ColorMaze
         // 가리킨 칸(블록이나 기물이 든 칸)과 들어간 면.
         static bool Pick(CubeGrid grid, Vector2 mouse, out Vector3Int cell, out Vector3Int normal)
         {
-            var fixtures = CubeGridEditing.FixtureCells(grid);
+            var objects = CubeGridEditing.ObjectCells(grid);
             var ray = HandleUtility.GUIPointToWorldRay(mouse);
-            return CubeGridRules.Raycast(ray.origin, ray.direction, MaxDistance, c => CubeGridEditing.IsFilled(grid, fixtures, c), out cell, out normal);
+            return CubeGridRules.Raycast(ray.origin, ray.direction, MaxDistance, c => CubeGridEditing.IsFilled(grid, objects, c), out cell, out normal);
         }
 
         // 높이 0의 바닥면 위 칸: 블록은 바닥면 아래 칸(윗면이 0), 기물은 바닥면 위 칸.
@@ -105,6 +105,12 @@ namespace ColorMaze
             if (!new Plane(Vector3.up, Vector3.zero).Raycast(ray, out float distance) || distance > MaxDistance) return null;
             var point = ray.GetPoint(distance);
             return new Vector3Int(Mathf.RoundToInt(point.x), brush == CubeGridEditing.Brush.Block ? -1 : 0, Mathf.RoundToInt(point.z));
+        }
+
+        static Vector3 CameraForward()
+        {
+            var camera = SceneView.lastActiveSceneView != null ? SceneView.lastActiveSceneView.camera : null;
+            return camera != null ? camera.transform.forward : Vector3.forward;
         }
 
         static int DominantAxis(Vector3Int normal) => normal.x != 0 ? 0 : normal.y != 0 ? 1 : 2;
@@ -142,6 +148,14 @@ namespace ColorMaze
             Handles.zTest = CompareFunction.LessEqual;
             Handles.color = remove ? RemoveColor : PlaceColor;
             foreach (var cell in cells) Handles.DrawWireCube(CubeGridRules.CellCenter(cell), Vector3.one * 1.001f);
+            // 계단 붓이면 오르는 경사를 보인다(칸의 뒤쪽 아래 모서리 → 앞쪽 위 모서리).
+            if (!dragging && !remove && CubeGridEditing.SelectedBrush == CubeGridEditing.Brush.Stair && cells.Count == 1)
+            {
+                var rotation = CubeGridRules.StairRotation(CubeGridEditing.StairTurn(CameraForward()));
+                var center = CubeGridRules.CellCenter(cells[0]);
+                foreach (float side in new[] { -0.4f, 0f, 0.4f })
+                    Handles.DrawLine(center + rotation * new Vector3(side, -0.5f, -0.5f), center + rotation * new Vector3(side, 0.5f, 0.5f));
+            }
             Handles.zTest = zTest;
         }
     }

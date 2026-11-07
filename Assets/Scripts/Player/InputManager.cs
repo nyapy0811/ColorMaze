@@ -38,12 +38,6 @@ namespace ColorMaze
             return mouse != null ? mouse.delta.ReadValue() : Vector2.zero;
         }
 
-        public bool ReadJump()
-        {
-            var kb = Keyboard.current;
-            return kb != null && kb.spaceKey.wasPressedThisFrame;
-        }
-
         /// <summary>상호작용(좌클릭)을 누른 순간.</summary>
         public bool ReadInteract()
         {

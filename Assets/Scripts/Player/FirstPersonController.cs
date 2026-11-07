@@ -5,7 +5,8 @@ namespace ColorMaze
     /// <summary>
     /// 1인칭 이동(v1을 참고해 새로 씀). 몸통은 좌우로, 카메라는 위아래로 돈다.
     /// 지면에서는 가속해 움직이고, 공중에서는 땅을 떠난 순간의 수평 속도를 유지한다(이동키를 떼면 감속).
-    /// 게임플레이 입력이 잠기면 이동·시점·점프를 받지 않고(중력은 계속), 일시정지 중에는 멈춘다.
+    /// 게임플레이 입력이 잠기면 이동·시점을 받지 않고(중력은 계속), 일시정지 중에는 멈춘다.
+    /// 점프는 없다(2026-11-07): 위 칸으로는 계단으로만 간다(계단의 경사 콜라이더를 걸어 오름).
     /// 피벗은 발밑이다(맵 매니저가 시작 지점 위치로 바로 옮김).
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
@@ -26,11 +27,8 @@ namespace ColorMaze
         [Tooltip("공중에서 이동키를 뗐을 때 최대 속도에서 0까지 감속되는 시간(초)")]
         public float airDecelerationTime = 0.5f;
 
-        [Tooltip("점프 높이(유닛)")]
-        public float jumpHeight = 1.05f;
-
-        [Tooltip("평지에서 점프~착지까지 걸리는 시간(초)")]
-        public float airTime = 0.8f;
+        [Tooltip("중력 가속도(유닛/초²). 점프를 없앨 때 그 전의 낙하 느낌(점프 높이 1.05, 체공 0.8초)에서 역산한 값.")]
+        public float gravity = 13.125f;
 
         [Tooltip("눈높이 카메라")]
         public Transform cameraPivot;
@@ -38,19 +36,12 @@ namespace ColorMaze
         CharacterController cc;
         float pitch;
         float verticalVelocity;
-        float gravity;   // 양수 크기(jumpHeight/airTime에서 역산)
-        float jumpSpeed; // 점프 초기 속도
         Vector3 horizontalVelocity;
 
         void Awake()
         {
             cc = GetComponent<CharacterController>();
             if (GameSettings.HasSave()) mouseSensitivity = GameSettings.Current.mouseSensitivity;
-
-            // 오르는 시간 = airTime/2. h = g·t²/2 → g = 2h/t², 초기 속도 v = g·t.
-            float tUp = airTime * 0.5f;
-            gravity = 2f * jumpHeight / (tUp * tUp);
-            jumpSpeed = gravity * tUp;
         }
 
         void Start()
@@ -110,16 +101,11 @@ namespace ColorMaze
             }
 
             if (grounded && verticalVelocity < 0f) verticalVelocity = -2f; // 경사·계단에서 땅에 붙어 있게 살짝 누른다.
-            if (grounded && !locked && InputManager.Instance.ReadJump()) verticalVelocity = jumpSpeed;
             verticalVelocity -= gravity * Time.deltaTime;
 
             Vector3 velocity = horizontalVelocity;
             velocity.y = verticalVelocity;
             cc.Move(velocity * Time.deltaTime);
-
-            // 천장에 머리를 부딪치면 튕겨 내려온다.
-            if (verticalVelocity > 0f && (cc.collisionFlags & CollisionFlags.Above) != 0)
-                verticalVelocity = -verticalVelocity;
         }
     }
 }

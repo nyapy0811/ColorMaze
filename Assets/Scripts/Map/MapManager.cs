@@ -9,7 +9,8 @@ namespace ColorMaze
     /// 기물 등록부(맵 안 id → 기물)를 들고, 시작할 때 상태를 Playing으로 맞추고 플레이어를 시작 지점으로 옮긴다.
     /// 클리어 시간을 재고, 목적지가 요청하면 클리어한다(7.6).
     /// 체크포인트에 처음 닿으면 스냅샷을 만들고, '체크포인트로'는 씬을 다시 불러오지 않고 기물마다 되돌린다(부분 초기화, 2차 Q307).
-    /// 플레이어가 맵 밖으로 떨어지면 상태는 그대로 두고 마지막 체크포인트(없으면 시작 지점)로 옮기기만 한다(낙사 안전망, 2차 Q139).
+    /// 플레이어가 맵 밖으로 떨어지면 '체크포인트로'와 같이 마지막 체크포인트 상태로 되돌린다(없으면 '처음부터', 낙사 안전망, 2026-11-07).
+    /// 떨어졌다고 보는 높이는 가장 낮은 블록의 바닥보다 낙사 깊이만큼 아래다(큐브 맵은 높이가 자유로움, 2026-11-07).
     /// 맵 id와 맵 버전은 맵 목록에서 자기 씬 이름으로 찾는다. 체크포인트·클리어는 진행 저장(<see cref="ProgressStore"/>)에 바로 쓴다.
     /// 메뉴의 '이어하기'로 열렸을 때만(<see cref="SceneFlow"/>의 요청) 저장된 체크포인트부터 시작한다.
     /// 기물이 OnEnable에서 등록하므로 기물보다 먼저 깨어나도록 실행 순서를 앞에 둔다.
@@ -29,6 +30,9 @@ namespace ColorMaze
 
         /// <summary>마지막으로 닿은 체크포인트의 스냅샷(저장 파일에도 있음). 없으면 null.</summary>
         MapSnapshot checkpoint;
+
+        /// <summary>이 높이보다 아래로 떨어지면 낙사 안전망이 옮긴다.</summary>
+        float fallHeight;
 
         public MapList MapList => mapList;
         public MapListEntry Entry => entry;
@@ -59,6 +63,9 @@ namespace ColorMaze
             // 열린 맵에서 바로 시작하면 메뉴를 거치지 않으므로 여기서 Playing으로 맞춘다.
             if (GameManager.Instance.State != GameState.Playing) GameManager.Instance.StartGame();
             playerColor = player.GetComponent<PlayerColor>();
+            var grid = FindAnyObjectByType<CubeGrid>();
+            int lowest = grid != null && CubeGridRules.TryLowestY(grid.Data, out int y) ? y : 0;
+            fallHeight = lowest - rules.fallDepth;
             Begin(SceneFlow.TakeContinueRequest());
         }
 
@@ -85,7 +92,7 @@ namespace ColorMaze
         {
             if (GameManager.Instance.State != GameState.Playing) return;
             ClearTime += Time.deltaTime;
-            if (player.transform.position.y < -rules.fallDepth) CatchFall();
+            if (player.transform.position.y < fallHeight) CatchFall();
         }
 
         /// <summary>목적지가 부른다: 클리어와 최고 시간을 기록하고 체크포인트 기록을 지운 뒤(바로 저장), '맵 클리어'를 보내고 상태를 Cleared로 바꾼다.</summary>
@@ -172,11 +179,11 @@ namespace ColorMaze
             playerColor.Current.Restore(snapshot.currentColor);
         }
 
-        // 낙사 안전망: 진행은 그대로 두고 옮기기만 한다(연출 없음, 2차 Q304).
+        // 낙사 안전망: '체크포인트로'와 같다(체크포인트가 없으면 '처음부터', 2026-11-07). 페이드 중에는 다시 부르지 않는다.
         void CatchFall()
         {
-            if (checkpoint != null) player.Teleport(checkpoint.playerPosition, Quaternion.Euler(0f, checkpoint.playerYaw, 0f));
-            else MovePlayerToStart();
+            if (ScreenFade.IsFading) return;
+            ReturnToCheckpoint();
         }
 
         void MovePlayerToStart()

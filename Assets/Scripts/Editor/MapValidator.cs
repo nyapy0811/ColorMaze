@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -68,7 +69,7 @@ namespace ColorMaze
             if (rules == null) Debug.LogWarning("[맵 검사] 게임 규칙을 찾지 못해 요구 색을 검사하지 않았다(맵 매니저의 게임 규칙 칸).");
             else problems += CheckRequiredColors(scene, rules.channelLimit);
 
-            problems += CheckNodeGraph(scene);
+            problems += CheckCubeGrid(scene);
 
             if (managers.Count == 1) problems += CheckMapList(scene, managers[0].MapList);
 
@@ -124,46 +125,51 @@ namespace ColorMaze
             return problems;
         }
 
-        /// <summary>노드 그래프 1개, 같은 자리 노드, 높이(y)가 0이 아닌 노드, 없는 노드를 가리키는 벽, 끼울 수 없는 문 위치.</summary>
-        static int CheckNodeGraph(Scene scene)
+        /// <summary>
+        /// 큐브 격자 1개(원점에 두고 돌리거나 늘리지 않음), 칸 바닥 가운데에 놓이지 않은 기물, 한 칸에 둘 이상인 기물,
+        /// 블록과 같은 칸에 있는 기물(v1 칸 규칙, 한 칸에 하나).
+        /// </summary>
+        static int CheckCubeGrid(Scene scene)
         {
-            var graphs = Roots(scene).SelectMany(root => root.GetComponentsInChildren<NodeGraph>(true)).ToList();
-            if (graphs.Count != 1)
+            var grids = Roots(scene).SelectMany(root => root.GetComponentsInChildren<CubeGrid>(true)).ToList();
+            if (grids.Count != 1)
             {
-                Debug.LogError($"[맵 검사] 노드 그래프가 {graphs.Count}개다(1개여야 함). ColorMaze/노드 편집 창에서 만든다.");
+                Debug.LogError($"[맵 검사] 큐브 격자가 {grids.Count}개다(1개여야 함). ColorMaze/큐브 맵 편집 창에서 만든다.");
                 return 1;
             }
 
             int problems = 0;
-            var graph = graphs[0];
-            var data = graph.Data;
-            foreach (var group in data.nodes.GroupBy(node => node.position).Where(g => g.Count() > 1))
+            var grid = grids[0];
+            var root = grid.transform;
+            if (root.position != Vector3.zero || root.rotation != Quaternion.identity || root.lossyScale != Vector3.one)
             {
-                Debug.LogError($"[맵 검사] 같은 자리 {group.Key}에 노드가 {group.Count()}개다. 노드 편집 창의 '다시 만들기'가 합친다.", graph);
-                problems++;
-            }
-            foreach (var node in data.nodes.Where(node => node.position.y != 0))
-            {
-                Debug.LogError($"[맵 검사] 노드 #{node.id}의 높이가 {node.position.y}다(맵은 한 층이라 y는 0이어야 함). 노드 편집 도구로 옮기면 y가 0이 된다.", graph);
+                Debug.LogError("[맵 검사] 큐브 격자는 원점에 두고 돌리거나 늘리지 않는다(칸 좌표가 월드 좌표).", grid);
                 problems++;
             }
 
-            var config = NodeGraphEditing.FindConfig();
-            foreach (var wall in data.walls)
+            var blocks = new HashSet<Vector3Int>(grid.Data.blocks);
+            var occupied = new Dictionary<Vector3Int, FixtureBase>();
+            foreach (var fixture in FixtureIdAssigner.FixturesIn(scene))
             {
-                var start = NodeGraphRules.FindNode(data, wall.startNodeId);
-                var end = NodeGraphRules.FindNode(data, wall.endNodeId);
-                if (start == null || end == null)
+                var position = fixture.transform.position;
+                if (!CubeGridRules.IsOnCellBottom(position))
                 {
-                    Debug.LogError($"[맵 검사] 벽 #{wall.id}이 없는 노드를 가리킨다.", graph);
+                    Debug.LogError($"[맵 검사] '{fixture.name}'이 칸에 맞지 않는다({position}). 칸 바닥 가운데(x, y, z가 정수)에 둔다.", fixture);
+                    problems++;
+                    continue;
+                }
+                var cell = CubeGridRules.CellAt(position);
+                if (blocks.Contains(cell))
+                {
+                    Debug.LogError($"[맵 검사] '{fixture.name}'이 블록과 같은 칸 {cell}에 있다.", fixture);
                     problems++;
                 }
-                else if (wall.kind == WallKind.Normal && wall.hasDoor && config != null
-                         && !NodeGraphRules.CanPlaceDoor(NodeGraphRules.SegmentLength(start.position, end.position), config.doorWidth, wall.door.offsetModules))
+                if (occupied.TryGetValue(cell, out var other))
                 {
-                    Debug.LogError($"[맵 검사] 벽 #{wall.id}의 문을 끼울 수 없는 위치다(구간이 짧거나 문이 끝에 붙음). 노드 편집 창에서 문 위치를 고친다.", graph);
+                    Debug.LogError($"[맵 검사] 칸 {cell}에 기물이 둘 있다: '{other.name}', '{fixture.name}'.", fixture);
                     problems++;
                 }
+                else occupied[cell] = fixture;
             }
             return problems;
         }
